@@ -1,0 +1,13 @@
+File: `src/components/lobby-client.tsx`
+
+Purpose and responsibilities: Displays the signed-in player's lobby summary and the player roster grouped by house, then moves the player to the live screen when game status changes.
+
+Important exports, inputs, and outputs: `LobbyClient({ player, initialSnapshot })` accepts server-loaded `Player` and `GameSnapshot`, renders their UI, and polls `/api/game/state` every `POLL_INTERVAL_MS`.
+
+Dependencies: `casino-logo`, Next router, `src/lib/constants.ts`, and `src/lib/types.ts`.
+
+Backend/database interactions: Indirectly reads Neon through the safe state endpoint; invokes the logout endpoint to clear the session.
+
+Implementation details: The initial server snapshot avoids an empty first paint. The rendered chip count is display-only, derived from the snapshot; it cannot be edited by this component.
+
+Future expansion: Use the snapshot as the single read model for new lobby widgets. Switch the polling transport only behind this refresh boundary if a real-time service becomes necessary.

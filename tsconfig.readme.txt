@@ -1,0 +1,13 @@
+File: `tsconfig.json` (repository root)
+
+Purpose and responsibilities: Defines strict TypeScript checking and the `@/*` alias for the Next.js application.
+
+Important exports, inputs, and outputs: A compiler configuration consumed by TypeScript and Next.js; it emits no files because `noEmit` is enabled.
+
+Dependencies: TypeScript, Next.js-generated `.next/types`, and all files under `src`.
+
+Backend/database interactions: None.
+
+Implementation details: Next.js may maintain the JSX mode and generated type includes. Preserve strict mode and the `@/*` path alias used throughout source files.
+
+Future expansion: Add paths or compiler rules only if the change is project-wide and update the README setup notes when it affects contributors.

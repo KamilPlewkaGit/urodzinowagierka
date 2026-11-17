@@ -1,0 +1,13 @@
+File: `src/lib/validation.ts`
+
+Purpose and responsibilities: Defines server-side Zod schemas and nickname helpers used to safely accept registration and administrator-login requests.
+
+Important exports, inputs, and outputs: Exports `nicknameSchema`, `teamIdSchema`, `playerRegistrationSchema`, `adminLoginSchema`, `normalizeNickname`, and `isReservedNickname`. Schemas return parsed values or structured validation failures.
+
+Dependencies: Zod and `TEAM_IDS` from `src/lib/constants.ts`.
+
+Backend/database interactions: None directly. Parsed player data is passed to `database.ts` by the registration handler.
+
+Implementation details: Nicknames are NFKC-normalized and whitespace-collapsed before validation. The server independently reserves `admin`, even though the UI recognizes it.
+
+Future expansion: Add narrowly scoped schemas for each new endpoint. Do not reuse a broad client object schema for sensitive state changes.

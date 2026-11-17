@@ -1,0 +1,13 @@
+File: `src/lib/database.ts`
+
+Purpose and responsibilities: Owns all Neon PostgreSQL access, initial schema bootstrap, database-to-domain mapping, player creation/read, game snapshot read, and game start mutation.
+
+Important exports, inputs, and outputs: `ensureDatabase`, `createPlayer({ nickname, teamId })`, `getPlayer(playerId)`, `getGameSnapshot()`, and `startGame()` return domain objects/promises. `NicknameTakenError` communicates the expected unique-index conflict safely.
+
+Dependencies: `@neondatabase/serverless`, `server-only`, `src/lib/constants.ts`, and `src/lib/types.ts`.
+
+Backend/database interactions: This is the persistence boundary. It creates `players` and singleton `game_state`, applies constraints/indexes, inserts starting chips, and reads/updates authoritative state through parameterized Neon tagged-template queries.
+
+Implementation details: Schema initialization is memoized per server instance and resets after a failed attempt. Timestamp values are normalized to serializable ISO strings. Database constraints protect team IDs, nonnegative chip balances, game status, singleton game state, and case-insensitive nickname uniqueness even when callers are buggy or malicious.
+
+Future expansion: Add versioned migrations before schema evolution becomes complex. Add focused service functions for new game mutations; never export a generic SQL executor to route/UI layers.

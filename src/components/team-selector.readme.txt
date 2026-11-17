@@ -1,0 +1,13 @@
+File: `src/components/team-selector.tsx`
+
+Purpose and responsibilities: Displays the four valid houses and lets the registration form choose exactly one of them.
+
+Important exports, inputs, and outputs: `TeamSelector({ value, onChange, disabled? })` receives a `TeamId`, calls `onChange` with a valid `TeamId`, and renders a controlled fieldset.
+
+Dependencies: `src/lib/constants.ts` for team labels/colors and `src/lib/types.ts` for the TeamId contract.
+
+Backend/database interactions: None. The selected value is later validated again by the registration Route Handler.
+
+Implementation details: Team metadata is an internal constant, so inline visual properties cannot be manipulated through user text. Buttons use `aria-pressed` to expose selection state.
+
+Future expansion: Add a team only by changing the shared constants, Zod enum, and database CHECK together; do not add a client-only option.

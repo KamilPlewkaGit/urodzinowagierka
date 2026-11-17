@@ -1,0 +1,13 @@
+File: `postcss.config.mjs` (repository root)
+
+Purpose and responsibilities: Connects the Tailwind CSS PostCSS plugin to the Next.js CSS compilation pipeline.
+
+Important exports, inputs, and outputs: Exports a PostCSS plugin map; it receives CSS during build and emits processed CSS.
+
+Dependencies: `@tailwindcss/postcss` and the CSS import in `src/app/globals.css`.
+
+Backend/database interactions: None.
+
+Implementation details: The project uses Tailwind 4's CSS-first import alongside handwritten component styles.
+
+Future expansion: Add PostCSS plugins only when a specific build requirement needs them and document any output change.

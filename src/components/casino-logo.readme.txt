@@ -1,0 +1,13 @@
+File: `src/components/casino-logo.tsx`
+
+Purpose and responsibilities: Renders the reusable branded home link used in landing and authenticated headers.
+
+Important exports, inputs, and outputs: `CasinoLogo()` takes no props and returns a Next.js link to `/` with the spade mark and Grand Table wordmark.
+
+Dependencies: Next.js `Link` and shared classes from `src/app/globals.css`.
+
+Backend/database interactions: None.
+
+Implementation details: The accessible link label identifies the home destination; visual glyphs are marked decorative.
+
+Future expansion: Keep this presentation-only. If brand assets are introduced, preserve the same link and accessibility behavior.

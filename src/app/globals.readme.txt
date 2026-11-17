@@ -1,0 +1,13 @@
+File: `src/app/globals.css`
+
+Purpose and responsibilities: Defines Tailwind's CSS entry point and the shared premium casino visual system used by every page and component.
+
+Important exports, inputs, and outputs: CSS classes and custom properties such as `--gold`, `--panel`, and per-team `--team-color`; there are no JavaScript inputs or outputs.
+
+Dependencies: Loaded only by `src/app/layout.tsx`; class names are consumed by all page and component files.
+
+Backend/database interactions: None.
+
+Implementation details: The responsive breakpoints keep grids usable on tablet and mobile. Team hues are passed inline from trusted constant metadata, rather than from user input.
+
+Future expansion: Prefer adding reusable variables and component-scoped class sections. Update this file and this note together when markup class contracts change.

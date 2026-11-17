@@ -1,0 +1,13 @@
+File: `src/components/game-screen.tsx`
+
+Purpose and responsibilities: Provides the first active-game view after `game_state.status` becomes `started`, including live team chip totals.
+
+Important exports, inputs, and outputs: `GameScreen({ initialSnapshot, viewerRole })` renders the active table and periodically refreshes the read-only snapshot. `viewerRole` only controls the administrator navigation affordance.
+
+Dependencies: `casino-logo`, Next router, `src/lib/constants.ts`, and `src/lib/types.ts`.
+
+Backend/database interactions: Indirectly reads Neon via `/api/game/state` and can call logout; it has no balance or game mutation path.
+
+Implementation details: This deliberately is a basic future-ready screen, not a game mechanic. Team totals are always calculated from server-supplied player balances.
+
+Future expansion: Add round-specific components/services here after defining their authorization, persistent model, and snapshot contract.

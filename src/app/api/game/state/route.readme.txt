@@ -1,0 +1,13 @@
+File: `src/app/api/game/state/route.ts`
+
+Purpose and responsibilities: Returns the current public game snapshot used by lobby, admin, and active-game polling.
+
+Important exports, inputs, and outputs: `GET()` has no request payload and returns `{ game, players }` or a 503 `{ error }` response.
+
+Dependencies: `src/lib/database.ts`.
+
+Backend/database interactions: Calls `getGameSnapshot`, which reads the singleton game state and ordered player roster from Neon.
+
+Implementation details: The `Cache-Control: no-store` header prevents browser/CDN caching from delaying state synchronization. It returns no session secrets or mutation capability.
+
+Future expansion: Add only safe spectator data to this contract; distinguish privileged fields with a separate authorized endpoint if needed.

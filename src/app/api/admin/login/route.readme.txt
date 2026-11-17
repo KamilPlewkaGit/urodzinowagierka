@@ -1,0 +1,13 @@
+File: `src/app/api/admin/login/route.ts`
+
+Purpose and responsibilities: Authenticates the administrator password and issues an administrator session cookie.
+
+Important exports, inputs, and outputs: `POST(request)` accepts `{ password }`, returns `{ ok: true }` on success, or a safe `{ error }` response on malformed/invalid credentials.
+
+Dependencies: `bcryptjs`, `src/lib/validation.ts`, and `src/lib/session.ts`.
+
+Backend/database interactions: None; the configured bcrypt hash is read from the server-only environment.
+
+Implementation details: A missing, malformed, or non-matching `ADMIN_PASSWORD_HASH` fails closed. The hash and password never enter client bundles or responses.
+
+Future expansion: If adding rate limiting or multi-admin accounts, retain bcrypt comparison and server-side cookie issuance in this boundary.

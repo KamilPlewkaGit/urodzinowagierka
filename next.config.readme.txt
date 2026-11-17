@@ -1,0 +1,13 @@
+File: `next.config.ts` (repository root)
+
+Purpose and responsibilities: Declares the small project-level Next.js configuration. It enables React strict mode to expose unsafe effects during development.
+
+Important export, inputs, and outputs: Exports one `NextConfig` object. It accepts no runtime input and changes Next.js build/runtime behavior.
+
+Dependencies: Uses Next.js types only; it is read by the Next.js toolchain.
+
+Backend/database interactions: None.
+
+Implementation details: Keep this conservative because the deployment target is standard Vercel Next.js. Do not put secrets or runtime authorization here.
+
+Future expansion: Add narrowly justified Next configuration (for example image domains) here and describe it in the root README.

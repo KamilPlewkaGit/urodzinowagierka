@@ -1,0 +1,13 @@
+File: `src/app/page.tsx`
+
+Purpose and responsibilities: Renders the public casino-themed landing page and hosts the registration entry point.
+
+Important exports, inputs, and outputs: `HomePage` has no props and returns landing copy, static visual decoration, `CasinoLogo`, and `RegistrationForm`.
+
+Dependencies: `src/components/casino-logo.tsx`, `src/components/registration-form.tsx`, and global styling.
+
+Backend/database interactions: None directly. RegistrationForm calls the appropriate Route Handler after user interaction.
+
+Implementation details: The route intentionally contains no game logic or secrets; the administrator form path is selected inside the client form only when the input nickname is `admin`.
+
+Future expansion: Add non-sensitive event introduction content here without moving registration validation out of the API.

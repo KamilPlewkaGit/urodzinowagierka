@@ -1,0 +1,13 @@
+File: `src/lib/types.ts`
+
+Purpose and responsibilities: Defines the small shared domain vocabulary for teams, players, game state, snapshots, and verified sessions.
+
+Important exports, inputs, and outputs: Exports `TeamId`, `GameStatus`, `Player`, `GameState`, `GameSnapshot`, `Session`, and `TeamMeta` TypeScript contracts. These are compile-time types with no runtime output.
+
+Dependencies: None; this file is intentionally dependency-free.
+
+Backend/database interactions: It models data returned by `database.ts`, but contains no database code.
+
+Implementation details: `Session` is a discriminated union so protected routes and handlers must distinguish player from administrator authorization explicitly.
+
+Future expansion: Add domain fields here only when their persistent/API behavior is defined. Keep database row shapes private to `database.ts`.

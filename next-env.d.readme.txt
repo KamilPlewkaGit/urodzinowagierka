@@ -1,0 +1,13 @@
+File: `next-env.d.ts` (repository root)
+
+Purpose and responsibilities: Supplies Next.js ambient type references to TypeScript.
+
+Important exports, inputs, and outputs: It has no application exports or runtime output; TypeScript consumes its reference directives.
+
+Dependencies: Next.js type packages.
+
+Backend/database interactions: None.
+
+Implementation details: This is framework-managed boilerplate and must remain version controlled. Do not add domain types here.
+
+Future expansion: Put shared application contracts in `src/lib/types.ts`, not in this generated bridge file.

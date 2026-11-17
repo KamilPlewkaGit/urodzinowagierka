@@ -1,0 +1,13 @@
+File: `src/app/layout.tsx`
+
+Purpose and responsibilities: Defines the root HTML document, imports global styling, and supplies site-wide metadata for every route.
+
+Important exports, inputs, and outputs: `RootLayout` accepts React `children` and returns the application shell; `metadata` provides the browser title and description.
+
+Dependencies: `src/app/globals.css` and Next.js `Metadata`.
+
+Backend/database interactions: None; authorization and queries occur in individual pages and Route Handlers.
+
+Implementation details: This remains a Server Component, which keeps the entire app eligible for server-side access checks.
+
+Future expansion: Add shared providers or font loading here only when they are truly global and do not expose server-only state.

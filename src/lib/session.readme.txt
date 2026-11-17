@@ -1,0 +1,13 @@
+File: `src/lib/session.ts`
+
+Purpose and responsibilities: Creates and verifies signed, short-lived application session cookies and exposes helpers for server pages and Route Handlers.
+
+Important exports, inputs, and outputs: Exports session cookie constants/options, player/admin session creators, `verifySession`, `getCurrentSession`, and `getRequestSession`. It accepts a player ID or cookie string/request and returns a verified `Session` or `null`.
+
+Dependencies: Node `crypto`, Next `cookies`, NextRequest types, and `src/lib/types.ts`; `server-only` prevents client imports.
+
+Backend/database interactions: None. A verified player ID is later checked against Neon by protected pages; admin authority exists in a signed role claim.
+
+Implementation details: Tokens have exactly `payload.signature` parts, are HMAC-SHA256 signed using `SESSION_SECRET`, timing-safe compared, HttpOnly, SameSite=Lax, and production-secure. Payloads are signed—not encrypted—so include only minimal non-secret claims.
+
+Future expansion: Add issuance metadata or server-side revocation only if requirements need it; preserve signature verification and never replace authorization with an unsigned client value.

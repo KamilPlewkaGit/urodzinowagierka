@@ -1,0 +1,13 @@
+File: `src/app/api/game/start/route.ts`
+
+Purpose and responsibilities: Implements the sole initial game mutation: opening the game table.
+
+Important exports, inputs, and outputs: `POST(request)` accepts no body, returns `{ game }` when successful, and returns 403 or 500 `{ error }` otherwise.
+
+Dependencies: `src/lib/session.ts` and `src/lib/database.ts`.
+
+Backend/database interactions: Verifies the request's signed cookie then calls the persistent `startGame` update. Regular players cannot invoke that update.
+
+Implementation details: Authorization is performed before the database call and only a session with role `admin` passes. The database operation preserves the first `started_at` timestamp on repeat calls.
+
+Future expansion: Place every new admin mutation in its own authorized handler and add a service function rather than accepting arbitrary state patch requests.

@@ -1,0 +1,13 @@
+File: `src/components/admin-dashboard.tsx`
+
+Purpose and responsibilities: Presents lobby metrics and house roster to an authenticated administrator and triggers the start-game command.
+
+Important exports, inputs, and outputs: `AdminDashboard({ initialSnapshot })` polls state every four seconds and POSTs `/api/game/start` when the button is pressed. It displays errors returned by the server.
+
+Dependencies: `casino-logo`, Next router, `src/lib/constants.ts`, and `src/lib/types.ts`.
+
+Backend/database interactions: Indirect through the public state API and protected start API; the API verifies authorization again and performs Neon writes.
+
+Implementation details: Disabling the client button after status changes improves UX but is not the security control. The start handler verifies the server-side administrator session.
+
+Future expansion: Add a separate component and protected endpoint for each future admin action, rather than turning this into a generic state editor.

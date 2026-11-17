@@ -1,0 +1,13 @@
+File: `src/app/admin/page.tsx`
+
+Purpose and responsibilities: Server-side entry gate for the administrator command dashboard.
+
+Important exports, inputs, and outputs: `AdminPage` returns `AdminDashboard` with a fresh initial snapshot, or redirects unauthenticated/non-admin visitors to `/`.
+
+Dependencies: `src/lib/session.ts`, `src/lib/database.ts`, and `src/components/admin-dashboard.tsx`.
+
+Backend/database interactions: Reads the session and a Neon game snapshot; it performs no mutation itself.
+
+Implementation details: Authorization uses the signed session role, never the nickname or a client-supplied value. Dynamic rendering avoids serving a cached dashboard.
+
+Future expansion: New administrative panels belong in protected components plus separately authorized Route Handlers; do not make this page a mutation endpoint.

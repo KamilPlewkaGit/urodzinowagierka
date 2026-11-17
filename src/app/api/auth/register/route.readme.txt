@@ -1,0 +1,13 @@
+File: `src/app/api/auth/register/route.ts`
+
+Purpose and responsibilities: Provides the regular-player registration endpoint. It normalizes and validates the nickname/team, reserves a database row with 100 chips, and creates a player session.
+
+Important exports, inputs, and outputs: `POST(request)` accepts JSON `{ nickname, teamId }`; it returns `{ player }` with 201 or an `{ error }` response with 400, 409, or 500 status.
+
+Dependencies: `src/lib/validation.ts`, `src/lib/database.ts`, and `src/lib/session.ts`.
+
+Backend/database interactions: Calls `createPlayer`, whose Neon insert allocates the authoritative starting balance and detects the case-insensitive nickname constraint.
+
+Implementation details: The reserved `admin` nickname is rejected server-side even if a caller bypasses the landing form. The HttpOnly cookie is set only after a successful insert.
+
+Future expansion: Add optional player profile fields through the validation schema and database service; do not accept chips or role fields in this request.

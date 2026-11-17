@@ -1,0 +1,13 @@
+File: `src/lib/constants.ts`
+
+Purpose and responsibilities: Holds the fixed four-house configuration, starting chip balance, polling interval, and team metadata lookup helper.
+
+Important exports, inputs, and outputs: `TEAM_IDS`, `TEAMS`, `STARTING_TOKENS`, `POLL_INTERVAL_MS`, and `getTeam(teamId)`. `getTeam` accepts a valid TeamId and returns presentation metadata.
+
+Dependencies: `src/lib/types.ts` only.
+
+Backend/database interactions: `TEAM_IDS` and `STARTING_TOKENS` inform schema and player creation in `database.ts`; no query is run here.
+
+Implementation details: Team IDs are a literal tuple so validation, UI, and typing share one stable identifier set. Colors/icons are presentation metadata, not user data.
+
+Future expansion: Updating houses requires coordinated changes to the database CHECK in `database.ts`, so use a migration before changing this list in production.

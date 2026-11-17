@@ -1,0 +1,13 @@
+File: `src/app/api/auth/logout/route.ts`
+
+Purpose and responsibilities: Clears either player or administrator browser session without needing to inspect the role.
+
+Important exports, inputs, and outputs: `POST()` returns `{ ok: true }` and expires the `casino_session` cookie immediately.
+
+Dependencies: `src/lib/session.ts` for the shared cookie name and secure options.
+
+Backend/database interactions: None; sessions are signed stateless cookies in this first stage.
+
+Implementation details: It preserves cookie attributes such as path and SameSite when expiring the cookie so browsers replace the original cookie correctly.
+
+Future expansion: If sessions become database-backed, revoke the persistent session here in addition to expiring the cookie.
