@@ -2,7 +2,7 @@ File: `src/components/sport-admin-controls.tsx`
 
 Purpose and responsibilities: Provides the Polish administrator workflow for SPORT: two configurable team pairs, a complete dynamic player ranking per team, eight challenge transitions, team winner confirmation, and two bonus rounds.
 
-Important exports, inputs, and outputs: `SportAdminControls({ snapshot, onRefresh })` first renders all four teams and a working `Zatwierdź drużyny` action, then renders one rank selector for every active player after pairs are persisted. It also renders betting progress, challenge winners, bonus limb requirements, and bonus points. A team's rank list always runs from 1 through its current active-player count.
+Important exports, inputs, and outputs: `SportAdminControls({ snapshot, onRefresh })` first renders all four teams and a working `Zatwierdź drużyny` action, then renders one rank selector for every active player after pairs are persisted. It renders the bet count, challenge winners, bonus limb requirements, and bonus points. Before each main challenge, the administrator confirms the close of betting and starts with any number of bets. A team's rank list always runs from 1 through its current active-player count.
 
 Dependencies: React hooks, team metadata, SPORT schedule metadata, shared snapshot types, and existing casino CSS classes.
 

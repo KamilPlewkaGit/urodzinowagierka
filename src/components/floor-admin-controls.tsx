@@ -57,7 +57,6 @@ export function FloorAdminControls({ snapshot, onRefresh }: FloorAdminControlsPr
   const teamB = duel?.teamBId ? getTeam(duel.teamBId) : null;
   const winnerTeam = duel?.winnerTeamId ? getTeam(duel.winnerTeamId) : null;
   const times = useMemo(() => duel ? getTheFloorTimes(duel, now) : null, [duel, now]);
-  const requiredBetCount = duel ? snapshot.players.filter((player) => player.teamId !== duel.teamAId && player.teamId !== duel.teamBId).length : 0;
 
   useEffect(() => {
     const interval = window.setInterval(() => setNow(Date.now()), 250);
@@ -70,6 +69,12 @@ export function FloorAdminControls({ snapshot, onRefresh }: FloorAdminControlsPr
   // post is intentionally recreated with the state it closes over.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [floor.stage, times?.teamA, times?.teamB]);
+
+  function confirmStart() {
+    if (window.confirm("Zamknąć obstawianie i rozpocząć pojedynek? Złożone zakłady zostaną rozliczone po wyniku.")) {
+      void post("start-duel", "/api/segment/floor/start-duel");
+    }
+  }
 
   async function post(action: string, endpoint: string, body?: object) {
     setError("");
@@ -111,7 +116,7 @@ export function FloorAdminControls({ snapshot, onRefresh }: FloorAdminControlsPr
       <article className="floor-admin-panel">
         {floor.stage === "intro" ? <>
           <span className="panel-index">THE FLOOR / START</span><h2>{THE_FLOOR_TITLE}</h2>
-          <p>W każdym pojedynku rywalizują całe drużyny. Członkowie dwóch pozostałych drużyn obstawiają zwycięzcę po 2 żetony.</p>
+          <p>W każdym pojedynku rywalizują całe drużyny. Członkowie dwóch pozostałych drużyn mogą obstawić zwycięzcę za 2 żetony.</p>
           <button className="gold-button start-button" onClick={() => post("start", "/api/segment/floor/start")} disabled={pending !== null}>Rozpocznij segment</button>
         </> : null}
 
@@ -125,8 +130,8 @@ export function FloorAdminControls({ snapshot, onRefresh }: FloorAdminControlsPr
         {floor.stage === "betting" && duel && category && teamA && teamB ? <>
           <span className="panel-index">POJEDYNEK {duel.sequence + 1}/6 / OBSTAWIANIE</span><h2>{category.name}</h2><p>{category.instructions}</p>
           <TeamDuelists teamA={teamA} teamB={teamB} />
-          <p>Zarejestrowane zakłady: <strong>{duel.betCount} z {requiredBetCount}</strong>. Każdy uprawniony gracz musi obstawić przed startem.</p>
-          <button className="gold-button start-button" onClick={() => post("start-duel", "/api/segment/floor/start-duel")} disabled={pending !== null || duel.betCount < requiredBetCount}>Rozpocznij pojedynek</button>
+          <p>Zarejestrowane zakłady: <strong>{duel.betCount}</strong>. Obstawianie jest opcjonalne.</p>
+          <button className="gold-button start-button" onClick={confirmStart} disabled={pending !== null}>Rozpocznij pojedynek</button>
         </> : null}
 
         {floor.stage === "live" && duel && category && item && teamA && teamB && times ? <>

@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
   const session = await getRequestSession(request);
   if (!session || session.role !== "admin") return NextResponse.json({ error: "Wymagane jest uprawnienie administratora." }, { status: 403 });
   try {
-    if (!(await startSportChallenge())) return NextResponse.json({ error: "Nie można rozpocząć wyzwania. Wszyscy uprawnieni gracze muszą najpierw obstawić." }, { status: 409 });
+    if (!(await startSportChallenge())) return NextResponse.json({ error: "Nie można teraz zamknąć zakładów i rozpocząć wyzwania." }, { status: 409 });
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Nie udało się rozpocząć wyzwania Sport", error);

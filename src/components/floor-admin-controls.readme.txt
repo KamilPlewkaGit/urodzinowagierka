@@ -8,6 +8,6 @@ Dependencies: React hooks, team metadata, Floor helpers, shared types, and exist
 
 Backend/database interactions: Indirect only through `/api/segment/floor/*`. The timeout effect only asks the server to finish a zero-clock duel; server time remains decisive.
 
-Implementation details: The UI never selects individual players. It disables the second-side copy of the first selected team, shows required versus received bets, prevents a premature start in the browser, and still relies on the server to enforce every rule. A completed duel first requires selection and confirmation of one of its two teams before settlement and progression are offered.
+Implementation details: The UI never selects individual players. It disables the second-side copy of the first selected team, shows received bets, and asks the administrator to confirm closing betting and starting the duel with any number of bets. A completed duel first requires selection and confirmation of one of its two teams before settlement and progression are offered.
 
 Future expansion: Keep administrator choices advisory until a protected server transition confirms them.

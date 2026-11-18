@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
   const session = await getRequestSession(request);
   if (!session || session.role !== "admin") return NextResponse.json({ error: "Wymagane jest uprawnienie administratora." }, { status: 403 });
   try {
-    if (!(await startPojedynkiDuel())) return NextResponse.json({ error: "Nie wszyscy uprawnieni gracze postawili zakład albo pojedynek nie jest gotowy." }, { status: 409 });
+    if (!(await startPojedynkiDuel())) return NextResponse.json({ error: "Nie można teraz zamknąć zakładów i rozpocząć pojedynku." }, { status: 409 });
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Nie udało się rozpocząć pojedynku", error);

@@ -1375,7 +1375,7 @@ export async function placeTheFloorBet(input: { bettorId: number; targetTeamId: 
   return rows[0]?.completed === true || rows[0]?.completed === "t";
 }
 
-/** Locks bets after every eligible player has placed one and starts team A's timer. */
+/** Closes optional betting and starts team A's timer. */
 export async function startTheFloorDuel() {
   await ensureDatabase();
   const sql = database();
@@ -1394,17 +1394,6 @@ export async function startTheFloorDuel() {
       FROM current_duel
       WHERE duel.id = current_duel.id
         AND current_duel.team_a_id IS NOT NULL AND current_duel.team_b_id IS NOT NULL
-        AND NOT EXISTS (
-          SELECT 1
-          FROM players player
-          WHERE player.active = TRUE
-            AND player.team_id NOT IN (current_duel.team_a_id, current_duel.team_b_id)
-            AND NOT EXISTS (
-              SELECT 1
-              FROM the_floor_bets bet
-              WHERE bet.duel_id = current_duel.id AND bet.bettor_id = player.id
-            )
-        )
       RETURNING duel.id
     ),
     advanced AS (
@@ -1873,13 +1862,13 @@ export async function placeSportBet(input: { bettorId: number; targetTeamId: Tea
   return rows[0]?.completed === true || rows[0]?.completed === "t";
 }
 
-/** Locks all required bets and opens the real-world challenge. */
+/** Closes optional betting and opens the real-world challenge. */
 export async function startSportChallenge() {
   await ensureDatabase();
   const sql = database();
   const rows = (await sql`
     WITH current_challenge AS (
-      SELECT challenge.id, pairing.team_a_id, pairing.team_b_id
+      SELECT challenge.id
       FROM sport_challenges challenge
       JOIN sport_pairings pairing ON pairing.slot = challenge.pair_slot
       JOIN game_state game ON game.current_sport_challenge_sequence = challenge.sequence
@@ -1892,11 +1881,6 @@ export async function startSportChallenge() {
       SET stage = 'live', started_at = NOW()
       FROM current_challenge
       WHERE challenge.id = current_challenge.id
-        AND NOT EXISTS (
-          SELECT 1 FROM players player
-          WHERE player.active = TRUE AND player.team_id NOT IN (current_challenge.team_a_id, current_challenge.team_b_id)
-            AND NOT EXISTS (SELECT 1 FROM sport_bets bet WHERE bet.challenge_id = current_challenge.id AND bet.bettor_id = player.id)
-        )
       RETURNING challenge.id
     ),
     started_game AS (
@@ -2677,7 +2661,7 @@ export async function placePojedynkiBet(input: { bettorId: number; targetTeamId:
   return rows[0]?.completed === true || rows[0]?.completed === "t";
 }
 
-/** Locks betting after every eligible player has placed a wager and opens the real-world duel. */
+/** Closes optional betting and opens the real-world duel. */
 export async function startPojedynkiDuel() {
   await ensureDatabase();
   const sql = database();
@@ -2695,11 +2679,7 @@ export async function startPojedynkiDuel() {
       SET stage = 'live', started_at = NOW()
       FROM current_duel
       WHERE duel.id = current_duel.id
-        AND NOT EXISTS (
-          SELECT 1 FROM players player
-          WHERE player.active = TRUE AND player.team_id NOT IN (current_duel.team_a_id, current_duel.team_b_id)
-            AND NOT EXISTS (SELECT 1 FROM pojedynki_bets bet WHERE bet.duel_id = current_duel.id AND bet.bettor_id = player.id)
-        )
+        AND current_duel.team_a_id IS NOT NULL AND current_duel.team_b_id IS NOT NULL
       RETURNING duel.id
     ),
     advanced AS (

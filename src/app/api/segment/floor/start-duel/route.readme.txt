@@ -6,6 +6,6 @@ Important exports, inputs, and outputs: Admin-only bodyless `POST(request)` retu
 
 Dependencies: Next Route Handler APIs, opaque sessions, and `database.ts`.
 
-Backend/database interactions: `startTheFloorDuel` accepts only the persisted betting stage, requires a bet from every eligible active player outside the two teams, sets the active team, and records a server timestamp.
+Backend/database interactions: `startTheFloorDuel` accepts only the persisted betting stage, closes betting with any number of bets, sets the active team, and records a server timestamp.
 
 Implementation details: Once the stage is live, later bet requests are rejected even from a stale browser.

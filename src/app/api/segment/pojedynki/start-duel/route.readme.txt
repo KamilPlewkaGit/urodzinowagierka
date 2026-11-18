@@ -6,6 +6,6 @@ Important exports, inputs, and outputs: Bodyless administrator-only `POST(reques
 
 Dependencies: Next Route Handler APIs, opaque sessions, and `startPojedynkiDuel`.
 
-Backend/database interactions: Requires one stored wager from every active player outside the two selected teams, then atomically changes the persistent duel and segment stages to `live`.
+Backend/database interactions: Requires two selected teams in the betting stage and atomically changes the persistent duel and segment stages to `live`.
 
-Implementation details: A stale browser cannot add or modify a bet after this transition.
+Implementation details: The administrator may start with any number of bets. A stale browser cannot add or modify a bet after this transition.

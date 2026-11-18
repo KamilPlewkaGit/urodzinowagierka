@@ -2,4 +2,6 @@ File: src/components/floor-screen.tsx
 
 Purpose: The Floor displays team selection, betting, the live duel and display-only clocks, and the result. The server owns the fixed stake and determines eligibility from the competing teams. The player sends only the target team to /api/segment/floor/bet.
 
+Eligible players may leave the optional wager unsubmitted and wait for the administrator to start play.
+
 ActiveSegment supplies the live GameSnapshot, viewer role and optional session-derived player ID, and a shared refresh callback. After a successful bet the screen requests a fresh snapshot through that callback. The screen receives only the viewer's own bet details and keeps transient feedback local. Game progression and settlement remain in the existing protected Route Handlers.

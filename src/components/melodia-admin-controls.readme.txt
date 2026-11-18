@@ -1,6 +1,6 @@
 File: `src/components/melodia-admin-controls.tsx`
 
-Purpose and responsibilities: Provides the Polish administrator controls for the Jaka to melodia? lifecycle: opening the pre-segment market, starting each of five songs, opening scoring, recording one team's score, optionally recording a simple musical bidding result, advancing, and acknowledging final results.
+Purpose and responsibilities: Provides the Polish administrator controls for the Jaka to melodia? lifecycle: opening the pre-segment market, confirming the close of optional betting and starting the first song, opening later songs, opening scoring, recording one team's score, optionally recording a simple musical bidding result, advancing, and acknowledging final results.
 
 Important exports, inputs, and outputs: `MelodiaAdminControls({ snapshot, onRefresh })` derives all persisted phase data from `snapshot`. It posts narrow action payloads to protected Segment V routes. During scoring it offers artist/title booleans, 0–5 singing lines, a mistake override, and optional participating bidding teams with declared lines, winning bidder, and completion flag.
 

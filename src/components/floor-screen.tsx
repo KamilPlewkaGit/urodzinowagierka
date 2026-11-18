@@ -83,7 +83,7 @@ export function FloorScreen({ snapshot, refresh, viewerRole, viewerPlayerId }: F
         <div className="game-stage-content">
           {floor.stage === "intro" ? <>
             <span className="eyebrow">Kolejny segment</span><h1>{THE_FLOOR_TITLE}</h1>
-            <p>W każdym pojedynku rywalizują dwie drużyny. Członkowie pozostałych drużyn obstawiają zwycięzcę.</p>
+            <p>W każdym pojedynku rywalizują dwie drużyny. Członkowie pozostałych drużyn mogą obstawić zwycięzcę.</p>
             <div className="segment-rules"><span><strong>Tryb:</strong> drużyna kontra drużyna</span><span><strong>Format:</strong> jeden pojedynek na kategorię</span><span><strong>Zakłady:</strong> 2 żetony na drużynę</span></div>
           </> : null}
 
@@ -96,7 +96,7 @@ export function FloorScreen({ snapshot, refresh, viewerRole, viewerPlayerId }: F
             <span className="eyebrow">Pojedynek {duel.sequence + 1}/6 · obstawianie trwa</span><h1>{category.name}</h1>
             <p>{category.instructions}</p>
             <TeamDuelists teamA={teamA} teamB={teamB} />
-            {viewerRole === "player" && viewerTeamId && !viewerIsCompeting && !duel.viewerBetTargetTeamId ? <div className="floor-bet-panel"><p>Wybierz zwycięską drużynę. Stawka: <strong>{formatChips(THE_FLOOR_BET_STAKE)} żetony</strong>.</p><div className="floor-bet-buttons"><button className="gold-button" disabled={betting} onClick={() => placeBet(teamA.id)}>Stawiam na {teamA.name}</button><button className="gold-button" disabled={betting} onClick={() => placeBet(teamB.id)}>Stawiam na {teamB.name}</button></div></div> : null}
+            {viewerRole === "player" && viewerTeamId && !viewerIsCompeting && !duel.viewerBetTargetTeamId ? <div className="floor-bet-panel"><p>Zakład jest opcjonalny. Poczekaj na start albo wybierz drużynę. Stawka: <strong>{formatChips(THE_FLOOR_BET_STAKE)} żetony</strong>.</p><div className="floor-bet-buttons"><button className="gold-button" disabled={betting} onClick={() => placeBet(teamA.id)}>Stawiam na {teamA.name}</button><button className="gold-button" disabled={betting} onClick={() => placeBet(teamB.id)}>Stawiam na {teamB.name}</button></div></div> : null}
             {viewerRole === "player" && viewerIsCompeting ? <p className="floor-waiting">Twoja drużyna bierze udział w pojedynku, więc jej członkowie nie mogą obstawiać.</p> : null}
             {viewerRole === "player" && duel.viewerBetTargetTeamId ? <p className="floor-waiting">Twój zakład na {getTeam(duel.viewerBetTargetTeamId).name} został przyjęty. Prowadzący zamknie zakłady przed startem.</p> : null}
           </> : null}

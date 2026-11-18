@@ -1,6 +1,6 @@
 File: `src/app/api/segment/melodia/start-song/route.ts`
 
-Purpose and responsibilities: Lets the administrator close the pre-song market and expose Song 1.
+Purpose and responsibilities: Lets the administrator close the pre-song market and expose Song 1 with any number of bets.
 
 Important exports, inputs, and outputs: Admin-only bodyless `POST(request)` returns `{ ok: true }` or a Polish authorization, conflict, or server error.
 

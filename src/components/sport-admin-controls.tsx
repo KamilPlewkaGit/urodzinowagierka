@@ -72,7 +72,6 @@ export function SportAdminControls({ snapshot, onRefresh }: SportAdminControlsPr
   const bonus = sport.currentBonus;
   const winner = challenge?.winnerTeamId ? getTeam(challenge.winnerTeamId) : null;
   const bonusWinner = bonus?.winnerTeamId ? getTeam(bonus.winnerTeamId) : null;
-  const requiredBetCount = pair ? snapshot.players.filter((player) => player.teamId !== pair.teamAId && player.teamId !== pair.teamBId).length : 0;
   const playersForTeam = (teamId: TeamId) => snapshot.players.filter((player) => player.teamId === teamId);
   const rankingsComplete = TEAMS.every((team) => {
     const members = playersForTeam(team.id);
@@ -123,6 +122,12 @@ export function SportAdminControls({ snapshot, onRefresh }: SportAdminControlsPr
     setWinnerTeamId((current) => current === null ? current : null);
     setBonusPoints((current) => current === "0" ? current : "0");
   }, [bonusSyncKey]);
+
+  function confirmStart() {
+    if (window.confirm("Zamknąć obstawianie i rozpocząć wyzwanie? Złożone zakłady zostaną rozliczone po wyniku.")) {
+      void post("start-challenge", "/api/segment/sport/start-challenge");
+    }
+  }
 
   async function post(action: string, endpoint: string, body?: object) {
     setError("");
@@ -228,7 +233,7 @@ export function SportAdminControls({ snapshot, onRefresh }: SportAdminControlsPr
         </div>
       </>}
     </> : null}
-    {sport.stage === "betting" && challenge && definition && pair ? <><span className="panel-index">WYZWANIE {challenge.sequence + 1}/{SPORT_CHALLENGE_COUNT} / OBSTAWIANIE</span><h2>{definition.name}</h2><p>{definition.activity}</p><SportVersus snapshot={snapshot} pair={pair} numbers={{ teamA: definition.teamANumbers, teamB: definition.teamBNumbers }} /><p>Zarejestrowane zakłady: <strong>{challenge.betCount} z {requiredBetCount}</strong>. Każdy uprawniony gracz musi obstawić.</p><button className="gold-button start-button" onClick={() => post("start-challenge", "/api/segment/sport/start-challenge")} disabled={pending !== null || challenge.betCount < requiredBetCount}>Rozpocznij pojedynek</button></> : null}
+    {sport.stage === "betting" && challenge && definition && pair ? <><span className="panel-index">WYZWANIE {challenge.sequence + 1}/{SPORT_CHALLENGE_COUNT} / OBSTAWIANIE</span><h2>{definition.name}</h2><p>{definition.activity}</p><SportVersus snapshot={snapshot} pair={pair} numbers={{ teamA: definition.teamANumbers, teamB: definition.teamBNumbers }} /><p>Zarejestrowane zakłady: <strong>{challenge.betCount}</strong>. Obstawianie jest opcjonalne.</p><button className="gold-button start-button" onClick={confirmStart} disabled={pending !== null}>Rozpocznij wyzwanie</button></> : null}
     {sport.stage === "live" && challenge && definition && pair ? <><span className="panel-index">WYZWANIE {challenge.sequence + 1}/{SPORT_CHALLENGE_COUNT} / W TOKU</span><h2>{definition.name}</h2><p>{definition.activity}. Zakłady są zamknięte, a pojedynek odbywa się poza aplikacją.</p><SportVersus snapshot={snapshot} pair={pair} numbers={{ teamA: definition.teamANumbers, teamB: definition.teamBNumbers }} /><fieldset className="team-fieldset"><legend>Wybierz zwycięzcę</legend><div className="team-grid"><TeamChoice team={getTeam(pair.teamAId)} selected={winnerTeamId === pair.teamAId} disabled={pending !== null} onSelect={() => setWinnerTeamId(pair.teamAId)} /><TeamChoice team={getTeam(pair.teamBId)} selected={winnerTeamId === pair.teamBId} disabled={pending !== null} onSelect={() => setWinnerTeamId(pair.teamBId)} /></div></fieldset><button className="gold-button start-button" onClick={confirmWinner} disabled={pending !== null || !winnerTeamId}>Zatwierdź wynik</button></> : null}
     {sport.stage === "result" && challenge && winner ? <><span className="panel-index">WYZWANIE {challenge.sequence + 1}/{SPORT_CHALLENGE_COUNT} / WYNIK</span><h2>Wygrywa {winner.name}.</h2><p>Zakłady zostały rozliczone zgodnie z zasadami Sportu.</p><button className="gold-button start-button" onClick={() => post("next", "/api/segment/sport/next")} disabled={pending !== null}>{challenge.sequence === SPORT_CHALLENGE_COUNT - 1 ? "Przejdź do wyzwań bonusowych" : "Następne wyzwanie"}</button></> : null}
     {sport.stage === "bonus-setup" && bonus ? <><span className="panel-index">WYZWANIE BONUSOWE / RUNDA {bonus.sequence + 1}/{SPORT_BONUS_ROUND_COUNT}</span><h2>Ustal liczbę kończyn</h2><p>Wszystkie cztery drużyny biorą udział jednocześnie. Nie ma zakładów.</p><div className="floor-pair-selectors">{TEAMS.map((team) => <label className="field-label" key={team.id}>{team.icon} {team.name}<input className="text-input" type="number" min="0" max="100" inputMode="numeric" value={limbValues[team.id]} onChange={(event) => setLimbValues((current) => ({ ...current, [team.id]: event.target.value }))} disabled={pending !== null} /></label>)}</div><div className="floor-admin-actions"><button className="secondary-button" onClick={saveBonusRequirements} disabled={pending !== null}>Zatwierdź wymagania</button><button className="gold-button" onClick={() => post("bonus-start", "/api/segment/sport/bonus-start")} disabled={pending !== null || bonus.requirements.length !== 4}>Rozpocznij wyzwanie bonusowe</button></div></> : null}

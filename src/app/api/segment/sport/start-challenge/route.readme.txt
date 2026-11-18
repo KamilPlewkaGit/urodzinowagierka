@@ -6,4 +6,4 @@ Important exports, inputs, and outputs: Admin-only bodyless `POST(request)` retu
 
 Dependencies: Next Route Handler APIs, opaque sessions, and `database.ts`.
 
-Backend/database interactions: `startSportChallenge` requires a bet from every active player outside the two competing teams, then persists `live` state and a start timestamp.
+Backend/database interactions: `startSportChallenge` accepts the persisted betting stage with any number of bets and persists `live` state and a start timestamp.
