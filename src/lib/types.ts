@@ -9,7 +9,7 @@ export type SportStage = "intro" | "setup" | "betting" | "live" | "result" | "bo
 export type SportPairSlot = "a" | "b";
 export type SportChallengeStage = "pending" | "betting" | "live" | "result";
 export type SportBonusStage = "pending" | "setup" | "live" | "result";
-export type MelodiaStage = "intro" | "betting" | "song" | "scoring" | "result" | "results";
+export type MelodiaStage = "intro" | "ready" | "song" | "scoring" | "result" | "results" | "completed";
 export type MelodiaSongStage = "pending" | "live" | "scoring" | "result";
 export type PojedynkiStage = "intro" | "setup" | "betting" | "live" | "result" | "results";
 export type PojedynkiDuelStage = "pending" | "betting" | "live" | "result";
@@ -152,13 +152,12 @@ export interface MelodiaState {
   currentSong: MelodiaSong | null;
   songs: MelodiaSong[];
   teamScores: MelodiaTeamScore[];
-  betCount: number;
-  viewerBetTargetTeamId: TeamId | null;
-  viewerBetStake: string | null;
-  viewerBetResult: "pending" | "won" | "lost" | "refunded" | null;
-  viewerBetPayout: string | null;
   leadingTeamIds: TeamId[];
+  winningTeamId: TeamId | null;
   settledAt: string | null;
+  charge: { min: string; max: string } | null;
+  viewerDelta: string | null;
+  completedLegacy: boolean;
 }
 
 export interface PojedynkiDuel {

@@ -2,13 +2,13 @@ import "server-only";
 
 import { randomBytes } from "node:crypto";
 
-import { defaults, neon } from "@neondatabase/serverless";
+import { defaults, neon, type NeonQueryPromise } from "@neondatabase/serverless";
 
 import { STARTING_TOKENS } from "@/lib/constants";
 import { THE_FLOOR_BET_STAKE, THE_FLOOR_CATEGORY_COUNT, THE_FLOOR_DUEL_SECONDS, THE_FLOOR_PASS_PENALTY_SECONDS } from "@/lib/floor";
 import { SOLENIZANT_LAST_QUESTION_INDEX } from "@/lib/solenizant";
 import { SPORT_BET_STAKE, SPORT_BONUS_ROUND_COUNT, SPORT_CHALLENGE_COUNT, SPORT_CORRECT_BET_PROFIT, SPORT_CHALLENGES } from "@/lib/sport";
-import { MELODIA_SONG_COUNT } from "@/lib/melodia";
+import { MELODIA_REWARD, MELODIA_SONG_COUNT } from "@/lib/melodia";
 import { POJEDYNKI_BET_STAKE, POJEDYNKI_DUEL_COUNT } from "@/lib/pojedynki";
 import type { GameSnapshot, GameState, MelodiaBid, MelodiaSong, MelodiaSongStage, MelodiaStage, MelodiaState, MelodiaTeamScore, Player, PojedynkiDuel, PojedynkiDuelStage, PojedynkiStage, PojedynkiState, SegmentId, Session, SportBonusRound, SportBonusStage, SportChallenge, SportChallengeStage, SportPairing, SportPairSlot, SportPlayerNumber, SportStage, SportState, TeamId, TeamScore, TheFloorDuel, TheFloorDuelStage, TheFloorState, TheFloorStage } from "@/lib/types";
 
@@ -108,8 +108,10 @@ type SportBonusRequirementRow = { bonus_round_id: number; team_id: TeamId; limbs
 type MelodiaSongRow = { id: number; sequence: number; stage: MelodiaSongStage; winning_team_id: TeamId | null; artist_points: number | null; title_points: number | null; singing_points: number | null; singing_mistake: boolean; bidding_enabled: boolean; bid_winner_team_id: TeamId | null; bid_completed: boolean | null };
 type MelodiaBidRow = { song_id: number; team_id: TeamId; declared_lines: number };
 type MelodiaTeamScoreRow = { team_id: TeamId; points: number };
-type MelodiaBetCountRow = { bet_count: number };
-type MelodiaViewerBetRow = { target_team_id: TeamId; stake: string | number; result: "pending" | "won" | "lost" | "refunded"; payout: string | number };
+type SnapshotQuery<Row> = NeonQueryPromise<false, false, Row[]>;
+type SnapshotRows<Queries extends readonly PromiseLike<unknown>[]> = { [Index in keyof Queries]: Awaited<Queries[Index]> };
+
+type MelodiaSettlementRow = { debit_min: string | null; debit_max: string | null; viewer_delta: string | null };
 type PojedynkiDuelRow = { id: number; sequence: number; stage: PojedynkiDuelStage; team_a_id: TeamId | null; team_b_id: TeamId | null; winner_team_id: TeamId | null };
 type PojedynkiBetCountRow = { duel_id: number; bet_count: number };
 type PojedynkiViewerBetRow = { duel_id: number; target_team_id: TeamId; result: "pending" | "won" | "lost" | "refunded"; payout: string | number };
@@ -129,6 +131,12 @@ function database() {
     throw new Error("DATABASE_URL is not configured.");
   }
   return neon(connectionString);
+}
+
+async function runWithGameLock(sql: ReturnType<typeof database>, query: NeonQueryPromise<false, false>) {
+  // Acquire the shared lock before taking the write statement's snapshot.
+  const [, rows] = await sql.transaction([sql`SELECT id FROM game_state WHERE id = 1 FOR UPDATE`, query]);
+  return rows;
 }
 
 function toPlayer(row: PlayerRow): Player {
@@ -323,7 +331,7 @@ export async function ensureDatabase() {
           sport_stage VARCHAR(16) NOT NULL DEFAULT 'intro' CONSTRAINT game_state_sport_stage_check CHECK (sport_stage IN ('intro', 'setup', 'betting', 'live', 'result', 'bonus-setup', 'bonus-live', 'bonus-result', 'results')),
           current_sport_challenge_sequence SMALLINT NOT NULL DEFAULT 0 CONSTRAINT game_state_sport_challenge_sequence_check CHECK (current_sport_challenge_sequence BETWEEN 0 AND 7),
           current_sport_bonus_sequence SMALLINT NOT NULL DEFAULT 0 CONSTRAINT game_state_sport_bonus_sequence_check CHECK (current_sport_bonus_sequence BETWEEN 0 AND 1),
-          melodia_stage VARCHAR(16) NOT NULL DEFAULT 'intro' CONSTRAINT game_state_melodia_stage_check CHECK (melodia_stage IN ('intro', 'betting', 'song', 'scoring', 'result', 'results')),
+          melodia_stage VARCHAR(16) NOT NULL DEFAULT 'intro' CONSTRAINT game_state_melodia_flow_check CHECK (melodia_stage IN ('intro', 'ready', 'song', 'scoring', 'result', 'results', 'completed')),
           current_melodia_song_sequence SMALLINT NOT NULL DEFAULT 0 CONSTRAINT game_state_melodia_song_sequence_check CHECK (current_melodia_song_sequence BETWEEN 0 AND 4),
           melodia_winning_team_id VARCHAR(16) CONSTRAINT game_state_melodia_winning_team_check CHECK (melodia_winning_team_id IS NULL OR melodia_winning_team_id IN ('royal', 'ruby', 'emerald', 'onyx')),
           melodia_settled_at TIMESTAMPTZ,
@@ -371,9 +379,6 @@ export async function ensureDatabase() {
           END IF;
           IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'game_state_sport_bonus_sequence_check') THEN
             ALTER TABLE game_state ADD CONSTRAINT game_state_sport_bonus_sequence_check CHECK (current_sport_bonus_sequence BETWEEN 0 AND 1);
-          END IF;
-          IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'game_state_melodia_stage_check') THEN
-            ALTER TABLE game_state ADD CONSTRAINT game_state_melodia_stage_check CHECK (melodia_stage IN ('intro', 'betting', 'song', 'scoring', 'result', 'results'));
           END IF;
           IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'game_state_melodia_song_sequence_check') THEN
             ALTER TABLE game_state ADD CONSTRAINT game_state_melodia_song_sequence_check CHECK (current_melodia_song_sequence BETWEEN 0 AND 4);
@@ -656,17 +661,48 @@ export async function ensureDatabase() {
         )
       `;
       await sql`
-        CREATE TABLE IF NOT EXISTS melodia_bets (
-          id BIGSERIAL PRIMARY KEY,
-          bettor_id BIGINT NOT NULL REFERENCES players(id),
-          target_team_id VARCHAR(16) NOT NULL CHECK (target_team_id IN ('royal', 'ruby', 'emerald', 'onyx')),
-          stake NUMERIC(20,4) NOT NULL CHECK (stake > 0),
-          result VARCHAR(16) NOT NULL DEFAULT 'pending' CHECK (result IN ('pending', 'won', 'lost', 'refunded')),
-          payout NUMERIC(20,4) NOT NULL DEFAULT 0 CHECK (payout >= 0),
+        CREATE TABLE IF NOT EXISTS melodia_chip_transfers (
+          final_song_id BIGINT NOT NULL,
+          player_id BIGINT NOT NULL REFERENCES players(id),
+          previous_tokens NUMERIC(20,4) NOT NULL CHECK (previous_tokens >= 0),
+          new_tokens NUMERIC(20,4) NOT NULL CHECK (new_tokens >= 0),
+          delta NUMERIC(20,4) NOT NULL CHECK (new_tokens = previous_tokens + delta),
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-          settled_at TIMESTAMPTZ,
-          UNIQUE (bettor_id)
+          PRIMARY KEY (final_song_id, player_id)
         )
+      `;
+      await sql`
+        DO $$
+        BEGIN
+          IF EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'game_state'::regclass AND conname = 'game_state_melodia_flow_check') THEN
+            RETURN;
+          END IF;
+          LOCK TABLE game_state IN ACCESS EXCLUSIVE MODE;
+          IF EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'game_state'::regclass AND conname = 'game_state_melodia_flow_check') THEN
+            RETURN;
+          END IF;
+
+          IF to_regclass('melodia_bets') IS NOT NULL THEN
+            WITH refunds AS (
+              UPDATE melodia_bets SET result = 'refunded', payout = stake, settled_at = NOW()
+              WHERE result = 'pending'
+              RETURNING bettor_id, stake
+            )
+            UPDATE players SET tokens = players.tokens + refunds.stake
+            FROM refunds WHERE players.id = refunds.bettor_id;
+          END IF;
+
+          ALTER TABLE game_state DROP CONSTRAINT IF EXISTS game_state_melodia_stage_check;
+          UPDATE game_state
+          SET melodia_stage = CASE
+            WHEN melodia_stage = 'betting' THEN 'ready'
+            WHEN melodia_stage = 'results' AND melodia_settled_at IS NOT NULL THEN 'completed'
+            WHEN melodia_stage = 'result' AND current_melodia_song_sequence = 4 THEN 'results'
+            ELSE melodia_stage
+          END;
+          ALTER TABLE game_state ADD CONSTRAINT game_state_melodia_flow_check
+            CHECK (melodia_stage IN ('intro', 'ready', 'song', 'scoring', 'result', 'results', 'completed'));
+        END $$
       `;
       await sql`
         CREATE TABLE IF NOT EXISTS pojedynki_duels (
@@ -780,7 +816,7 @@ export async function revokeSession(token: string | undefined) {
 export async function getGameSnapshot(viewerPlayerId?: number): Promise<GameSnapshot> {
   await ensureDatabase();
   const sql = database();
-  const [gameRows, playerRows, teamScoreRows, totalTokenRows, floorDuelRows, floorBetCountRows, viewerBetRows, sportPairingRows, sportPlayerNumberRows, sportChallengeRows, sportBetCountRows, sportViewerBetRows, sportBonusRows, sportBonusRequirementRows, melodiaSongRows, melodiaBidRows, melodiaTeamScoreRows, melodiaBetCountRows, melodiaViewerBetRows, pojedynkiDuelRows, pojedynkiBetCountRows, pojedynkiViewerBetRows] = await Promise.all([
+  const reads = [
     sql`
       SELECT id, status, started_at, active_segment, solenizant_stage, current_question_index, the_floor_stage, current_the_floor_duel_sequence,
         sport_stage, current_sport_challenge_sequence, current_sport_bonus_sequence,
@@ -788,13 +824,13 @@ export async function getGameSnapshot(viewerPlayerId?: number): Promise<GameSnap
         pojedynki_stage, current_pojedynki_duel_sequence
       FROM game_state
       WHERE id = 1
-    ` as unknown as Promise<GameRow[]>,
+    ` as SnapshotQuery<GameRow>,
     sql`
       SELECT id, nickname, team_id, tokens, created_at
       FROM players
       WHERE active = TRUE
       ORDER BY created_at ASC
-    ` as unknown as Promise<PlayerRow[]>,
+    ` as SnapshotQuery<PlayerRow>,
     sql`
       SELECT team_id, points
       FROM solenizant_team_scores
@@ -804,40 +840,43 @@ export async function getGameSnapshot(viewerPlayerId?: number): Promise<GameSnap
         WHEN 'emerald' THEN 3
         WHEN 'onyx' THEN 4
       END
-    ` as unknown as Promise<TeamScoreRow[]>,
-    sql`SELECT COALESCE(SUM(tokens), 0) AS total_tokens FROM players WHERE active = TRUE` as unknown as Promise<TotalTokensRow[]>,
+    ` as SnapshotQuery<TeamScoreRow>,
+    sql`SELECT COALESCE(SUM(tokens), 0) AS total_tokens FROM players WHERE active = TRUE` as SnapshotQuery<TotalTokensRow>,
     sql`
       SELECT id, sequence, category_id, stage, team_a_id, team_b_id, active_team_id, item_index,
         team_a_time_seconds, team_b_time_seconds, turn_started_at, started_at, ended_at, winner_team_id
       FROM the_floor_duels
       ORDER BY sequence
-    ` as unknown as Promise<TheFloorDuelRow[]>,
-    sql`SELECT duel_id, COUNT(*)::INTEGER AS bet_count FROM the_floor_bets GROUP BY duel_id` as unknown as Promise<TheFloorBetCountRow[]>,
-    viewerPlayerId
-      ? sql`SELECT duel_id, target_team_id, result, payout FROM the_floor_bets WHERE bettor_id = ${viewerPlayerId}` as unknown as Promise<TheFloorViewerBetRow[]>
-      : Promise.resolve([] as TheFloorViewerBetRow[]),
-    sql`SELECT slot, team_a_id, team_b_id FROM sport_pairings ORDER BY slot` as unknown as Promise<SportPairingRow[]>,
-    sql`SELECT team_id, player_id, player_number FROM sport_player_numbers ORDER BY team_id, player_number` as unknown as Promise<SportPlayerNumberRow[]>,
-    sql`SELECT id, sequence, pair_slot, stage, winner_team_id FROM sport_challenges ORDER BY sequence` as unknown as Promise<SportChallengeRow[]>,
-    sql`SELECT challenge_id, COUNT(*)::INTEGER AS bet_count FROM sport_bets GROUP BY challenge_id` as unknown as Promise<SportBetCountRow[]>,
-    viewerPlayerId
-      ? sql`SELECT challenge_id, target_team_id, result, payout FROM sport_bets WHERE bettor_id = ${viewerPlayerId}` as unknown as Promise<SportViewerBetRow[]>
-      : Promise.resolve([] as SportViewerBetRow[]),
-    sql`SELECT id, sequence, stage, winner_team_id, points FROM sport_bonus_rounds ORDER BY sequence` as unknown as Promise<SportBonusRow[]>,
-    sql`SELECT bonus_round_id, team_id, limbs FROM sport_bonus_requirements ORDER BY team_id` as unknown as Promise<SportBonusRequirementRow[]>,
-    sql`SELECT id, sequence, stage, winning_team_id, artist_points, title_points, singing_points, singing_mistake, bidding_enabled, bid_winner_team_id, bid_completed FROM melodia_songs ORDER BY sequence` as unknown as Promise<MelodiaSongRow[]>,
-    sql`SELECT song_id, team_id, declared_lines FROM melodia_bids ORDER BY team_id` as unknown as Promise<MelodiaBidRow[]>,
-    sql`SELECT team_id, points FROM melodia_team_scores ORDER BY CASE team_id WHEN 'royal' THEN 1 WHEN 'ruby' THEN 2 WHEN 'emerald' THEN 3 WHEN 'onyx' THEN 4 END` as unknown as Promise<MelodiaTeamScoreRow[]>,
-    sql`SELECT COUNT(*)::INTEGER AS bet_count FROM melodia_bets` as unknown as Promise<MelodiaBetCountRow[]>,
-    viewerPlayerId
-      ? sql`SELECT target_team_id, stake, result, payout FROM melodia_bets WHERE bettor_id = ${viewerPlayerId}` as unknown as Promise<MelodiaViewerBetRow[]>
-      : Promise.resolve([] as MelodiaViewerBetRow[]),
-    sql`SELECT id, sequence, stage, team_a_id, team_b_id, winner_team_id FROM pojedynki_duels ORDER BY sequence` as unknown as Promise<PojedynkiDuelRow[]>,
-    sql`SELECT duel_id, COUNT(*)::INTEGER AS bet_count FROM pojedynki_bets GROUP BY duel_id` as unknown as Promise<PojedynkiBetCountRow[]>,
-    viewerPlayerId
-      ? sql`SELECT duel_id, target_team_id, result, payout FROM pojedynki_bets WHERE bettor_id = ${viewerPlayerId}` as unknown as Promise<PojedynkiViewerBetRow[]>
-      : Promise.resolve([] as PojedynkiViewerBetRow[]),
-  ]);
+    ` as SnapshotQuery<TheFloorDuelRow>,
+    sql`SELECT duel_id, COUNT(*)::INTEGER AS bet_count FROM the_floor_bets GROUP BY duel_id` as SnapshotQuery<TheFloorBetCountRow>,
+    sql`SELECT duel_id, target_team_id, result, payout FROM the_floor_bets WHERE bettor_id = ${viewerPlayerId ?? null}::BIGINT` as SnapshotQuery<TheFloorViewerBetRow>,
+    sql`SELECT slot, team_a_id, team_b_id FROM sport_pairings ORDER BY slot` as SnapshotQuery<SportPairingRow>,
+    sql`SELECT team_id, player_id, player_number FROM sport_player_numbers ORDER BY team_id, player_number` as SnapshotQuery<SportPlayerNumberRow>,
+    sql`SELECT id, sequence, pair_slot, stage, winner_team_id FROM sport_challenges ORDER BY sequence` as SnapshotQuery<SportChallengeRow>,
+    sql`SELECT challenge_id, COUNT(*)::INTEGER AS bet_count FROM sport_bets GROUP BY challenge_id` as SnapshotQuery<SportBetCountRow>,
+    sql`SELECT challenge_id, target_team_id, result, payout FROM sport_bets WHERE bettor_id = ${viewerPlayerId ?? null}::BIGINT` as SnapshotQuery<SportViewerBetRow>,
+    sql`SELECT id, sequence, stage, winner_team_id, points FROM sport_bonus_rounds ORDER BY sequence` as SnapshotQuery<SportBonusRow>,
+    sql`SELECT bonus_round_id, team_id, limbs FROM sport_bonus_requirements ORDER BY team_id` as SnapshotQuery<SportBonusRequirementRow>,
+    sql`SELECT id, sequence, stage, winning_team_id, artist_points, title_points, singing_points, singing_mistake, bidding_enabled, bid_winner_team_id, bid_completed FROM melodia_songs ORDER BY sequence` as SnapshotQuery<MelodiaSongRow>,
+    sql`SELECT song_id, team_id, declared_lines FROM melodia_bids ORDER BY team_id` as SnapshotQuery<MelodiaBidRow>,
+    sql`SELECT team_id, points FROM melodia_team_scores ORDER BY CASE team_id WHEN 'royal' THEN 1 WHEN 'ruby' THEN 2 WHEN 'emerald' THEN 3 WHEN 'onyx' THEN 4 END` as SnapshotQuery<MelodiaTeamScoreRow>,
+    sql`
+      SELECT MIN(-transfer.delta) FILTER (WHERE transfer.delta <= 0) AS debit_min,
+        MAX(-transfer.delta) FILTER (WHERE transfer.delta <= 0) AS debit_max,
+        MAX(transfer.delta) FILTER (WHERE transfer.player_id = ${viewerPlayerId ?? null}::BIGINT) AS viewer_delta
+      FROM game_state game
+      JOIN melodia_songs song ON song.sequence = game.current_melodia_song_sequence
+      JOIN melodia_chip_transfers transfer ON transfer.final_song_id = song.id
+      WHERE game.id = 1 AND game.melodia_settled_at IS NOT NULL
+    ` as SnapshotQuery<MelodiaSettlementRow>,
+    sql`SELECT id, sequence, stage, team_a_id, team_b_id, winner_team_id FROM pojedynki_duels ORDER BY sequence` as SnapshotQuery<PojedynkiDuelRow>,
+    sql`SELECT duel_id, COUNT(*)::INTEGER AS bet_count FROM pojedynki_bets GROUP BY duel_id` as SnapshotQuery<PojedynkiBetCountRow>,
+    sql`SELECT duel_id, target_team_id, result, payout FROM pojedynki_bets WHERE bettor_id = ${viewerPlayerId ?? null}::BIGINT` as SnapshotQuery<PojedynkiViewerBetRow>,
+  ] as const;
+  const [gameRows, playerRows, teamScoreRows, totalTokenRows, floorDuelRows, floorBetCountRows, viewerBetRows, sportPairingRows, sportPlayerNumberRows, sportChallengeRows, sportBetCountRows, sportViewerBetRows, sportBonusRows, sportBonusRequirementRows, melodiaSongRows, melodiaBidRows, melodiaTeamScoreRows, melodiaSettlementRows, pojedynkiDuelRows, pojedynkiBetCountRows, pojedynkiViewerBetRows] = await sql.transaction([...reads], {
+    isolationLevel: "RepeatableRead",
+    readOnly: true,
+  }) as unknown as SnapshotRows<typeof reads>;
 
   if (!gameRows[0]) {
     throw new Error("Game state could not be loaded.");
@@ -868,19 +907,36 @@ export async function getGameSnapshot(viewerPlayerId?: number): Promise<GameSnap
   const melodiaSongs = melodiaSongRows.map((row) => toMelodiaSong(row, melodiaBidRows));
   const melodiaScores: MelodiaTeamScore[] = melodiaTeamScoreRows.map((row) => ({ teamId: row.team_id, points: row.points }));
   const highestMelodiaScore = Math.max(0, ...melodiaScores.map((score) => score.points));
-  const melodiaViewerBet = melodiaViewerBetRows[0];
+  const leadingTeamIds = melodiaScores.filter((score) => score.points === highestMelodiaScore).map((score) => score.teamId);
+  const finalResults = game.melodiaStage === "results" || game.melodiaStage === "completed";
+  const winningTeamId = finalResults ? game.melodiaWinningTeamId ?? (leadingTeamIds.length === 1 ? leadingTeamIds[0] : null) : null;
+  const settled = melodiaSettlementRows[0];
+  let charge = null;
+  if (winningTeamId && !game.melodiaSettledAt) {
+    const winners = playerRows.filter((player) => player.team_id === winningTeamId).length;
+    const losers = playerRows.length - winners;
+    if (winners && losers) {
+      const units = BigInt(winners) * BigInt(MELODIA_REWARD * 10_000);
+      const count = BigInt(losers);
+      const base = units / count;
+      const remainder = units % count;
+      const debitAsDecimal = (amount: bigint) => `${amount / 10_000n}.${String(amount % 10_000n).padStart(4, "0")}`;
+      charge = { min: debitAsDecimal(base), max: debitAsDecimal(base + (remainder > 0n ? 1n : 0n)) };
+    }
+  } else if (settled?.debit_min != null && settled.debit_max != null) {
+    charge = { min: settled.debit_min, max: settled.debit_max };
+  }
   const melodia: MelodiaState = {
     stage: game.melodiaStage,
     currentSong: melodiaSongs.find((song) => song.sequence === game.currentMelodiaSongSequence) ?? null,
     songs: melodiaSongs,
     teamScores: melodiaScores,
-    betCount: melodiaBetCountRows[0]?.bet_count ?? 0,
-    viewerBetTargetTeamId: melodiaViewerBet?.target_team_id ?? null,
-    viewerBetStake: melodiaViewerBet ? normalizeChipAmount(melodiaViewerBet.stake) : null,
-    viewerBetResult: melodiaViewerBet?.result ?? null,
-    viewerBetPayout: melodiaViewerBet ? normalizeChipAmount(melodiaViewerBet.payout) : null,
-    leadingTeamIds: highestMelodiaScore === 0 && !melodiaSongs.some((song) => song.stage === "result") ? [] : melodiaScores.filter((score) => score.points === highestMelodiaScore).map((score) => score.teamId),
+    leadingTeamIds: finalResults ? leadingTeamIds : [],
+    winningTeamId,
     settledAt: game.melodiaSettledAt,
+    charge,
+    viewerDelta: settled?.viewer_delta ?? null,
+    completedLegacy: game.melodiaStage === "completed" && !!game.melodiaSettledAt && charge === null,
   };
   const pojedynkiDuels = pojedynkiDuelRows.map((row) => toPojedynkiDuel(
     row,
@@ -965,7 +1021,7 @@ export async function restartSolenizantSegment() {
 export async function resetGame() {
   await ensureDatabase();
   const sql = database();
-  await sql`
+  await runWithGameLock(sql, sql`
     WITH cleared_awards AS (
       DELETE FROM solenizant_question_awards
       RETURNING question_index
@@ -1009,10 +1065,6 @@ export async function resetGame() {
     cleared_melodia_bids AS (
       DELETE FROM melodia_bids
       RETURNING song_id
-    ),
-    cleared_melodia_bets AS (
-      DELETE FROM melodia_bets
-      RETURNING id
     ),
     cleared_melodia_songs AS (
       DELETE FROM melodia_songs
@@ -1076,7 +1128,7 @@ export async function resetGame() {
         'clearedPojedynkiDuels', (SELECT COUNT(*) FROM cleared_pojedynki_duels)
       )
     FROM reset_state
-  `;
+  `);
 }
 
 /** Sets an exact active-player chip balance and records the administrator adjustment atomically. */
@@ -2171,7 +2223,7 @@ export async function finishSportBonusRound(input: { winnerTeamId: TeamId; point
     ),
     recorded_action AS (
       INSERT INTO admin_actions (action, details)
-      SELECT 'sport_bonus_scored', jsonb_build_object('winnerTeamId', ${input.winnerTeamId}, 'points', ${input.points})
+      SELECT 'sport_bonus_scored', jsonb_build_object('winnerTeamId', ${input.winnerTeamId}::TEXT, 'points', ${input.points}::INTEGER)
       FROM advanced_game
       RETURNING id
     )
@@ -2277,107 +2329,65 @@ export async function restartSportSegment() {
   `;
 }
 
-/** Seeds the five external-music slots and opens the segment-wide betting market. */
-export async function startMelodiaSegment() {
+/** Confirms the four fixed teams by moving the segment into its ready stage. */
+export async function confirmMelodiaTeams() {
   await ensureDatabase();
   const sql = database();
-  await Promise.all(Array.from({ length: MELODIA_SONG_COUNT }, (_, sequence) => sql`
-    INSERT INTO melodia_songs (sequence) VALUES (${sequence}) ON CONFLICT (sequence) DO NOTHING
-  `));
-  const rows = (await sql`
-    WITH opened AS (
-      UPDATE game_state
-      SET active_segment = 'melodia', melodia_stage = 'betting', current_melodia_song_sequence = 0, melodia_winning_team_id = NULL, melodia_settled_at = NULL
-      WHERE id = 1 AND status = 'started' AND melodia_stage = 'intro'
-      RETURNING id
-    )
-    INSERT INTO admin_actions (action, details)
-    SELECT 'melodia_started', jsonb_build_object('songs', ${MELODIA_SONG_COUNT}) FROM opened
+  const rows = await sql`
+    UPDATE game_state SET melodia_stage = 'ready'
+    WHERE id = 1 AND status = 'started' AND active_segment = 'melodia' AND melodia_stage = 'intro'
     RETURNING id
-  `) as { id: number }[];
+  `;
   return rows.length > 0;
 }
 
-/** Debits one freely chosen stake while the single segment-wide music market is open. */
-export async function placeMelodiaBet(input: { bettorId: number; targetTeamId: TeamId; stake: string }) {
+/** Starts the first song and seeds all five slots in the same write. */
+export async function startMelodiaSegment() {
   await ensureDatabase();
   const sql = database();
-  const rows = (await sql`
-    WITH open_market AS (
-      SELECT id FROM game_state
-      WHERE id = 1 AND status = 'started' AND active_segment = 'melodia' AND melodia_stage = 'betting'
-      FOR UPDATE
-    ),
-    eligible AS (
-      SELECT player.id
-      FROM players player
-      WHERE player.id = ${input.bettorId} AND player.active = TRUE AND player.tokens >= ${input.stake}::NUMERIC
-        AND EXISTS (SELECT 1 FROM open_market)
-        AND NOT EXISTS (SELECT 1 FROM melodia_bets bet WHERE bet.bettor_id = player.id)
-    ),
-    debited AS (
-      UPDATE players SET tokens = tokens - ${input.stake}::NUMERIC
-      WHERE id IN (SELECT id FROM eligible)
+  const rows = await runWithGameLock(sql, sql`
+    WITH started AS (
+      UPDATE game_state SET melodia_stage = 'song', current_melodia_song_sequence = 0
+      WHERE id = 1 AND status = 'started' AND active_segment = 'melodia' AND melodia_stage = 'ready'
       RETURNING id
     ),
-    inserted AS (
-      INSERT INTO melodia_bets (bettor_id, target_team_id, stake)
-      SELECT ${input.bettorId}, ${input.targetTeamId}, ${input.stake}::NUMERIC
-      WHERE EXISTS (SELECT 1 FROM debited)
+    songs AS (
+      INSERT INTO melodia_songs (sequence, stage, started_at)
+      SELECT sequence, CASE WHEN sequence = 0 THEN 'live' ELSE 'pending' END,
+        CASE WHEN sequence = 0 THEN NOW() END
+      FROM started CROSS JOIN generate_series(0, ${MELODIA_SONG_COUNT - 1}::INTEGER) AS sequence
+      ON CONFLICT (sequence) DO UPDATE SET stage = EXCLUDED.stage, started_at = EXCLUDED.started_at
       RETURNING id
     )
-    SELECT EXISTS (SELECT 1 FROM inserted) AS completed
-  `) as CompletionRow[];
-  return rows[0]?.completed === true || rows[0]?.completed === "t";
+    INSERT INTO admin_actions (action, details)
+    SELECT 'melodia_started', jsonb_build_object('songs', COUNT(*)) FROM songs
+    HAVING COUNT(*) > 0
+    RETURNING id
+  `);
+  return rows.length > 0;
 }
 
-/** Closes betting and exposes song one; music itself is always played outside the application. */
-export async function startFirstMelodiaSong() {
+export async function openMelodiaScoring(songId: number) {
   await ensureDatabase();
   const sql = database();
-  const rows = (await sql`
-    WITH started_song AS (
-      UPDATE melodia_songs song
-      SET stage = 'live', started_at = NOW()
-      FROM game_state game
-      WHERE game.id = 1 AND game.active_segment = 'melodia' AND game.melodia_stage = 'betting'
-        AND game.current_melodia_song_sequence = 0 AND song.sequence = 0 AND song.stage = 'pending'
-      RETURNING song.id
-    ),
-    advanced AS (
-      UPDATE game_state SET melodia_stage = 'song'
-      WHERE id = 1 AND EXISTS (SELECT 1 FROM started_song)
-      RETURNING id
-    )
-    SELECT EXISTS (SELECT 1 FROM advanced) AS completed
-  `) as CompletionRow[];
-  return rows[0]?.completed === true || rows[0]?.completed === "t";
-}
-
-/** Keeps players on the same song while opening protected administrator scoring. */
-export async function openMelodiaScoring() {
-  await ensureDatabase();
-  const sql = database();
-  const rows = (await sql`
+  const rows = await runWithGameLock(sql, sql`
     WITH opened_song AS (
       UPDATE melodia_songs song SET stage = 'scoring'
       FROM game_state game
       WHERE game.id = 1 AND game.active_segment = 'melodia' AND game.melodia_stage = 'song'
-        AND song.sequence = game.current_melodia_song_sequence AND song.stage = 'live'
+        AND song.id = ${songId} AND song.sequence = game.current_melodia_song_sequence AND song.stage = 'live'
       RETURNING song.id
-    ),
-    advanced AS (
-      UPDATE game_state SET melodia_stage = 'scoring'
-      WHERE id = 1 AND EXISTS (SELECT 1 FROM opened_song)
-      RETURNING id
     )
-    SELECT EXISTS (SELECT 1 FROM advanced) AS completed
-  `) as CompletionRow[];
-  return rows[0]?.completed === true || rows[0]?.completed === "t";
+    UPDATE game_state SET melodia_stage = 'scoring'
+    WHERE id = 1 AND EXISTS (SELECT 1 FROM opened_song)
+    RETURNING id
+  `);
+  return rows.length > 0;
 }
 
-/** Records one song exactly once, including optional bid data and its deterministic singing score. */
+/** Records one song and its points exactly once. */
 export async function scoreMelodiaSong(input: {
+  songId: number;
   winnerTeamId: TeamId;
   artistCorrect: boolean;
   titleCorrect: boolean;
@@ -2388,189 +2398,211 @@ export async function scoreMelodiaSong(input: {
   await ensureDatabase();
   const sql = database();
   const winningBid = input.bidding.enabled ? input.bidding.bids.find((bid) => bid.teamId === input.bidding.winningBidderTeamId) : undefined;
-  if (input.bidding.enabled && (!winningBid || input.winnerTeamId !== input.bidding.winningBidderTeamId)) return false;
+  if (input.bidding.enabled && !winningBid) return false;
+
   const artistPoints = input.artistCorrect ? 1 : 0;
   const titlePoints = input.titleCorrect ? 1 : 0;
-  const singingMistake = input.bidding.enabled ? !input.bidding.completed : input.singingMistake;
-  const singingPoints = singingMistake ? 0 : input.bidding.enabled ? winningBid!.declaredLines : input.singingPoints;
-  const totalPoints = artistPoints + titlePoints + singingPoints;
+  const singingMistake = winningBid ? !input.bidding.completed : input.singingMistake;
+  const singingPoints = singingMistake ? 0 : winningBid?.declaredLines ?? input.singingPoints;
+  const singingTeamId = winningBid?.teamId ?? input.winnerTeamId;
   const bids = JSON.stringify(input.bidding.bids);
-  const rows = (await sql`
+  const rows = await runWithGameLock(sql, sql`
     WITH changed AS (
       UPDATE melodia_songs song
       SET stage = 'result', winning_team_id = ${input.winnerTeamId}, artist_points = ${artistPoints}, title_points = ${titlePoints},
         singing_points = ${singingPoints}, singing_mistake = ${singingMistake}, bidding_enabled = ${input.bidding.enabled},
-        bid_winner_team_id = ${input.bidding.winningBidderTeamId}, bid_completed = ${input.bidding.enabled ? input.bidding.completed : null}, scored_at = NOW()
+        bid_winner_team_id = ${winningBid?.teamId ?? null}, bid_completed = ${winningBid ? input.bidding.completed : null}, scored_at = NOW()
       FROM game_state game
       WHERE game.id = 1 AND game.active_segment = 'melodia' AND game.melodia_stage = 'scoring'
-        AND song.sequence = game.current_melodia_song_sequence AND song.stage = 'scoring' AND song.scored_at IS NULL
+        AND song.id = ${input.songId} AND song.sequence = game.current_melodia_song_sequence AND song.stage = 'scoring'
       RETURNING song.id, song.sequence
     ),
     saved_bids AS (
       INSERT INTO melodia_bids (song_id, team_id, declared_lines)
       SELECT changed.id, (entry ->> 'teamId')::VARCHAR(16), (entry ->> 'declaredLines')::SMALLINT
       FROM changed CROSS JOIN jsonb_array_elements(${bids}::JSONB) AS entry
-      RETURNING song_id
+    ),
+    awards AS (
+      SELECT team_id, SUM(points)::INTEGER AS points
+      FROM changed CROSS JOIN (VALUES
+        (${input.winnerTeamId}::VARCHAR(16), ${artistPoints + titlePoints}::INTEGER),
+        (${singingTeamId}::VARCHAR(16), ${singingPoints}::INTEGER)
+      ) AS entries(team_id, points)
+      WHERE points > 0
+      GROUP BY team_id
     ),
     segment_score AS (
-      UPDATE melodia_team_scores score SET points = points + ${totalPoints}
-      WHERE score.team_id = ${input.winnerTeamId} AND EXISTS (SELECT 1 FROM changed)
-      RETURNING score.team_id
+      UPDATE melodia_team_scores score SET points = score.points + awards.points
+      FROM awards WHERE score.team_id = awards.team_id
     ),
     global_score AS (
-      UPDATE solenizant_team_scores score SET points = points + ${totalPoints}
-      WHERE score.team_id = ${input.winnerTeamId} AND EXISTS (SELECT 1 FROM segment_score)
-      RETURNING score.team_id
-    ),
-    advanced AS (
-      UPDATE game_state SET melodia_stage = 'result'
-      WHERE id = 1 AND EXISTS (SELECT 1 FROM global_score)
-      RETURNING id
+      UPDATE solenizant_team_scores score SET points = score.points + awards.points
+      FROM awards WHERE score.team_id = awards.team_id
     )
-    SELECT changed.sequence FROM changed WHERE EXISTS (SELECT 1 FROM advanced)
-  `) as { sequence: number }[];
-  const scored = rows[0];
-  if (!scored) return false;
-  if (scored.sequence === MELODIA_SONG_COUNT - 1) await settleMelodiaBets();
-  return true;
+    UPDATE game_state
+    SET melodia_stage = CASE WHEN changed.sequence = ${MELODIA_SONG_COUNT - 1} THEN 'results' ELSE 'result' END
+    FROM changed WHERE game_state.id = 1
+    RETURNING game_state.id
+  `);
+  return rows.length > 0;
 }
 
-/** Settles the closed music-market pot once; a final-score tie explicitly refunds every stake. */
-async function settleMelodiaBets() {
-  const sql = database();
-  await sql`
-    WITH candidate AS (
-      SELECT id FROM game_state
-      WHERE id = 1 AND active_segment = 'melodia' AND melodia_stage = 'result'
-        AND current_melodia_song_sequence = ${MELODIA_SONG_COUNT - 1} AND melodia_settled_at IS NULL
-      FOR UPDATE
-    ),
-    leaders AS (
-      SELECT team_id, points, MAX(points) OVER () AS highest_points FROM melodia_team_scores
-    ),
-    outcome AS (
-      SELECT COUNT(*) FILTER (WHERE points = highest_points)::INTEGER AS leader_count,
-        MAX(team_id) FILTER (WHERE points = highest_points) AS winning_team_id
-      FROM leaders
-    ),
-    bets AS (
-      SELECT bet.* FROM melodia_bets bet WHERE bet.result = 'pending' AND EXISTS (SELECT 1 FROM candidate)
-    ),
-    summary AS (
-      SELECT COALESCE(SUM(stake), 0)::NUMERIC AS total_pot,
-        COALESCE(SUM(stake) FILTER (WHERE target_team_id = (SELECT winning_team_id FROM outcome)), 0)::NUMERIC AS winning_stakes
-      FROM bets
-    ),
-    ranked AS (
-      SELECT bets.*, ROW_NUMBER() OVER (ORDER BY id) AS rank
-      FROM bets WHERE target_team_id = (SELECT winning_team_id FROM outcome)
-    ),
-    calculated AS (
-      SELECT bet.id,
-        CASE WHEN (SELECT leader_count FROM outcome) <> 1 OR (SELECT winning_stakes FROM summary) = 0 THEN 'refunded'
-          WHEN bet.target_team_id = (SELECT winning_team_id FROM outcome) THEN 'won' ELSE 'lost' END AS result,
-        CASE WHEN (SELECT leader_count FROM outcome) <> 1 OR (SELECT winning_stakes FROM summary) = 0 THEN bet.stake
-          WHEN bet.target_team_id <> (SELECT winning_team_id FROM outcome) THEN 0::NUMERIC
-          WHEN (SELECT rank FROM ranked WHERE ranked.id = bet.id) = 1 THEN
-            TRUNC((SELECT total_pot FROM summary) * bet.stake / (SELECT winning_stakes FROM summary), 4)
-              + ((SELECT total_pot FROM summary) - (SELECT COALESCE(SUM(TRUNC((SELECT total_pot FROM summary) * stake / (SELECT winning_stakes FROM summary), 4)), 0) FROM ranked))
-          ELSE TRUNC((SELECT total_pot FROM summary) * bet.stake / (SELECT winning_stakes FROM summary), 4)
-        END AS payout
-      FROM bets bet
-    ),
-    settled_bets AS (
-      UPDATE melodia_bets bet SET result = calculated.result, payout = calculated.payout, settled_at = NOW()
-      FROM calculated WHERE bet.id = calculated.id RETURNING bet.bettor_id, bet.payout
-    ),
-    paid AS (
-      UPDATE players player SET tokens = player.tokens + totals.payout
-      FROM (SELECT bettor_id, SUM(payout) AS payout FROM settled_bets WHERE payout > 0 GROUP BY bettor_id) totals
-      WHERE player.id = totals.bettor_id RETURNING player.id
-    ),
-    marked AS (
-      UPDATE game_state
-      SET melodia_winning_team_id = CASE WHEN (SELECT leader_count FROM outcome) = 1 THEN (SELECT winning_team_id FROM outcome) ELSE NULL END,
-        melodia_settled_at = NOW(), melodia_stage = 'results'
-      WHERE id IN (SELECT id FROM candidate) RETURNING id
-    )
-    INSERT INTO admin_actions (action, details)
-    SELECT 'melodia_bets_settled', jsonb_build_object('tie', (SELECT leader_count FROM outcome) <> 1, 'paidPlayers', (SELECT COUNT(*) FROM paid))
-    FROM marked
-  `;
-}
-
-/** Opens only the next song after a confirmed, displayed result. */
-export async function moveToNextMelodiaSong() {
+export async function moveToNextMelodiaSong(songId: number) {
   await ensureDatabase();
   const sql = database();
-  const rows = (await sql`
+  const rows = await runWithGameLock(sql, sql`
     WITH current_song AS (
       SELECT song.sequence FROM melodia_songs song JOIN game_state game ON song.sequence = game.current_melodia_song_sequence
       WHERE game.id = 1 AND game.active_segment = 'melodia' AND game.melodia_stage = 'result'
-        AND song.stage = 'result' AND song.sequence < ${MELODIA_SONG_COUNT - 1}
-      FOR UPDATE OF song
+        AND song.id = ${songId} AND song.stage = 'result' AND song.sequence < ${MELODIA_SONG_COUNT - 1}
     ),
     opened_song AS (
       UPDATE melodia_songs song SET stage = 'live', started_at = NOW()
       FROM current_song WHERE song.sequence = current_song.sequence + 1 AND song.stage = 'pending'
       RETURNING song.sequence
-    ),
-    advanced AS (
-      UPDATE game_state SET current_melodia_song_sequence = opened_song.sequence, melodia_stage = 'song'
-      FROM opened_song WHERE id = 1 RETURNING id
     )
-    SELECT EXISTS (SELECT 1 FROM advanced) AS completed
-  `) as CompletionRow[];
-  return rows[0]?.completed === true || rows[0]?.completed === "t";
+    UPDATE game_state SET current_melodia_song_sequence = opened_song.sequence, melodia_stage = 'song'
+    FROM opened_song WHERE id = 1
+    RETURNING id
+  `);
+  return rows.length > 0;
 }
 
-/** Records the administrator's final acknowledgement without altering results or balances. */
-export async function completeMelodiaSegment() {
+export async function resolveMelodiaTie(input: { songId: number; winnerTeamId: TeamId }) {
   await ensureDatabase();
   const sql = database();
-  const rows = (await sql`
+  const rows = await runWithGameLock(sql, sql`
+    WITH leaders AS (
+      SELECT team_id FROM melodia_team_scores WHERE points = (SELECT MAX(points) FROM melodia_team_scores)
+    )
+    UPDATE game_state game SET melodia_winning_team_id = ${input.winnerTeamId}
+    FROM melodia_songs song
+    WHERE game.id = 1 AND game.active_segment = 'melodia' AND game.melodia_stage = 'results'
+      AND game.melodia_settled_at IS NULL AND song.sequence = game.current_melodia_song_sequence AND song.id = ${input.songId}
+      AND (SELECT COUNT(*) FROM leaders) > 1 AND EXISTS (SELECT 1 FROM leaders WHERE team_id = ${input.winnerTeamId})
+    RETURNING game.id
+  `);
+  return rows.length > 0;
+}
+
+type MelodiaSettlementStatus = "settled" | "not_ready" | "empty_roster" | "insufficient" | "balance_limit";
+
+export async function settleMelodiaReward(input: { songId: number; winnerTeamId: TeamId }) {
+  await ensureDatabase();
+  const sql = database();
+  const rows = await runWithGameLock(sql, sql`
+    WITH leaders AS (
+      SELECT team_id FROM melodia_team_scores WHERE points = (SELECT MAX(points) FROM melodia_team_scores)
+    ),
+    candidate AS (
+      SELECT game.id, song.id AS final_song_id, ${input.winnerTeamId}::VARCHAR(16) AS winner
+      FROM game_state game JOIN melodia_songs song ON song.sequence = game.current_melodia_song_sequence
+      WHERE game.id = 1 AND game.active_segment = 'melodia' AND game.melodia_stage = 'results'
+        AND game.melodia_settled_at IS NULL AND song.id = ${input.songId} AND song.sequence = ${MELODIA_SONG_COUNT - 1}
+        AND song.stage = 'result'
+        AND EXISTS (SELECT 1 FROM leaders WHERE team_id = ${input.winnerTeamId})
+        AND ((SELECT COUNT(*) FROM leaders) = 1 OR game.melodia_winning_team_id = ${input.winnerTeamId})
+    ),
+    roster AS (
+      SELECT player.id, player.tokens, player.team_id = candidate.winner AS is_winner
+      FROM candidate CROSS JOIN players player
+      WHERE player.active = TRUE ORDER BY player.id FOR UPDATE OF player
+    ),
+    counts AS (
+      SELECT COUNT(*) FILTER (WHERE is_winner) AS winners, COUNT(*) FILTER (WHERE NOT is_winner) AS losers
+      FROM roster
+    ),
+    budget AS (
+      SELECT winners * ${MELODIA_REWARD}::NUMERIC * 10000 AS units, losers
+      FROM counts WHERE losers > 0 AND winners > 0
+    ),
+    ranked AS (
+      SELECT roster.*, ROW_NUMBER() OVER (PARTITION BY is_winner ORDER BY id) AS position FROM roster
+    ),
+    allocation AS (
+      SELECT ranked.id, ranked.tokens,
+        CASE WHEN is_winner THEN ${MELODIA_REWARD}::NUMERIC
+          ELSE -(DIV(units, losers) + CASE WHEN position <= MOD(units, losers) THEN 1 ELSE 0 END) * 0.0001
+        END AS delta
+      FROM ranked CROSS JOIN budget
+    ),
+    outcome AS (
+      SELECT CASE
+        WHEN NOT EXISTS (SELECT 1 FROM candidate) THEN 'not_ready'
+        WHEN NOT EXISTS (SELECT 1 FROM budget) THEN 'empty_roster'
+        WHEN EXISTS (SELECT 1 FROM allocation WHERE tokens + delta < 0) THEN 'insufficient'
+        WHEN EXISTS (SELECT 1 FROM allocation WHERE tokens + delta > 9999999999999999.9999) THEN 'balance_limit'
+        ELSE 'settled'
+      END AS status
+    ),
+    changed AS (
+      UPDATE players player SET tokens = allocation.tokens + allocation.delta
+      FROM allocation CROSS JOIN outcome
+      WHERE player.id = allocation.id AND outcome.status = 'settled'
+      RETURNING player.id, allocation.tokens AS previous_tokens, player.tokens AS new_tokens, allocation.delta
+    ),
+    recorded AS (
+      INSERT INTO melodia_chip_transfers (final_song_id, player_id, previous_tokens, new_tokens, delta)
+      SELECT candidate.final_song_id, changed.id, changed.previous_tokens, changed.new_tokens, changed.delta
+      FROM changed CROSS JOIN candidate
+    ),
+    marked AS (
+      UPDATE game_state game SET melodia_winning_team_id = candidate.winner, melodia_settled_at = NOW()
+      FROM candidate CROSS JOIN outcome WHERE game.id = candidate.id AND outcome.status = 'settled'
+      RETURNING candidate.winner, candidate.final_song_id
+    ),
+    audited AS (
+      INSERT INTO admin_actions (action, details)
+      SELECT 'melodia_reward_settled', jsonb_build_object('winner', winner, 'finalSongId', final_song_id)
+      FROM marked
+    )
+    SELECT status FROM outcome
+  `) as { status: MelodiaSettlementStatus }[];
+  return rows[0].status;
+}
+
+export async function completeMelodiaSegment(songId: number) {
+  await ensureDatabase();
+  const sql = database();
+  const rows = await runWithGameLock(sql, sql`
     WITH completed AS (
-      UPDATE game_state SET active_segment = 'melodia'
-      WHERE id = 1 AND melodia_stage = 'results' AND melodia_settled_at IS NOT NULL
-      RETURNING id
+      UPDATE game_state game SET melodia_stage = 'completed'
+      FROM melodia_songs song
+      WHERE game.id = 1 AND game.active_segment = 'melodia' AND game.melodia_stage = 'results'
+        AND game.melodia_settled_at IS NOT NULL AND song.sequence = game.current_melodia_song_sequence AND song.id = ${songId}
+      RETURNING game.id
     )
     INSERT INTO admin_actions (action, details)
     SELECT 'melodia_completed', '{}'::JSONB FROM completed
     RETURNING id
-  `) as { id: number }[];
+  `);
   return rows.length > 0;
 }
 
-/** Restarts only the music segment, refunding open stakes and reversing this segment's global score contribution. */
+/** Clears segment progress and its score contribution. Completed chip transfers remain in the ledger. */
 export async function restartMelodiaSegment() {
   await ensureDatabase();
   const sql = database();
-  await sql`
-    WITH pending_refunds AS (
-      SELECT bettor_id, SUM(stake) AS refund FROM melodia_bets WHERE result = 'pending' GROUP BY bettor_id
-    ),
-    refunded AS (
-      UPDATE players player SET tokens = tokens + pending_refunds.refund FROM pending_refunds WHERE player.id = pending_refunds.bettor_id RETURNING player.id
-    ),
-    score_reversal AS (
-      SELECT winning_team_id AS team_id, SUM(COALESCE(artist_points, 0) + COALESCE(title_points, 0) + COALESCE(singing_points, 0)) AS points
-      FROM melodia_songs WHERE winning_team_id IS NOT NULL GROUP BY winning_team_id
+  const rows = await runWithGameLock(sql, sql`
+    WITH reset_state AS (
+      UPDATE game_state SET melodia_stage = 'intro', current_melodia_song_sequence = 0, melodia_winning_team_id = NULL, melodia_settled_at = NULL
+      WHERE id = 1 AND active_segment = 'melodia' AND status = 'started' RETURNING id
     ),
     reversed_global AS (
-      UPDATE solenizant_team_scores score SET points = GREATEST(0, score.points - score_reversal.points)
-      FROM score_reversal WHERE score.team_id = score_reversal.team_id RETURNING score.team_id
+      UPDATE solenizant_team_scores score SET points = GREATEST(0, score.points - segment.points)
+      FROM melodia_team_scores segment WHERE score.team_id = segment.team_id AND EXISTS (SELECT 1 FROM reset_state)
     ),
-    cleared_bids AS (DELETE FROM melodia_bids RETURNING song_id),
-    cleared_bets AS (DELETE FROM melodia_bets RETURNING id),
-    cleared_songs AS (DELETE FROM melodia_songs RETURNING id),
-    reset_scores AS (UPDATE melodia_team_scores SET points = 0 RETURNING team_id),
-    reset_state AS (
-      UPDATE game_state SET active_segment = 'melodia', melodia_stage = 'intro', current_melodia_song_sequence = 0, melodia_winning_team_id = NULL, melodia_settled_at = NULL
-      WHERE id = 1 RETURNING id
+    cleared_songs AS (
+      DELETE FROM melodia_songs WHERE EXISTS (SELECT 1 FROM reset_state) RETURNING id
+    ),
+    reset_scores AS (
+      UPDATE melodia_team_scores SET points = 0 WHERE EXISTS (SELECT 1 FROM reset_state)
     )
     INSERT INTO admin_actions (action, details)
-    SELECT 'melodia_restart', jsonb_build_object('refundedPlayers', (SELECT COUNT(*) FROM refunded), 'clearedSongs', (SELECT COUNT(*) FROM cleared_songs)) FROM reset_state
-  `;
+    SELECT 'melodia_restart', jsonb_build_object('clearedSongs', (SELECT COUNT(*) FROM cleared_songs)) FROM reset_state
+    RETURNING id
+  `);
+  return rows.length > 0;
 }
 
 /** Seeds four durable team-duel slots and opens selection for the first Pojedynki duel. */
@@ -2588,7 +2620,7 @@ export async function startPojedynkiSegment() {
       RETURNING id
     )
     INSERT INTO admin_actions (action, details)
-    SELECT 'pojedynki_started', jsonb_build_object('duels', ${POJEDYNKI_DUEL_COUNT}) FROM opened
+    SELECT 'pojedynki_started', jsonb_build_object('duels', ${POJEDYNKI_DUEL_COUNT}::INTEGER) FROM opened
     RETURNING id
   `) as { id: number }[];
   return rows.length > 0;

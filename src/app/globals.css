@@ -205,3 +205,8 @@ em { color: var(--gold-light); font-weight: inherit; }
   .player-navigation button { padding-inline: 4px; font-size: .76rem; }
   .chip-leaderboard th, .chip-leaderboard td { padding: 10px 5px; font-size: .76rem; }
 }
+
+/* Jaka to melodia? */
+.melodia-list { display: grid; gap: 8px; margin: 16px 0; padding: 0; list-style: none; }
+.melodia-list li { padding: 9px 12px; border: 1px solid rgba(235, 220, 172, .17); border-radius: 8px; color: #c8c3b7; background: rgba(7, 11, 10, .25); }
+.melodia-list strong { color: var(--gold-light); }

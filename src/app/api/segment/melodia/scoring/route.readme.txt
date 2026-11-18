@@ -1,11 +1,7 @@
-File: `src/app/api/segment/melodia/scoring/route.ts`
+File: src/app/api/segment/melodia/scoring/route.ts
 
-Purpose and responsibilities: Opens administrator scoring for the currently displayed music song while keeping player screens on that song.
+POST verifies the administrator's database-backed session and returns { ok: true } or a Polish error.
 
-Important exports, inputs, and outputs: Admin-only bodyless `POST(request)` returns `{ ok: true }` or Polish errors.
+Validates { songId } and opens scoring only for the current live song. Players retain the current song number.
 
-Dependencies: Next Route Handler APIs, opaque sessions, and `openMelodiaScoring`.
-
-Backend/database interactions: Transitions only the current durable song from `live` to `scoring` and the segment stage from `song` to `scoring`.
-
-Implementation details: No points, winner, bets, or music metadata are accepted here.
+Persistence goes through src/lib/database.ts.

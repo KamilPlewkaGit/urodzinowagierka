@@ -1,11 +1,7 @@
-File: `src/app/api/segment/melodia/next/route.ts`
+File: src/app/api/segment/melodia/next/route.ts
 
-Purpose and responsibilities: Opens exactly the next pending song after a confirmed earlier result.
+POST verifies the administrator's database-backed session and returns { ok: true } or a Polish error.
 
-Important exports, inputs, and outputs: Admin-only bodyless `POST(request)` returns `{ ok: true }` or a Polish conflict/authorization/server error.
+Validates { songId } and advances by one slot from the current confirmed result. The final song opens the results stage through score.
 
-Dependencies: Next Route Handler APIs, opaque sessions, and `moveToNextMelodiaSong`.
-
-Backend/database interactions: The service locks the current result, marks only the following fixed slot live, and increments the persisted song sequence.
-
-Implementation details: It cannot skip a song or open a sixth song; Song 5 moves directly to durable final settlement.
+Persistence goes through src/lib/database.ts.

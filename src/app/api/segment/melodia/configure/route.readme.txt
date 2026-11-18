@@ -1,0 +1,7 @@
+File: src/app/api/segment/melodia/configure/route.ts
+
+POST verifies the administrator's database-backed session and returns { ok: true } or a Polish error.
+
+Validates { teamIds } as exactly the four distinct fixed teams and records their confirmation before play.
+
+Persistence goes through src/lib/database.ts.

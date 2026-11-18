@@ -2,7 +2,7 @@ File: `src/lib/melodia.ts`
 
 Purpose and responsibilities: Holds immutable metadata shared by the Jaka to melodia? segment UI and server implementation.
 
-Important exports, inputs, and outputs: Exports the Polish segment title, the fixed five-song count, score caps (five singing points and seven points total), and `getMelodiaSongLabel(sequence)`, which maps persisted zero-based sequences to Polish `PIOSENKA NR 1` through `PIOSENKA NR 5` labels.
+Important exports, inputs, and outputs: Exports the Polish segment title, the fixed five-song count, the 4-chip player reward, score caps (five singing points and seven points total), and `getMelodiaSongLabel(sequence)`, which maps persisted zero-based sequences to Polish `PIOSENKA NR 1` through `PIOSENKA NR 5` labels.
 
 Dependencies: None.
 

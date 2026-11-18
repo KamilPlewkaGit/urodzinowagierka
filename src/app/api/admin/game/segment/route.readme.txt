@@ -12,6 +12,6 @@ Important technical details: The endpoint deliberately does not reset a segment,
 
 Notes for future development: Expand `activeSegmentSchema` and the database service together when a real additional segment is introduced; do not accept arbitrary segment names.
 
-Segment V update: The fixed schema additionally accepts `"melodia"`. Navigation still changes only `active_segment`; persisted music songs, scores, chips, bets, and settlements are untouched.
+Segment V update: The fixed schema additionally accepts `"melodia"`. Navigation still changes only `active_segment`; persisted music songs, scores and settlements are untouched.
 
 Segment VI update: The fixed schema additionally accepts `"pojedynki"`. Navigation changes only the active view and never resets the four persisted duel slots or their betting outcomes.

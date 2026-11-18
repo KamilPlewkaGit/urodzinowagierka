@@ -1,11 +1,7 @@
-File: `src/app/api/segment/melodia/start/route.ts`
+File: src/app/api/segment/melodia/start/route.ts
 
-Purpose and responsibilities: Opens Segment V's single pre-song betting phase.
+POST verifies the administrator's database-backed session and returns { ok: true } or a Polish error.
 
-Important exports, inputs, and outputs: Admin-only bodyless `POST(request)` returns `{ ok: true }` or a Polish authorization, conflict, or server error.
+Starts song one from the confirmed-team stage and atomically seeds the five durable song slots. The request is bodyless.
 
-Dependencies: Next Route Handler APIs, opaque sessions, and `startMelodiaSegment` in `database.ts`.
-
-Backend/database interactions: The service seeds only missing durable song slots and moves the persisted music stage from `intro` to `betting`.
-
-Implementation details: The handler does not accept browser-provided songs, scores, or teams; every one of the four fixed teams participates.
+Persistence goes through src/lib/database.ts.

@@ -12,6 +12,6 @@ Implementation details: The `Cache-Control: no-store` header prevents browser/CD
 
 Future expansion: Add only safe spectator data to this contract; distinguish privileged fields with a separate authorized endpoint if needed.
 
-Segment V update: The snapshot now includes five durable music-song rows, segment-only team totals, leaders, stage/settlement state, a safe aggregate market count, and only the current player's own target/stake/result/payout. It never exposes other player bets.
+Segment V exposes the five songs, current stage, team totals and leaders, final winner, settlement status, exact debit range, and the signed-in player's recorded balance change. The database reads the snapshot from a single consistent view.
 
 Segment VI update: The snapshot now also includes four Pojedynki slots, their selected team sides/stages/winners, safe per-slot wager counts, and only the current player's own target/result/payout. It never exposes another bettor's identity or choice.

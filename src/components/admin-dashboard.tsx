@@ -209,11 +209,12 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
   const melodiaStatusLabel = !isStarted
     ? "Lobby oczekuje"
     : snapshot.melodia.stage === "intro" ? "Segment gotowy"
-      : snapshot.melodia.stage === "betting" ? "Zakłady otwarte"
+      : snapshot.melodia.stage === "ready" ? "Drużyny zatwierdzone"
         : snapshot.melodia.stage === "song" ? `Piosenka ${snapshot.game.currentMelodiaSongSequence + 1}/5`
           : snapshot.melodia.stage === "scoring" ? "Punktacja piosenki"
             : snapshot.melodia.stage === "result" ? "Wynik piosenki"
-              : "Segment zakończony";
+              : snapshot.melodia.stage === "completed" ? "Segment zakończony"
+                : "Wyniki segmentu";
   const pojedynkiStatusLabel = !isStarted
     ? "Lobby oczekuje"
     : snapshot.pojedynki.stage === "intro" ? "Segment gotowy"
@@ -281,7 +282,7 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
             <>
               <span className="panel-index">01 / AKTYWNY SEGMENT</span>
               <h2>Jaka to melodia?</h2>
-              <p>Pełne sterowanie zakładami, pięcioma piosenkami i punktacją znajduje się poniżej.</p>
+              <p>Wybierz drużyny, przeprowadź pięć rund i zatwierdź rozliczenie żetonów.</p>
             </>
           ) : null}
 
@@ -417,7 +418,11 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
             <div><dt>Aktywny segment</dt><dd>{AVAILABLE_SEGMENTS.find((segment) => segment.id === activeSegment)?.name}</dd></div>
             <div><dt>Faza segmentu</dt><dd>{statusLabel}</dd></div>
             <div><dt>Aktywni gracze</dt><dd>{snapshot.players.length}</dd></div>
-            <div><dt>Zakłady</dt><dd>{activeSegment === "the-floor" || activeSegment === "sport" || activeSegment === "pojedynki" ? "Zależne od pojedynku" : activeSegment === "melodia" ? "Przed pierwszą piosenką" : "Brak w tym segmencie"}</dd></div>
+            {activeSegment === "melodia" ? (
+              <div><dt>Rozliczenie żetonów</dt><dd>{snapshot.melodia.settledAt ? "Zatwierdzone" : "Po piątej piosence"}</dd></div>
+            ) : (
+              <div><dt>Zakłady</dt><dd>{activeSegment === "the-floor" || activeSegment === "sport" || activeSegment === "pojedynki" ? "Zależne od pojedynku" : "Brak w tym segmencie"}</dd></div>
+            )}
           </dl>
         </article>
       </section>

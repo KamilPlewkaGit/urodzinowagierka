@@ -1,11 +1,7 @@
-File: `src/app/api/segment/melodia/score/route.ts`
+File: src/app/api/segment/melodia/score/route.ts
 
-Purpose and responsibilities: Validates and commits one Jaka to melodia? song result.
+POST verifies the administrator's database-backed session and returns { ok: true } or a Polish error.
 
-Important exports, inputs, and outputs: Admin-only `POST(request)` parses a winner, artist/title correctness, singing score/mistake, and optional bidding data using `melodiaScoreSchema`; it returns `{ ok: true }` or Polish errors.
+Validates the current song ID, first responding team, recognition and singing points, and optional lyric-auction declarations. Saves the result once, updates team totals, and opens final classification after song five.
 
-Dependencies: Next Route Handler APIs, opaque sessions, validation, and `scoreMelodiaSong`.
-
-Backend/database interactions: The service writes the scored song and optional bid rows once, adds the server-calculated 0–7 points to segment and global team score rows, and triggers final market settlement after Song 5.
-
-Implementation details: A bidding winner must be a bidding participant and the winning song team. An unsuccessful bid or singing mistake yields zero singing points; artist/title points remain independent. The database condition makes repeat confirmation harmlessly fail.
+Persistence goes through src/lib/database.ts.

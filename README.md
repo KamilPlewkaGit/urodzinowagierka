@@ -22,7 +22,7 @@ Browser client
                                     Neon PostgreSQL
 ```
 
-The lightweight four-second polling approach needs no separate WebSocket service and works reliably in a Vercel serverless deployment. The state endpoint is explicitly non-cacheable.
+The lightweight four-second polling approach needs no separate WebSocket service and works reliably in a Vercel serverless deployment. The state endpoint is explicitly non-cacheable. Each snapshot reads the stages, scores, rosters, and balances from one consistent database view.
 
 ## Panel gracza
 
@@ -104,7 +104,7 @@ Every source file has a neighboring `.readme.txt` file. Read the focused file do
 | `src/app` | Routes and server-rendered access gates. |
 | `src/app/api` | Server-side registration/rejoining, login, logout, authenticated game synchronization, and protected game, segment, and player-admin transitions. |
 | `src/components` | Responsive Polish casino-themed display components, including SOLENIZANT and focused The Floor, SPORT, JAKA TO MELODIA?, and POJEDYNKI player/admin views. |
-| `src/lib/database.ts` | Neon queries, schema bootstrap/migration, mapping, constraints, rejoining, game/segment/player-admin reads, The Floor team-duel writes, SPORT pairing/challenge/betting/bonus writes, JAKA TO MELODIA? song/market/scoring writes, and POJEDYNKI team-duel/betting/settlement writes. |
+| `src/lib/database.ts` | Neon queries, schema bootstrap/migration, mapping, constraints, rejoining, game/segment/player-admin reads, The Floor team-duel writes, SPORT pairing/challenge/betting/bonus writes, JAKA TO MELODIA? scoring and reward settlement, and POJEDYNKI team-duel/betting/settlement writes. |
 | `src/lib/session.ts` | Creation/verification of database-backed opaque HttpOnly session cookies; never imported by client code. |
 | `src/lib/validation.ts` | Shared server input schemas, including SOLENIZANT, The Floor, SPORT, JAKA TO MELODIA?, POJEDYNKI, navigation, exact decimal balance, and player-removal validation. |
 | `src/lib/chips.ts` / `constants.ts` / `types.ts` / `solenizant.ts` / `floor.ts` / `sport.ts` / `melodia.ts` / `pojedynki.ts` | Decimal chip display helper, stable metadata/contracts, fixed questions, The Floor content/timing, SPORT schedule, music metadata, and four-duel metadata shared by UI and server code. |
@@ -129,7 +129,7 @@ Chip balances are represented as server decimal strings in the API snapshot and 
 
 ### `game_state`
 
-There is exactly one current game row (`id = 1`). It has `status` (`waiting` or `started`), nullable `started_at`, and `active_segment` (`solenizant`, `the-floor`, `sport`, `melodia`, or `pojedynki`). It stores independent SOLENIZANT, Floor, SPORT, music-segment, and Pojedynki stages. SPORT has a current main-challenge sequence (0–7) and bonus-round sequence (0–1); Melodia has a current song sequence (0–4), nullable final winner, and settlement timestamp; Pojedynki has a current duel sequence (0–3). Switching segments never resets another segment's saved state.
+There is exactly one current game row (`id = 1`). It has `status` (`waiting` or `started`), nullable `started_at`, and `active_segment` (`solenizant`, `the-floor`, `sport`, `melodia`, or `pojedynki`). It stores independent SOLENIZANT, Floor, SPORT, music-segment, and Pojedynki stages. SPORT has a current main-challenge sequence (0–7) and bonus-round sequence (0–1); Melodia has a current song sequence (0–4), a selected or settled winner when applicable, and a settlement timestamp; Pojedynki has a current duel sequence (0–3). Switching segments never resets another segment's saved state.
 
 ### `solenizant_team_scores`
 
@@ -206,7 +206,7 @@ Each login creates one opaque, randomly generated token. The token is held only 
 - The start-game, all SOLENIZANT handlers, navigation/reset handlers, and player-admin handlers resolve and verify an administrator session in Neon before updating persistent state.
 - The Floor team setup, betting lock, timer start, correct/pass, timeout, winner confirmation, next-duel, and restart handlers all require the same verified administrator session. Only a verified player session can place a Floor bet.
 - SPORT setup, pair/number persistence, challenge start, winner confirmation, progression, bonus configuration, bonus scoring, and restart handlers require the same verified administrator session. Only a verified active player session can place a SPORT bet, and the server derives that player's eligibility from the two persisted challenge teams.
-- JAKA TO MELODIA? start, song, scoring, score, progression, completion, and restart handlers require the same verified administrator session. Only a verified active player session can create a music-market bet; the server derives that player from the session, validates the decimal stake and open phase, and never accepts a balance or score from the browser.
+- JAKA TO MELODIA? team confirmation, song progression, scoring, tie resolution, reward settlement, completion, and restart require a verified administrator session.
 - Opening scoring changes only the persisted admin stage; player UI intentionally renders the same question during both `question` and `scoring` stages.
 - Confirming a score accepts only a bounded question index and unique team IDs. The server owns the one-point value and atomically prevents duplicate awards.
 - A Floor `correct` action moves to the next image and switches the active team. A `pass` moves to the next image, deducts exactly 3 seconds, and intentionally keeps the same team active. Both teams start at 45 seconds; a zero server-calculated clock ends the duel and opens administrator winner selection.
@@ -253,8 +253,8 @@ The administrator password is intentionally `admin` for this private game. Anyon
 1. Create a Neon project and copy its pooled `DATABASE_URL` connection string.
 2. Import this Git repository in Vercel. The framework preset is Next.js; build command can remain `npm run build`.
 3. Set `DATABASE_URL` for Production (and Preview if needed).
-4. Deploy. The first request automatically creates or migrates the required tables, session table, SOLENIZANT score tables, The Floor duel/bet tables, SPORT pair/number/challenge/bet/transfer/bonus tables, JAKA TO MELODIA? song/score/bid/bet tables, POJEDYNKI duel/bet tables, player-management ledger tables, and initial `game_state` row.
-5. Verify a player can register and rejoin with the same normalized nickname, an admin can authenticate, start the game and all five segments, then select two Floor teams, try a 2-chip bet from an eligible remaining-team player, lock betting, run correct/pass team timer actions, select and confirm a winning team, and advance to the next slot. For SPORT, verify two disjoint ordered pairs, dynamic rankings from 1 through each team's player count, the required ranks 1–5, all eight scheduled challenges, only non-competing-team betting, result settlement, two no-bet limb-count bonuses, and team-score updates. For JAKA TO MELODIA?, verify one pre-song market, five manual external-music screens, 0–7 point confirmation, optional bidding, unique-winner and tied-leader settlement, refresh persistence, and the final Polish scoreboard. For POJEDYNKI, verify all four team selections, optional 2-chip bets from remaining-team players, betting lock, only-competing-team winner confirmation, one-time settlement, and durable progression. Confirm that an undersized SPORT team gets the Polish validation message and that refreshing does not reset an unsaved, unchanged setup selection. For each betting segment, verify that cancelling the administrator's start confirmation keeps betting open, and that confirming closes it and starts play with zero bets or a partial pool. Check that only submitted bets settle. Also verify that reset restores active players to 100 chips and that the dashboard shows the waiting status.
+4. Deploy. The first request automatically creates or migrates the required tables, session table, SOLENIZANT score tables, The Floor duel/bet tables, SPORT pair/number/challenge/bet/transfer/bonus tables, JAKA TO MELODIA? song/score/lyric-auction/transfer tables, POJEDYNKI duel/bet tables, player-management ledger tables, and initial `game_state` row.
+5. Verify a player can register and rejoin with the same normalized nickname, an admin can authenticate, start the game and all five segments, then select two Floor teams, try a 2-chip bet from an eligible remaining-team player, lock betting, run correct/pass team timer actions, select and confirm a winning team, and advance to the next slot. For SPORT, verify two disjoint ordered pairs, dynamic rankings from 1 through each team's player count, the required ranks 1–5, all eight scheduled challenges, only non-competing-team betting, result settlement, two no-bet limb-count bonuses, and team-score updates. For JAKA TO MELODIA?, verify team confirmation, the five numbered rounds, scoring and the optional lyric auction, tie resolution, insufficient-balance handling, and one-time settlement with a conserved chip total. For POJEDYNKI, verify all four team selections, optional 2-chip bets from remaining-team players, betting lock, only-competing-team winner confirmation, one-time settlement, and durable progression. Confirm that an undersized SPORT team gets the Polish validation message and that refreshing does not reset an unsaved, unchanged setup selection. For each betting segment, verify that cancelling the administrator's start confirmation keeps betting open, and that confirming closes it and starts play with zero bets or a partial pool. Check that only submitted bets settle. Also verify that reset restores active players to 100 chips and that the dashboard shows the waiting status.
 
 ## Important implementation decisions
 
@@ -276,30 +276,22 @@ The administrator password is intentionally `admin` for this private game. Anyon
 
 ## Segment V: JAKA TO MELODIA?
 
-Segment V is a five-song, four-team simultaneous game-show segment. The application never plays, stores, reveals, or streams music; the host plays every song outside the application. The player screen is Polish-only and displays the fixed `PIOSENKA NR 1` through `PIOSENKA NR 5` sequence, progress, the four teams, and the live segment scoreboard. It deliberately does not show an artist or song title.
+Prowadzący wybiera i zatwierdza wszystkie cztery drużyny, a przycisk **Rozpocznij segment** od razu otwiera **PIOSENKĘ NR 1**. Wszystkie drużyny rywalizują równocześnie w pięciu rundach według zasady „kto pierwszy, ten lepszy”. Muzyka jest odtwarzana poza aplikacją. Ekran graczy pokazuje numer i postęp rundy, punktację czterech drużyn oraz wyniki zapisanych piosenek.
 
-Before Song 1 the administrator starts the segment, which opens one shared market. Each active player may make one variable, positive `NUMERIC(20,4)` bet on the team that will gain the most **Segment V** points after all five songs. The administrator confirms the start of Song 1 to close this market permanently, even when nobody bets. The final market outcome uses `melodia_team_scores`, not the cumulative global table. A unique leader divides the whole closed pot proportionally to correct stakes (the earliest correct bet receives a deterministic four-place rounding remainder). A tie for first place, or a market without a correct bet, explicitly refunds every stake. `melodia_settled_at` makes settlement one-time.
+Prowadzący klika **Przejdź do punktacji**, a gracze nadal widzą tę samą piosenkę. Pierwsza odpowiadająca drużyna może zdobyć po 1 punkcie za artystę i tytuł oraz do 5 punktów za wspólne śpiewanie. Pomyłka zeruje wyłącznie punkty za śpiewanie. Opcjonalna licytacja zapisuje drużyny, deklaracje 0–5 wersów, zwycięską drużynę i ocenę wykonania. Zwycięski licytant otrzymuje punkty za wykonanie, a drużyna pierwszej odpowiedzi zachowuje punkty za rozpoznanie. W jednej rundzie można przyznać łącznie maksymalnie 7 punktów. **Zatwierdź punkty** zapisuje wynik raz i aktualizuje tabelę segmentu oraz punktację ogólną. Po rundach 1–4 prowadzący otwiera następną piosenkę. Po rundzie 5 klasyfikacja pojawia się automatycznie.
 
-For each song, the administrator first exposes the song, then clicks **„Przejdź do punktacji”**. Players remain on the same song while scoring is open. The administrator chooses exactly one team and may award:
+### Nagroda i rozliczenie
 
-- artist recognition: 0 or 1 point;
-- title recognition: 0 or 1 point;
-- singing: 0 through 5 points.
+Zwycięzcę wyłaniają punkty Segmentu V. Przy remisie prowadzący zapisuje wybór jednej z drużyn z najwyższym wynikiem. **Zatwierdź rozliczenie żetonów** przyznaje dokładnie 4 żetony każdemu aktywnemu zawodnikowi zwycięskiej drużyny. Pula jest finansowana w równych częściach przez wszystkich aktywnych zawodników pozostałych drużyn. Przy zapisie `NUMERIC(20,4)` niepodzielna reszta jest rozdzielana po 0,0001 żetonu według rosnącego identyfikatora gracza. Przy 5 zwycięzcach i 15 przegranych 5 graczy pokrywa po 1,3334 żetonu, a 10 po 1,3333. Zwycięzcy otrzymują łącznie 20 żetonów i tyle samo jest pobierane z pozostałych sald.
 
-One singing mistake forces the singing part to zero but leaves artist and title points unchanged. Therefore a song is worth at most 7 points and five songs at most 35 points for one team. Confirmation writes the result once, adds the calculated total both to the Segment V total and the existing global team score, then lets the administrator open only the next song. After Song 5 the final result and resolved bet outcome are visible to all authenticated players.
+Jeśli brakuje aktywnych zawodników po jednej ze stron albo choć jedno saldo nie pozwala wykonać zaplanowanej operacji, całe rozliczenie pozostaje oczekujące. Prowadzący widzi przyczynę i może ponowić zatwierdzenie po rozwiązaniu problemu. Po zapisaniu rozliczenia przycisk **Zakończ segment** zamyka segment. Końcowa klasyfikacja i kwoty pozostają widoczne. Pasek gracza pokazuje jego aktualne saldo, a zakładki Lobby i Żetony graczy dają dostęp do składu drużyn i pozostałych sald.
 
-The optional **Licytacja** is a compact musical challenge, not a chip bet. During scoring the administrator may enable it, choose participating teams, record each declared 0–5 line count, choose one participating winning bidder, and mark whether that singing attempt succeeded. A successful bid gives its declared singing points; an unsuccessful bid gives zero singing points. It introduces no multipliers, monetary transfers, or other penalties. Its selected bidder must also be the team awarded that song.
+### Stan, API i wdrożenie
 
-### Segment V persistence and routes
-
-`game_state` holds independent `melodia_stage` (`intro`, `betting`, `song`, `scoring`, `result`, `results`), current sequence, durable settlement timestamp, and the nullable final winner ID (null means a tie). The migration/bootstrap creates `melodia_songs`, `melodia_team_scores`, `melodia_bids`, and `melodia_bets`; all five song slots are seeded only once. `getGameSnapshot` returns a safe Segment V view with segment totals, leaders, stages, song result/bidding detail, safe aggregate bet count, and only the current player’s own bet fields.
-
-The following protected routes use the existing opaque session architecture and `database.ts` transaction boundary:
-
-- Admin: `/api/segment/melodia/start`, `start-song`, `scoring`, `score`, `next`, `complete`, and `restart`.
-- Player: `/api/segment/melodia/bet` only, with the player identity taken exclusively from the verified session.
-
-The administrator dashboard has a fourth persisted navigation choice, **Jaka to melodia?**, and mounts a focused control surface only while this segment is active. All clients continue to synchronize with the existing non-cacheable four-second polling endpoint; Segment V intentionally adds no WebSocket service. Restarting Segment V clears only its song/bid/bet/totals data, refunds still-pending Segment V stakes, reverses this segment’s recorded global point contribution, and preserves the other segment state, teams, and player identities.
+- `game_state` przechowuje etap (`intro`, `ready`, `song`, `scoring`, `result`, `results`, `completed`), aktualną piosenkę, wskazanego zwycięzcę i znacznik rozliczenia. `melodia_songs`, `melodia_bids` i `melodia_team_scores` przechowują pięć rund, deklaracje wersów i wyniki drużyn.
+- Wypłata, potrącenia, zapis poprzedniego i nowego salda dla każdego zawodnika w `melodia_chip_transfers` oraz znacznik rozliczenia powstają w jednej transakcji. Blokada stanu gry, ponowna walidacja lidera i unikatowy klucz piosenki finałowej oraz zawodnika zabezpieczają przed ponowieniem wypłaty. Migawka odświeżana co cztery sekundy pokazuje zakres potrąceń i własną zapisaną zmianę salda.
+- Wszystkie zapisy wymagają sesji administratora. Ścieżki `/api/segment/melodia/` obejmują `configure`, `start`, `scoring`, `score`, `next`, `winner`, `settle`, `complete` i `restart`. Akcje dotyczące piosenki przyjmują jej trwały identyfikator.
+- Migracja zwraca nierozliczone historyczne obciążenia, zachowuje trwające rundy oraz przenosi wcześniej rozliczone finały jako archiwalne. Restart segmentu czyści jego rundy i odejmuje ich wkład w punktację ogólną. Wykonane transfery pozostają zapisane, również po pełnym resecie gry.
 
 ## Segment VI: POJEDYNKI
 

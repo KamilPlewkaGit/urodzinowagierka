@@ -93,10 +93,16 @@ export const sportBonusRequirementsSchema = z.object({
 }).refine((value) => new Set(value.requirements.map((requirement) => requirement.teamId)).size === TEAM_IDS.length, "Każda drużyna może mieć tylko jedno wymaganie.");
 export const sportBonusWinnerSchema = z.object({ winnerTeamId: teamIdSchema, points: z.number().int().min(0, "Liczba punktów nie może być ujemna.").max(100, "Liczba punktów jest zbyt duża.") });
 
-export const melodiaBetSchema = z.object({
-  targetTeamId: teamIdSchema,
-  stake: z.string().trim().regex(/^\d{1,16}(?:\.\d{1,4})?$/, "Podaj dodatnią liczbę żetonów z dokładnością do 4 miejsc po przecinku.").refine((value) => Number(value) > 0, "Stawka musi być większa od zera."),
+export const melodiaTeamsSchema = z.object({
+  teamIds: z.array(teamIdSchema).length(TEAM_IDS.length, "Wybierz wszystkie cztery drużyny.")
+    .refine((teamIds) => new Set(teamIds).size === TEAM_IDS.length, "Każdą drużynę wybierz tylko raz."),
 });
+
+export const melodiaSongSchema = z.object({
+  songId: z.number().int().positive().refine(Number.isSafeInteger, "Nieprawidłowy identyfikator piosenki."),
+});
+
+export const melodiaWinnerSchema = melodiaSongSchema.extend({ winnerTeamId: teamIdSchema });
 
 const melodiaBidSchema = z.object({ teamId: teamIdSchema, declaredLines: z.number().int().min(0).max(5) });
 
@@ -115,8 +121,7 @@ export const melodiaBiddingSchema = z.object({
   }
 });
 
-export const melodiaScoreSchema = z.object({
-  winnerTeamId: teamIdSchema,
+export const melodiaScoreSchema = melodiaWinnerSchema.extend({
   artistCorrect: z.boolean(),
   titleCorrect: z.boolean(),
   singingPoints: z.number().int().min(0).max(5),

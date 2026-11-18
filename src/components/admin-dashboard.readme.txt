@@ -12,7 +12,7 @@ Implementation details: The dashboard has five direct-navigation choices and ena
 
 Future expansion: Add a separate protected workflow for another segment rather than turning this component into a generic browser-side state editor.
 
-Segment V update: Navigation now has a fourth option, `Jaka to melodia?`, with an independent restart endpoint and status label. `MelodiaAdminControls` is mounted only for an authenticated administrator viewing that active segment; its five-song progression, scoring, and market settlement remain isolated from existing controls.
+The Jaka to melodia? navigation option displays its own status and reward confirmation state, and mounts the dedicated admin controls while active.
 
 Segment VI update: Navigation now includes a fifth option, `Pojedynki`, with its own status labels and restart endpoint. `PojedynkiAdminControls` is mounted only while that segment is active, keeping its four team-duel actions separate from all prior segment controls.
 

@@ -2,7 +2,7 @@ File: `src/lib/types.ts`
 
 Purpose and responsibilities: Defines shared domain vocabulary for teams, players, SOLENIZANT, The Floor, SPORT, Jaka to melodia?, Pojedynki, snapshots, and verified sessions.
 
-Important exports, inputs, and outputs: The Floor duel contract contains two team IDs, the active team, team clocks, a winning team, bet count, and only the current viewer's own team bet outcome. SPORT adds persisted pairing/rank/challenge/bonus contracts. Melodia and Pojedynki add focused segment, slot, and safe viewer-bet contracts. Chip values remain decimal strings.
+Important exports, inputs, and outputs: The Floor duel contract contains two team IDs, the active team, team clocks, a winning team, bet count, and only the current viewer's own team bet outcome. SPORT adds persisted pairing/rank/challenge/bonus contracts. Melodia exposes song and reward data, while Pojedynki exposes its duel and viewer-bet contracts. Chip values remain decimal strings.
 
 Dependencies: None.
 
@@ -12,6 +12,6 @@ Implementation details: The Floor uses teams as the competing sides. SPORT pair 
 
 Future expansion: Add fields only after their persistent and API behavior is defined.
 
-Segment V update: `SegmentId` now includes `melodia`. `MelodiaState`, `MelodiaSong`, `MelodiaBid`, and `MelodiaTeamScore` model the five fixed song slots, optional bidding result, segment-only score totals, final leaders, durable settlement state, and the viewer's isolated market outcome. `GameState.melodiaWinningTeamId` stores the unique final winner and remains null for a tie. These are added to `GameSnapshot`; money remains a decimal string.
+Segment V models the confirmed-team stage, five song slots, lyric-auction details, team totals, final leaders, selected winner, settlement marker, range of per-player debits, and the viewer's own recorded balance delta. Chip values are exact decimal strings. Previously settled legacy results carry an archive flag.
 
 Segment VI update: `SegmentId` additionally includes `pojedynki`. `PojedynkiState` and `PojedynkiDuel` expose only the four durable slots, selected team sides, stage, result, aggregate bet count, and the requesting player's isolated bet outcome. `GameState` holds its independent stage and zero-based current-duel sequence.

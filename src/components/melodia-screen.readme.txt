@@ -1,7 +1,5 @@
 File: src/components/melodia-screen.tsx
 
-Purpose: Jaka to melodia? displays its pre-song betting market, five externally played songs, and segment scores and results. During the market the player can submit a team and decimal stake to /api/segment/melodia/bet. The component retains the draft team and stake while its parent hides the segment panel.
+MelodiaScreen reads the shared GameSnapshot and displays rules, numbered songs and progress, the four-team classification and recorded rounds, and the approved or pending reward details. The player dashboard supplies navigation and the current balance.
 
-Eligible players may leave the optional wager unsubmitted and wait for the administrator to start play.
-
-ActiveSegment supplies the live GameSnapshot, viewer role and optional session-derived player ID, and a shared refresh callback. After a successful bet the screen requests a fresh snapshot through that callback. The screen receives only the viewer's own bet details and keeps transient feedback local. Game progression and settlement remain in the existing protected Route Handlers.
+Named display helpers are shared by the admin controls. The final view uses the server-provided winner and the exact debit range, and shows the viewer's own posted delta when available. Previously settled legacy results display as archival. Rendering depends on team metadata, shared Melodia rules, and the Polish decimal string formatter.
