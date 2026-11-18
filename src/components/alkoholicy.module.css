@@ -1,0 +1,42 @@
+.wrapper { display: grid; gap: 1rem; margin-block: 1rem; }
+.stage, .controls {
+  min-inline-size: 0;
+  margin: 0;
+  padding: clamp(1rem, 4.5vw, 2.75rem);
+  border: 1px solid #946f4a;
+  border-radius: 1rem;
+  background: #231817;
+  color: #fae9d5;
+}
+
+.stage { display: grid; gap: 0.8rem; background: radial-gradient(ellipse at 14% 0%, #503229 0, #251a1b 56%, #181317 100%); }
+.heading h1 { margin: 0; color: #ffdb9b; font: 500 clamp(2.2rem, 6.5vw, 5rem)/1.04 Georgia, serif; overflow-wrap: anywhere; }
+.heading p { color: #edc79d; font-size: 1.08rem; }
+.stage h2, .controls h2 { margin: 0; color: #ffdb9b; font: 500 clamp(1.35rem, 4vw, 2.2rem)/1.1 Georgia, serif; }
+.stage h3 { margin: 0; color: #ffdb9b; }
+.stage p, .controls p { margin-block: 0.3rem; }
+.kicker { color: #eac6a2; font-size: 0.78rem; font-weight: 750; letter-spacing: 0.13em; }
+.highlight { font-size: clamp(1.05rem, 3.3vw, 1.75rem); font-weight: 750; }
+.rules { margin-block: 0; padding-inline-start: 1.3rem; list-style: disc; color: #ebcfba; line-height: 1.5; }
+.gameList, .standings, .balances ul { display: grid; gap: 0.35rem; max-inline-size: 45rem; padding: 0; margin-block: 0.4rem; list-style: none; }
+.gameList li, .standings li, .balances li { display: flex; align-items: center; justify-content: space-between; gap: 0.65rem; padding: 0.55rem 0.75rem; border: 1px solid #c399684f; border-radius: 0.5rem; background: #181317b0; }
+.standings li[aria-current="step"] { border-color: #f0b562; }
+.standings li > :last-child, .balances li > :last-child { flex: none; }
+.match { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; font-size: clamp(1.02rem, 3.3vw, 1.5rem); }
+.match span { color: #edc79d; }
+.result { display: grid; gap: 0.4rem; }
+.balances summary, .corrections summary { cursor: pointer; color: #ffdb9b; font-weight: 700; padding-block: 0.35rem; }
+.controls, .form { display: grid; justify-items: start; gap: 0.85rem; }
+.controls legend { padding-inline: 0.5rem; color: #ffdb9b; font-weight: 750; }
+.controls select, .controls input { display: block; margin-block-start: 0.3rem; }
+.controls option { background: #231817; color: #fae9d5; }
+.form { inline-size: min(100%, 48rem); }
+.formGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; inline-size: 100%; }
+.actions, .scoreForm { display: flex; flex-wrap: wrap; align-items: end; gap: 0.65rem; }
+.scoreForm { padding-block: 0.4rem; }
+.actions [aria-pressed="true"] { border-color: #f6cf98; background: #61432f; }
+
+@media (max-width: 580px) {
+  .formGrid { grid-template-columns: minmax(0, 1fr); }
+  .stage, .controls { padding-inline: 0.9rem; }
+}

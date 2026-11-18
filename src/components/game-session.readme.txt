@@ -7,3 +7,7 @@ useGameSession takes the initial server snapshot and optional verified player ID
 ActiveSegment selects an existing screen from snapshot.game.activeSegment and passes the live snapshot and post-bet refresh handler. AdminGamePreview keeps the administrator's preview and return to /admin, including after the game resets.
 
 FamiliadaScreen uses the same selection and refresh path for the player view and administrator preview. Betting and buzzer presses refresh the shared snapshot immediately after a response.
+
+FinaleScreen displays the active FINAŁ through the same four-second snapshot and shares the view with the administrator preview. The presentation renders only the published answer, even when the snapshot also carries the administrator's key.
+
+AlkoholicyScreen and GoldChallengeScreen also use the same active segment selector and polling. Bets and nominations request an immediate refresh of the existing snapshot. The administrator preview mounts the presentation with player actions hidden.

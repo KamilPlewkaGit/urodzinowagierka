@@ -1,8 +1,8 @@
 # The Grand Table
 
-The Grand Table is a polished, casino-inspired multiplayer team game. A participant selects one of four teams, receives 100 virtual chips, and opens a live dashboard. A separately authenticated administrator controls SOLENIZANT, The Floor, SPORT, JAKA TO MELODIA?, POJEDYNKI, and FAMILIADA, manages available segments, resets/restarts explicit state, inspects players, sets an exact player balance, and safely deactivates a player.
+The Grand Table is a polished, casino-inspired multiplayer team game. A participant selects one of four teams, receives 100 virtual chips, and opens a live dashboard. A separately authenticated administrator controls SOLENIZANT, The Floor, SPORT, JAKA TO MELODIA?, POJEDYNKI, FAMILIADA, KTO GRA GRUBO, WYGRAĆ MUSI, ALKOHOLICY, and FINAŁ, manages available segments, resets/restarts explicit state, inspects players, sets an exact player balance, and safely deactivates a player.
 
-This repository is intentionally limited to team registration/rejoining, persistent chips and game state, the player dashboard, administrator authentication, player administration, SOLENIZANT, The Floor, SPORT, JAKA TO MELODIA?, POJEDYNKI, and FAMILIADA. It contains no real-money functions or player-submitted answers.
+The application handles registration and sessions, team points, virtual chips, administrator controls, and the listed segments. It contains no real-money functions or player-submitted answers.
 
 ## Architecture
 
@@ -16,6 +16,9 @@ Browser client
   ├─ POST /api/segment/solenizant/* ──► Admin-only stage and scoring writes
   ├─ POST /api/segment/floor/* ───────► Floor team selection, betting, timer and result writes
   ├─ POST /api/segment/familiada ─────► Familiada admin actions, player buzzes and match bets
+  ├─ POST /api/segment/gold-challenge ─► Gold challenge admin actions and player nominations
+  ├─ POST /api/segment/alkoholicy ────► Alkoholicy admin actions and player bets
+  ├─ POST /api/segment/finale ────────► Admin-only FINAŁ transitions
   ├─ POST /api/admin/game/* ──────────► Admin-only navigation and full reset
   ├─ POST /api/admin/players/* ───────► Admin-only chip adjustment/deactivation
   └─ POST /api/game/start ──────────► Neon-verified admin session + UPDATE game_state
@@ -101,18 +104,24 @@ Every source file has a neighboring `.readme.txt` file. Read the focused file do
 
 Segment VIII adds `src/app/api/segment/familiada/route.ts`, the server-only `src/lib/familiada.ts` rules and questions, and `src/components/familiada-screen.tsx`, `familiada-admin-controls.tsx` and `familiada.module.css` for the Polish views. Each has its own matching documentation file.
 
+The final segment adds `src/app/api/segment/finale/route.ts`, the server-only `src/lib/finale.ts`, and `src/components/finale-screen.tsx`, `finale-admin-controls.tsx` and `finale.module.css`, each with matching documentation.
+
+The two segments before FINAŁ use `src/app/api/segment/gold-challenge/route.ts` and `src/app/api/segment/alkoholicy/route.ts`, with server rules in `src/lib/gold-challenge.ts` and `src/lib/alkoholicy.ts`. Their player screens, admin controls and CSS modules are in `src/components/` under the same name prefixes. The two player forms share `src/components/segment-command.ts` for submitting an intent and refreshing the snapshot.
+
 ## Modules and responsibilities
 
 | Area | Responsibility |
 | --- | --- |
 | `src/app` | Routes and server-rendered access gates. |
 | `src/app/api` | Server-side registration/rejoining, login, logout, authenticated game synchronization, and protected game, segment, and player-admin transitions. |
-| `src/components` | Responsive Polish casino-themed display components, including SOLENIZANT and focused The Floor, SPORT, JAKA TO MELODIA?, POJEDYNKI, and FAMILIADA player/admin views. |
+| `src/components` | Responsive Polish casino-themed player and administrator views for each segment. |
 | `src/lib/database.ts` | Neon queries, schema bootstrap/migration, mapping, constraints, rejoining, game/segment/player-admin reads, and authoritative writes and settlement for all segments, including Familiada buzzer arbitration and match wagers. |
 | `src/lib/session.ts` | Creation/verification of database-backed opaque HttpOnly session cookies; never imported by client code. |
 | `src/lib/validation.ts` | Shared server input schemas for segments, including the Familiada command contract, navigation, exact decimal balance, and player removal. |
 | `src/lib/floor-content.ts` | Server-side loader for ordered The Floor content and images from `public/the floor/`. |
 | `src/lib/familiada.ts` | Server-only ordered question bank, gameplay transitions and role-specific snapshot projection. |
+| `src/lib/finale.ts` | Server-only qualification rules, four ordered questions, transitions, and answer projection. |
+| `src/lib/alkoholicy.ts` / `src/lib/gold-challenge.ts` | Server rules for the two Alkoholicy games and role-specific nomination and reward previews for the gold challenge. |
 | `src/lib/chips.ts` / `constants.ts` / `types.ts` / `solenizant.ts` / `floor.ts` / `sport.ts` / `melodia.ts` / `pojedynki.ts` | Decimal chip display helper, stable metadata/contracts, fixed questions, The Floor category metadata and timing, SPORT schedule, music metadata, and four-duel metadata shared by UI and server code. |
 
 ## Data model
@@ -135,7 +144,7 @@ Chip balances are represented as server decimal strings in the API snapshot and 
 
 ### `game_state`
 
-There is exactly one current game row (`id = 1`). It has `status` (`waiting` or `started`), nullable `started_at`, and `active_segment` (`solenizant`, `the-floor`, `sport`, `melodia`, `pojedynki`, or `familiada`). It stores independent segment stages. SPORT has a main-challenge sequence (0–7) and bonus sequence (0–1). Melodia has a song sequence (0–4), a winner and a settlement timestamp. Pojedynki has a duel sequence (0–3). Familiada stores both matches and their rounds in `familiada_state` and rotates the UUID `familiada_revision` on each gameplay change. Switching segments preserves saved progress.
+There is exactly one current game row (`id = 1`). It has `status` (`waiting` or `started`), nullable `started_at`, and `active_segment` (`solenizant`, `the-floor`, `sport`, `melodia`, `pojedynki`, `familiada`, `gold-challenge`, `alkoholicy`, or `finale`). It stores independent segment stages. SPORT has a main-challenge sequence (0–7) and bonus sequence (0–1). Melodia has a song sequence (0–4), a winner and a settlement timestamp. Pojedynki has a duel sequence (0–3). Familiada, ALKOHOLICY, the gold challenge and FINAŁ store separate JSONB progress documents with UUID revisions in `game_state`. Switching segments preserves saved progress.
 
 ### `solenizant_team_scores`
 
@@ -269,7 +278,7 @@ The administrator password is intentionally `admin` for this private game. Anyon
 1. Create a Neon project and copy its pooled `DATABASE_URL` connection string.
 2. Import this Git repository in Vercel. The framework preset is Next.js; build command can remain `npm run build`.
 3. Set `DATABASE_URL` for Production (and Preview if needed).
-4. Deploy. The first request automatically creates or migrates the required tables, session table, SOLENIZANT score tables, The Floor duel/bet tables, SPORT pair/number/challenge/bet/transfer/bonus tables, JAKA TO MELODIA? song/score/lyric-auction/transfer tables, POJEDYNKI duel/bet tables, Familiada wager table, player-management ledger tables, and initial `game_state` row.
+4. Deploy. The first request automatically creates or migrates the required tables, session table, SOLENIZANT score tables, The Floor duel/bet tables, SPORT pair/number/challenge/bet/transfer/bonus tables, JAKA TO MELODIA? song/score/lyric-auction/transfer tables, POJEDYNKI duel/bet tables, Familiada and Alkoholicy wager tables, gold challenge nomination and transfer tables, player-management ledger tables, and initial `game_state` row.
 5. Verify a player can register and rejoin with the same normalized nickname, an admin can authenticate, start the game and all available segments, then select two Floor teams, try a 2-chip bet from an eligible remaining-team player, lock betting, run correct/pass team timer actions, select and confirm a winning team, and advance to the next slot. For SPORT, verify two disjoint ordered pairs, dynamic rankings from 1 through each team's player count, the required ranks 1–5, all eight scheduled challenges, only non-competing-team betting, result settlement, two no-bet limb-count bonuses, and team-score updates. For JAKA TO MELODIA?, verify team confirmation, the five numbered rounds, scoring and the optional lyric auction, tie resolution, insufficient-balance handling, and one-time settlement with a conserved chip total. For POJEDYNKI, verify all four team selections, optional 2-chip bets from remaining-team players, betting lock, only-competing-team winner confirmation, one-time settlement, and durable progression. Confirm that an undersized SPORT team gets the Polish validation message and that refreshing does not reset an unsaved, unchanged setup selection. For each betting segment, verify that cancelling the administrator's start confirmation keeps betting open, and that confirming closes it and starts play with zero bets or a partial pool. Check that only submitted bets settle. Also verify that reset restores active players to 100 chips and that the dashboard shows the waiting status.
 
 ## Important implementation decisions
@@ -341,7 +350,7 @@ The sixth segment has focused protected routes: administrator-only `start`, `con
 1. Przed każdym pytaniem prowadzący wybiera po jednym aktywnym przedstawicielu obu drużyn. **Rozpocznij pytanie** pokazuje treść i właściwą liczbę ukrytych pól. Po **Aktywuj przyciski** tylko wybrani gracze mają przycisk **ODPOWIADAM!**. Pierwsze zgłoszenie zatwierdzone przez serwer blokuje przyciski i publikuje pseudonim. Przed oceną pierwszej odpowiedzi administrator może wskazać pierwszeństwo ręcznie lub zresetować przyciski. Po resecie można zmienić przedstawicieli.
 2. Przedstawiciele odpowiadają ustnie. Pierwsza odpowiedź z pozycji 1 od razu daje prowadzenie jej drużynie. W pozostałych przypadkach drugi przedstawiciel ma jedną próbę. Prowadzi drużyna z wyżej punktowaną poprawną odpowiedzią. Przy dwóch błędach prowadzący ponawia konfrontację albo wskazuje drużynę, która przejmuje prowadzenie.
 3. Każdą poprawną odpowiedź prowadzący odsłania w jej zapisanej pozycji. W pytaniu z `N` odpowiedziami pozycja `i` otrzymuje `N − i + 1` punktów. Każda poprawna odpowiedź zasila pulę raz, również podczas konfrontacji. Odsłonięcie całej tablicy daje prowadzącej drużynie pełną pulę.
-4. Po konfrontacji każda drużyna ma własny licznik trzech błędów na pytanie. Prowadzący rejestruje błędną lub powtórzoną odpowiedź przyciskiem **BŁĄD – X**, a tablica pokazuje X przy drużynie, która odpowiadała. Trzeci X drużyny prowadzącej oddaje kolej rywalom. Pierwsza poprawna ukryta odpowiedź rywali powiększa pulę i daje im wygraną w rundzie. Jeśli rywale popełnią trzy własne błędy, zebraną pulę dostaje drużyna prowadząca.
+4. Po konfrontacji obie drużyny widzą jeden wspólny licznik trzech błędów na pytanie. Prowadzący rejestruje błędną lub powtórzoną odpowiedź przyciskiem **BŁĄD – X**. Po trzecim X rywale mają jedną próbę przejęcia puli. Poprawna ukryta odpowiedź powiększa pulę i daje im wygraną w rundzie. Po błędzie pulę zdobywa drużyna prowadząca.
 5. Rozstrzygnięcie rundy od razu zapisuje zwycięzcę i jego punkty. Prowadzący może odsłonić pozostałe odpowiedzi pokazowo bez zmiany puli lub wyniku. Tablica czeka na **Następne pytanie** albo przejście do podsumowania po czwartej rundzie. Każde pytanie ma własne błędy, pulę, przedstawicieli i wynik.
 
 ### Pytania i klucz odpowiedzi
@@ -363,8 +372,71 @@ The sixth segment has focused protected routes: administrator-only `start`, `con
 - `game_state.familiada_state` przechowuje pary drużyn, osiem pytań i odpowiedzi, fazę, bieżący mecz i pytanie, ujawnione pozycje, przedstawicieli, pierwszeństwo, drużynę prowadzącą, błędy, pulę, rozstrzygnięcia i daty rozliczenia. Wynik meczu jest sumą zapisanych pul wygranych rund. Wspólna blokada wiersza gry i warunek aktualnej rewizji chronią przed akceptacją dwóch naciśnięć, ponowieniem błędu, powtórnym naliczeniem punktów i rozliczeniem tego samego meczu.
 - `familiada_bets` zapisuje stawkę, typ, wynik, wypłatę i datę rozliczenia pod unikatowym kluczem meczu i gracza. Zatwierdzenie wyniku, rozliczenie zakładów, transfery i wpis audytu w `admin_actions` zapisują się atomowo. Restart segmentu zwraca oczekujące stawki i czyści stan Familiady. Zaksięgowane transfery pozostają w saldach. Pełny reset dodatkowo przywraca salda aktywnych graczy do 100.
 - `GET /api/game/state` synchronizuje wszystkie ekrany co cztery sekundy i publikuje tylko zakład zalogowanego gracza. Dla gracza odpowiedź przed odsłonięciem ma wyłącznie pozycję i pustą wartość. Klucz bieżącego pytania otrzymuje zweryfikowany administrator. Dane pytań znajdują się w module serwerowym. Odświeżenie i nawigacja odczytują trwały postęp.
-- `round.strikesByTeam` w migawce zawiera dwa liczniki w kolejności drużyn bieżącego meczu. Zapisany wcześniej licznik przechodzi na drużynę prowadzącą, a poprzednie nieudane przejęcie odpowiada jednemu błędowi rywali przy zachowaniu zapisanego wyniku.
+- `round.strikes` w migawce zawiera wspólny licznik od 0 do 3. Przy odczycie wcześniejszych zapisów liczniki drużyn są sumowane do maksymalnie trzech, a zapisane wyniki rund są zachowane.
 - Pierwsze żądanie po wdrożeniu automatycznie rozszerza `game_state` i tworzy `familiada_bets`. Po wdrożeniu sprawdź w dwóch przeglądarkach równoczesne użycie przycisków, widoczność odpowiedzi, oba rozstrzygnięcia przejęcia i wyniki zakładów. Sprawdź też powrót przez Lobby i zachowanie tablicy po odświeżeniu.
+
+## KTO GRA GRUBO, WYGRAĆ MUSI
+
+Prowadzący wybiera od dwóch do czterech uczestniczących drużyn. Wybór może obejmować pustą drużynę. Jej członkowie mogą głosować po dołączeniu, a start czeka na zatwierdzenie jednego aktywnego przedstawiciela każdej drużyny. Aktywny gracz zapisuje jedną nominację na członka własnej uczestniczącej drużyny i może ją zmienić do startu. Prowadzący widzi liczbę głosów i zatwierdza przedstawiciela każdej drużyny.
+
+**Rozpocznij wyzwanie** zamyka nominacje i pokazuje pseudonimy, drużyny oraz planszę **Wielkie wyzwanie trwa!**. Wyzwanie odbywa się poza aplikacją. Prowadzący wybiera zwycięskiego przedstawiciela i widzi aktualny podgląd puli oraz wypłat. **Zatwierdź zwycięzcę** pobiera dokładnie 10 wirtualnych żetonów od każdego aktywnego gracza przegranej uczestniczącej drużyny. Gracze drużyn obserwujących zachowują swoje salda. Cała pula trafia do aktywnych członków zwycięskiej drużyny w możliwie równych częściach. Przy czterech uczestniczących drużynach po pięciu graczy pula wynosi 150 żetonów, a każdy ze zwycięzców otrzymuje 30.
+
+Obliczenia w PostgreSQL używają `NUMERIC(20,4)`. Resztę dzieli się po 0,0001 żetonu w kolejności rejestracji i ID. Jeśli brakuje aktywnych graczy po jednej ze stron lub uczestnik przegranej drużyny ma mniej niż 10 żetonów, rozliczenie czeka na ponowną próbę. Prowadzący otrzymuje komunikat, a saldo, wynik i historia pozostają w dotychczasowym stanie. Ten segment przebiega bez zakładów.
+
+Po rozliczeniu złota plansza **ZWYCIĘZCY!** pokazuje pseudonim, drużynę, pulę i wypłatę dla każdej osoby. **Zakończ segment** zapisuje ukończenie. Przejście do innego segmentu i powrót otwierają ten sam etap. Restart złotego wyzwania jest dostępny przed wypłatą. Pełny reset czyści bieżący stan oraz głosy i zachowuje księgę historycznych transferów.
+
+`POST /api/segment/gold-challenge` przyjmuje `{ revision, command }`. Gracz może użyć `nominate`, a prowadzący `teams`, `representative`, `start`, `winner`, `complete` lub `restart`. Stan i rewizja są w `game_state.gold_state` i `gold_revision`. `gold_nominations` przechowuje jeden głos na gracza. Jedna transakcja blokuje stan i salda, zapisuje zwycięzcę, wykonuje transfery oraz księguje poprzednie saldo, nowe saldo i zmianę gracza w `gold_chip_transfers` pod unikatową parą identyfikatora rozliczenia i gracza. Migawka publikuje głos zalogowanego gracza i udostępnia zestawienie głosów oraz podgląd wypłaty tylko prowadzącemu.
+
+## ALKOHOLICY
+
+Przedostatni segment, bezpośrednio przed **FINAŁEM**, składa się z dokładnie dwóch gier. Ekran powitalny wyświetla **ALKOHOLICY**, „Baw się dobrze!”, **Gra 1 – Kalambury** oraz **Gra 2 – Pojedynek drużynowy**. Prowadzący rozpoczyna segment w panelu administratora. Cała aktywność odbywa się poza aplikacją.
+
+### Gra 1 – Kalambury
+
+1. Prowadzący zapisuje kolejność wszystkich czterech drużyn, również pustych. Każda drużyna ma jeden występ. Zawodnik pokazuje hasła swojej drużynie z wódką w ustach. Połknięcie alkoholu kończy występ. Limit zabawy poza aplikacją to trzy minuty. Każde odgadnięte hasło daje jeden punkt, maksymalnie sześć. Plansza pokazuje wyłącznie opis zasad, kolejność, aktywną drużynę i wyniki. Aplikacja nie odmierza czasu, nie dostarcza haseł i nie sprawdza przebiegu występu.
+2. Przed pierwszym występem prowadzący może otworzyć opcjonalne zakłady lub rozpocząć grę od razu. Za 2 wirtualne żetony aktywny gracz może raz wytypować jedną z trzech pozostałych drużyn. Rozpoczęcie Kalamburów zamyka zakłady.
+3. **Przyznaj punkty** zapisuje wynik 0–6 i dolicza go do punktacji ogólnej. Każdy występ podlega jednemu zatwierdzeniu. Przed rozliczeniem można skorygować zapisany wynik, a klasyfikacja zmienia się tylko o różnicę. Po ostatnim występie prowadzący przegląda tabelę **WYNIKI – KALAMBURY** i zatwierdza rozliczenie.
+4. Wygrywa drużyna z największym wynikiem w Kalamburach. Przy remisie na pierwszym miejscu wszyscy obstawiający otrzymują zwrot pełnej stawki i nie ma dodatkowych transferów. Przy jednym zwycięzcy zamkniętą pulę dzielą trafione zakłady według istniejącej zasady The Floor i POJEDYNKÓW. Reszta przy podziale do czterech miejsc trafia do najwcześniej zapisanego trafionego zakładu. Jeżeli nikt nie trafił, istniejąca reguła zamkniętej puli zwraca stawki. Wyniki pokazują klasyfikację, zwycięzcę lub remis, podsumowanie zakładów i aktualne salda. **Przejdź do gry nr 2** jest dostępne po rozliczeniu.
+
+### Gra 2 – Pojedynek drużynowy
+
+1. Prowadzący wybiera dwie różne drużyny, w tym również puste, i zapisuje ich kolejność. Skład można zmienić do otwarcia zakładów lub rozpoczęcia pojedynku. Jeden zakład za 2 żetony na jedną z tych drużyn jest dostępny dla aktywnych graczy spoza obu składów.
+2. **Rozpocznij pojedynek** zamyka zakłady i pokazuje **POJEDYNEK TRWA**. Można rozpocząć z dowolną liczbą zakładów lub całkowicie pominąć zakłady. Prowadzący wskazuje zwycięską drużynę i liczbę punktów, niezależnie od limitu sześciu punktów w Kalamburach.
+3. **Zatwierdź wynik** zapisuje zwycięzcę, dodaje punkty do klasyfikacji ogólnej i rozlicza zakłady w jednej transakcji. Reguła SPORT oddaje trafioną stawkę i wypłaca 2 żetony zysku finansowane po równo przez aktywnych członków przegranej drużyny. Nietrafione stawki trafiają po równo do aktywnych członków zwycięskiej drużyny. Reszta czteromiejscowego podziału przypada najwcześniej zarejestrowanej aktywnej osobie danej drużyny według daty i ID. Jeżeli brakuje salda lub aktywnych członków potrzebnych do transferu, zatwierdzenie czeka na ponowną próbę.
+4. **WYNIKI – ALKOHOLICY** pokazują wyniki Kalamburów, parę i zwycięzcę pojedynku, punkty za wygraną, łączne punkty segmentu i aktualne salda. **Zakończ segment** zapisuje ukończenie. Punkty obu gier są uwzględniane w kwalifikacji do finału, a żetony pozostają odrębnym rozliczeniem.
+
+`POST /api/segment/alkoholicy` przyjmuje `{ revision, command }`. Tylko gracz może wywołać `bet`; wszystkie akcje przygotowania, punktacji, korekty, rozliczenia i nawigacji po grach wymagają sesji prowadzącego. `game_state.alkoholicy_state` i `alkoholicy_revision` przechowują etap, kolejność, wyniki i parę. `alkoholicy_bets` ma jeden wiersz na grę i gracza, ze stawką, wynikiem, wypłatą i datą rozliczenia. Wspólna blokada stanu gry i rewizja zabezpieczają przed powtórnym przyznaniem punktów i wypłatą. Migawka synchronizuje tablicę co cztery sekundy i pokazuje wyłącznie własny zakład gracza. Restart segmentu odejmuje jego punkty i zwraca oczekujące stawki. Zaksięgowane wypłaty pozostają w saldach. Pełny reset czyści stan i zakłady zgodnie z zasadą resetu gry.
+
+## FINAŁ
+
+### Kwalifikacja
+
+Prowadzący otwiera **FINAŁ** po segmencie ALKOHOLICY przez dotychczasową nawigację segmentów. Klasyfikacja wyświetla wszystkie cztery drużyny według punktacji ogólnej z `GameSnapshot.teamScores`. To istniejąca punktacja z `solenizant_team_scores`, w której są już uwzględnione punkty SOLENIZANTA, bonusów SPORT, JAKA TO MELODIA? i obu gier segmentu ALKOHOLICY. Punkty meczów Familiady, wyniki segmentu POJEDYNKI i salda żetonów nie są dodawane do klasyfikacji finału.
+
+Serwer proponuje dwie najlepsze drużyny. Przy remisie na granicy awansu prowadzący wybiera spośród drużyn z wynikiem dającym awans. Jeżeli remis dotyczy pierwszego miejsca, prowadzący wybiera też, która z uprawnionych drużyn zaczyna. Kolejność w tabeli przy remisie służy wyłącznie do prezentacji. **Zatwierdź finalistów** zapisuje parę, kolejność i punktację. Zmiana klasyfikacji przed startem wymaga ponownego potwierdzenia. Po **Rozpocznij finał** zapisana para i kolejność obowiązują przez wszystkie cztery pytania.
+
+### Szacowanie i przebieg
+
+1. **PYTANIE NR X** pokazuje treść pytania i finalistów. Drużyna z wyższą punktacją podaje szacunek ustnie, a prowadzący go zatwierdza. Przy remisie rozpoczyna drużyna wskazana przy kwalifikacji. Procenty i lata można zapisać z przecinkiem lub kropką, a liczbę osób podaje się w pełnych jednostkach.
+2. Druga drużyna wybiera **WIĘCEJ** albo **MNIEJ**, a prowadzący zapisuje ten wybór. Szacunek i kierunek pojawiają się na wszystkich ekranach. **Pokaż odpowiedź** jest dostępne po zapisaniu obu zgłoszeń.
+3. **POPRAWNA ODPOWIEDŹ** wyświetla wartość z klucza. Prowadzący ocenia, czy bliżej prawdy był szacunek lub wskazany kierunek, ręcznie wybiera jednego z finalistów i klika **Zatwierdź zwycięzcę**. Zapisany zwycięzca pojawia się na ekranie odpowiedzi.
+4. **Pokaż koło fortuny** otwiera ekran **KOŁO FORTUNY**, podaje nazwę zwycięskiej drużyny i wyświetla „Czas zakręcić kołem fortuny!”. Nagrodą jest możliwość zakręcenia fizycznym kołem poza aplikacją. Finał nie ma cyfrowego koła, losowania, zakładów 2-żetonowych, wypłat ani punktów doliczanych do klasyfikacji.
+5. **Następne pytanie** jest dostępne z ekranu koła. Po czwartym kole **Przejdź do podsumowania** otwiera **KONIEC FINAŁU**. Podsumowanie pokazuje obu finalistów, gratulacje i zwycięzców czterech pytań. **Zakończ grę** zapisuje ukończenie i pozostawia podsumowanie, wyniki poprzednich segmentów, punkty i żetony. Lobby pokazuje zakończenie gry. Prowadzący zachowuje dostęp do nawigacji i historii.
+
+### Pytania i klucz organizatora
+
+| Nr | Pytanie | Poprawna odpowiedź |
+| --- | --- | --- |
+| 1 | Ile procent kobiet w wieku produkcyjnym (tj. 18–60 lat) nie pracuje? | 20,3% |
+| 2 | Ilu Polaków nosi nazwisko Plewka? | 1483 |
+| 3 | Ilu Polaków zginęło podczas II wojny światowej? | 5,9 mln |
+| 4 | Ile lat średnio trwa małżeństwo przed rozwodem? | 15 lat |
+
+### Synchronizacja i trwałość
+
+- `POST /api/segment/finale` przyjmuje `{ revision, command }` tylko od zweryfikowanego administratora. Polecenia to `confirm-finalists`, `start`, `estimate`, `direction`, `reveal`, `confirm-winner`, `show-wheel`, `next`, `complete` i `restart`. Baza sprawdza aktywny segment, rewizję i aktualną punktację podczas kwalifikacji oraz startu. Serwer pilnuje kolejności faz i odrzuca także ponowne potwierdzenie zwycięzcy.
+- Klucz czterech pytań znajduje się w module serwerowym. `GET /api/game/state` podaje bieżący klucz przed ujawnieniem tylko zweryfikowanemu administratorowi. Ekran gracza i podgląd prezentacji pokazują wyłącznie ujawnioną odpowiedź. Istniejący odczyt co cztery sekundy synchronizuje ekrany, a odświeżenie strony przywraca zapisany stan. Lobby i obie formy podglądu żetonów nadal są dostępne.
+- Pierwsze żądanie po wdrożeniu dodaje pola FINAŁU oraz nowy segment w ograniczeniu `game_state`. Jawny restart segmentu czyści tylko finał. Pełny reset czyści również finał razem z dotychczasowym stanem gry.
 
 ## Documentation maintenance
 

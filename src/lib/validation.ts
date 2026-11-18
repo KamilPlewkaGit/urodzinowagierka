@@ -45,7 +45,46 @@ export const adminChipAdjustmentSchema = z.object({
 
 export const adminPlayerRemovalSchema = z.object({ playerId: playerIdSchema });
 
-export const activeSegmentSchema = z.object({ segmentId: z.enum(["solenizant", "the-floor", "sport", "melodia", "pojedynki", "familiada"]) });
+export const activeSegmentSchema = z.object({ segmentId: z.enum(["solenizant", "the-floor", "sport", "melodia", "pojedynki", "familiada", "gold-challenge", "alkoholicy", "finale"]) });
+
+export const alkoholicyActionSchema = z.object({
+  revision: z.uuid(),
+  command: z.discriminatedUnion("action", [
+    z.object({ action: z.literal("order"), teams: z.tuple([teamIdSchema, teamIdSchema, teamIdSchema, teamIdSchema]).refine((teams) => new Set(teams).size === 4) }),
+    z.object({ action: z.literal("duel-teams"), teams: z.tuple([teamIdSchema, teamIdSchema]).refine(([first, second]) => first !== second) }),
+    z.object({ action: z.enum(["score-charades", "correct-charades"]), teamId: teamIdSchema, points: z.number().int().min(0).max(6) }),
+    z.object({ action: z.literal("finish-duel"), teamId: teamIdSchema, points: z.number().int().min(0).max(2_147_483_647) }),
+    z.object({ action: z.literal("bet"), game: z.union([z.literal(1), z.literal(2)]), teamId: teamIdSchema }),
+    z.object({ action: z.enum(["start", "open-charades", "start-charades", "next-team", "settle-charades", "next-game", "open-duel", "start-duel", "complete", "restart"]) }),
+  ]),
+});
+
+export type AlkoholicyAction = z.infer<typeof alkoholicyActionSchema>;
+
+export const goldActionSchema = z.object({
+  revision: z.uuid(),
+  command: z.discriminatedUnion("action", [
+    z.object({ action: z.literal("teams"), teams: z.array(teamIdSchema).min(2).max(4).refine((teams) => new Set(teams).size === teams.length) }),
+    z.object({ action: z.enum(["nominate", "representative", "winner"]), playerId: playerIdSchema }),
+    z.object({ action: z.enum(["start", "complete", "restart"]) }),
+  ]),
+});
+
+export type GoldAction = z.infer<typeof goldActionSchema>;
+
+export const finaleActionSchema = z.object({
+  revision: z.uuid(),
+  command: z.discriminatedUnion("action", [
+    z.object({ action: z.literal("confirm-finalists"), teams: z.tuple([teamIdSchema, teamIdSchema]).refine(([first, second]) => first !== second) }),
+    z.object({ action: z.literal("estimate"), value: z.string().trim().regex(/^\d{1,12}(?:[,.]\d{1,2})?$/).transform((value) => Number(value.replace(",", "."))) }),
+    z.object({ action: z.literal("direction"), value: z.enum(["more", "less"]) }),
+    z.object({ action: z.literal("confirm-winner"), teamId: teamIdSchema }),
+    z.object({ action: z.enum(["start", "reveal", "show-wheel", "next", "complete", "restart"]) }),
+  ]),
+});
+
+export type FinaleAction = z.infer<typeof finaleActionSchema>;
+export type FinaleCommand = z.input<typeof finaleActionSchema>["command"];
 
 export const familiadaActionSchema = z.object({
   revision: z.uuid(),

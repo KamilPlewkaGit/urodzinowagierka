@@ -1,0 +1,5 @@
+File: src/components/alkoholicy-screen.tsx
+
+Purpose: Shows the Polish introduction, offline rules, performance order, scores, two-team duel and results. The same board appears in the administrator panel. The player view offers the eligible optional market and shows only the viewer's own wager beside aggregate totals.
+
+Dependencies: Shared snapshot and refresh path, team metadata, chip formatting, segment-command and Alkoholicy CSS. Results show a collapsible list of current player balances. The board contains no timer or prompt data.

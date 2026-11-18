@@ -7,3 +7,7 @@ LobbyClient takes the server-verified player ID and initial game snapshot. It us
 Navigation updates the widok query parameter via browser history. Refreshing or using Back and Forward restores the chosen view. With no explicit selection, the dashboard shows the lobby while waiting and the current segment once play starts. During play, ActiveSegment stays mounted while hidden so changing views preserves drafts and in-flight bets. Polling updates every view from a single server snapshot.
 
 The Polish segment label map includes Familiada. Its screen is opened through Aktualny segment while the lobby and balances remain available.
+
+The player dashboard labels the finale FINAŁ and shows Gra zakończona in the lobby after the administrator completes it. The active segment and both balance views remain available.
+
+The segment label map also includes ALKOHOLICY and KTO GRA GRUBO, WYGRAĆ MUSI. Their screens inherit the dashboard's sticky balance and navigation tabs.

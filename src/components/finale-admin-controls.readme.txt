@@ -1,0 +1,5 @@
+File: src/components/finale-admin-controls.tsx
+
+Purpose: Presents Polish controls for finalist confirmation and ties, start, estimate, direction, reveal, manual winner confirmation, wheel presentation, next question, and game completion.
+
+Inputs and outputs: Receives the verified admin snapshot, shared pending/error state, and a command callback from AdminDashboard. Locally holds unfinished form entries. The estimate accepts whole numbers for people, and a Polish decimal comma or decimal point for percentages and years. The administrator can read the current key beside the stage-aware controls. The board itself is shared with the player view. The server validates all choices and owns progression.

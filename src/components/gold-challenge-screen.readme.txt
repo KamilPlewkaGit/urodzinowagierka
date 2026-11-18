@@ -1,0 +1,5 @@
+File: src/components/gold-challenge-screen.tsx
+
+Purpose: Renders the Polish gold introduction, nomination board, representative match cards, live competition and winner celebration. The signed-in player can save or update one nomination for their own participating team.
+
+Implementation: Shares GoldBoard and GoldRewardList with the administrator controls. Actual amounts are read from the saved reward, and use exact Polish chip formatting. All visual assets are scoped to the component CSS.

@@ -9,15 +9,22 @@ import { MelodiaAdminControls } from "@/components/melodia-admin-controls";
 import { PojedynkiAdminControls } from "@/components/pojedynki-admin-controls";
 import { FamiliadaAdminControls } from "@/components/familiada-admin-controls";
 import { familiadaPhaseLabel } from "@/components/familiada-screen";
+import { FinaleAdminControls } from "@/components/finale-admin-controls";
+import { finaleStageLabel } from "@/components/finale-screen";
+import { AlkoholicyAdminControls } from "@/components/alkoholicy-admin-controls";
+import { alkoholicyStageLabel } from "@/components/alkoholicy-screen";
+import { GoldChallengeAdminControls } from "@/components/gold-challenge-admin-controls";
+import { GOLD_TITLE, goldStageLabel } from "@/components/gold-challenge-screen";
 import { SportAdminControls } from "@/components/sport-admin-controls";
 import { POLL_INTERVAL_MS, TEAMS, getTeam } from "@/lib/constants";
 import { formatChips } from "@/lib/chips";
 import { getSolenizantQuestion, SOLENIZANT_LAST_QUESTION_INDEX, SOLENIZANT_QUESTION_COUNT, SOLENIZANT_TITLE } from "@/lib/solenizant";
 import type { GameSnapshot, TeamId } from "@/lib/types";
+import type { AlkoholicyAction, FinaleCommand, GoldAction } from "@/lib/validation";
 
 type ApiError = { error?: string };
 
-const AVAILABLE_SEGMENTS = [{ id: "solenizant", name: "Solenizant" }, { id: "the-floor", name: "The Floor" }, { id: "sport", name: "Sport" }, { id: "melodia", name: "Jaka to melodia?" }, { id: "pojedynki", name: "Pojedynki" }, { id: "familiada", name: "Familiada" }] as const;
+const AVAILABLE_SEGMENTS = [{ id: "solenizant", name: "Solenizant" }, { id: "the-floor", name: "The Floor" }, { id: "sport", name: "Sport" }, { id: "melodia", name: "Jaka to melodia?" }, { id: "pojedynki", name: "Pojedynki" }, { id: "familiada", name: "Familiada" }, { id: "gold-challenge", name: GOLD_TITLE }, { id: "alkoholicy", name: "ALKOHOLICY" }, { id: "finale", name: "FINAŁ" }] as const;
 
 interface AdminDashboardProps {
   initialSnapshot: GameSnapshot;
@@ -72,6 +79,7 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
       const payload = (await response.json().catch(() => null)) as ApiError | null;
       if (!response.ok) {
         setError(payload?.error ?? "Nie udało się wykonać tej operacji.");
+        if ((action === "finale" || action === "alkoholicy" || action === "gold-challenge") && response.status === 409) await refresh();
         return false;
       }
       await refresh();
@@ -126,6 +134,20 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
   }
 
   async function restartSegment() {
+    if (snapshot.game.activeSegment === "gold-challenge") {
+      if (window.confirm("Uruchomić złote wyzwanie od początku? Nominacje i wybór drużyn zostaną usunięte.")) await sendGold({ action: "restart" });
+      return;
+    }
+    if (snapshot.game.activeSegment === "alkoholicy") {
+      if (window.confirm("Uruchomić segment ALKOHOLICY od początku? Punkty z tego segmentu zostaną odjęte, a oczekujące stawki zwrócone. Zaksięgowane wypłaty pozostaną w saldach.")) await sendAlkoholicy({ action: "restart" });
+      return;
+    }
+    if (snapshot.game.activeSegment === "finale") {
+      if (window.confirm("Uruchomić finał od początku? Zapisani finaliści i wyniki czterech pytań zostaną usunięci.")) {
+        await sendFinale({ action: "restart" });
+      }
+      return;
+    }
     if (snapshot.game.activeSegment === "familiada") {
       if (window.confirm("Uruchomić Familiadę od początku? Postęp obu meczów zostanie usunięty, a oczekujące stawki zostaną zwrócone.")) {
         await postAction("restart", "/api/segment/familiada", { revision: snapshot.familiada.revision, command: { action: "restart" } });
@@ -146,6 +168,18 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
             ? "/api/segment/pojedynki/restart"
             : "/api/segment/solenizant/restart";
     await postAction("restart", endpoint);
+  }
+
+  async function sendFinale(command: FinaleCommand) {
+    await postAction("finale", "/api/segment/finale", { revision: snapshot.finale.revision, command });
+  }
+
+  async function sendAlkoholicy(command: AlkoholicyAction["command"]) {
+    await postAction("alkoholicy", "/api/segment/alkoholicy", { revision: snapshot.alkoholicy.revision, command });
+  }
+
+  async function sendGold(command: GoldAction["command"]) {
+    await postAction("gold-challenge", "/api/segment/gold-challenge", { revision: snapshot.goldChallenge.revision, command });
   }
 
   async function resetEntireGame() {
@@ -238,7 +272,13 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
           : snapshot.pojedynki.stage === "live" ? "Pojedynek trwa"
             : snapshot.pojedynki.stage === "result" ? "Wynik pojedynku"
               : "Segment zakończony";
-  const statusLabel = activeSegment === "the-floor" ? floorStatusLabel : activeSegment === "sport" ? sportStatusLabel : activeSegment === "melodia" ? melodiaStatusLabel : activeSegment === "pojedynki" ? pojedynkiStatusLabel : activeSegment === "familiada" && isStarted ? familiadaPhaseLabel[snapshot.familiada.stage] : solenizantStatusLabel;
+  const finaleActive = activeSegment === "finale" && isStarted;
+  const alkoholicyActive = activeSegment === "alkoholicy" && isStarted;
+  const goldActive = activeSegment === "gold-challenge" && isStarted;
+  const statusLabel = finaleActive ? finaleStageLabel[snapshot.finale.stage] : alkoholicyActive ? alkoholicyStageLabel[snapshot.alkoholicy.stage] : goldActive ? goldStageLabel[snapshot.goldChallenge.stage] : activeSegment === "the-floor" ? floorStatusLabel : activeSegment === "sport" ? sportStatusLabel : activeSegment === "melodia" ? melodiaStatusLabel : activeSegment === "pojedynki" ? pojedynkiStatusLabel : activeSegment === "familiada" && isStarted ? familiadaPhaseLabel[snapshot.familiada.stage] : solenizantStatusLabel;
+  const restartUnavailable = (activeSegment === "finale" && snapshot.finale.stage === "intro")
+    || (activeSegment === "alkoholicy" && snapshot.alkoholicy.stage === "intro")
+    || (activeSegment === "gold-challenge" && ["intro", "result", "completed"].includes(snapshot.goldChallenge.stage));
   const activeSegmentIndex = AVAILABLE_SEGMENTS.findIndex((segment) => segment.id === activeSegment);
 
   return (
@@ -317,6 +357,16 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
             </>
           )}
 
+          {finaleActive && (
+            <>
+              <span className="panel-index">OSTATNI SEGMENT</span>
+              <h2>FINAŁ</h2>
+              <p>Dwie drużyny i cztery pytania finałowe.</p>
+            </>
+          )}
+
+          {(alkoholicyActive || goldActive) && <h2>{goldActive ? GOLD_TITLE : "ALKOHOLICY"}</h2>}
+
           {isStarted && activeSegment === "solenizant" && solenizantStage === "intro" ? (
             <>
               <span className="panel-index">01 / PIERWSZY SEGMENT</span>
@@ -390,7 +440,7 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
             </>
           ) : null}
 
-          {error ? <p className="form-error" role="alert">{error}</p> : null}
+          {error && !finaleActive && !alkoholicyActive && !goldActive ? <p className="form-error" role="alert">{error}</p> : null}
           {removalNotice ? <p className="form-success" role="status">{removalNotice}</p> : null}
         </article>
 
@@ -406,6 +456,9 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
       {isStarted && activeSegment === "melodia" ? <MelodiaAdminControls snapshot={snapshot} onRefresh={refresh} /> : null}
       {isStarted && activeSegment === "pojedynki" ? <PojedynkiAdminControls snapshot={snapshot} onRefresh={refresh} /> : null}
       {isStarted && activeSegment === "familiada" ? <FamiliadaAdminControls snapshot={snapshot} onRefresh={refresh} /> : null}
+      {finaleActive && <FinaleAdminControls finale={snapshot.finale} disabled={pendingAction !== null} send={sendFinale} error={error} />}
+      {alkoholicyActive && <AlkoholicyAdminControls snapshot={snapshot} disabled={pendingAction !== null} send={sendAlkoholicy} error={error} />}
+      {goldActive && <GoldChallengeAdminControls snapshot={snapshot} disabled={pendingAction !== null} send={sendGold} error={error} />}
 
       <section className="admin-management-grid" aria-label="Zarządzanie grą">
         <article className="management-panel">
@@ -430,7 +483,7 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
             <button className="secondary-button" type="button" onClick={navigateToSegment} disabled={pendingAction !== null}>Przejdź do segmentu</button>
           </div>
           <div className="management-actions">
-            <button className="secondary-button" type="button" onClick={restartSegment} disabled={pendingAction !== null}>Uruchom segment od początku</button>
+            <button className="secondary-button" type="button" onClick={restartSegment} disabled={pendingAction !== null || restartUnavailable}>Uruchom segment od początku</button>
             <button className="danger-button" type="button" onClick={resetEntireGame} disabled={pendingAction !== null}>Zresetuj grę</button>
           </div>
         </article>
@@ -445,7 +498,7 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
             {activeSegment === "melodia" ? (
               <div><dt>Rozliczenie żetonów</dt><dd>{snapshot.melodia.settledAt ? "Zatwierdzone" : "Po piątej piosence"}</dd></div>
             ) : (
-              <div><dt>Zakłady</dt><dd>{activeSegment === "familiada" ? "Przed każdym meczem" : activeSegment === "the-floor" || activeSegment === "sport" || activeSegment === "pojedynki" ? "Zależne od pojedynku" : "Brak w tym segmencie"}</dd></div>
+              <div><dt>Zakłady</dt><dd>{activeSegment === "alkoholicy" ? "Przed Kalamburami i pojedynkiem" : activeSegment === "familiada" ? "Przed każdym meczem" : activeSegment === "the-floor" || activeSegment === "sport" || activeSegment === "pojedynki" ? "Zależne od pojedynku" : "Brak w tym segmencie"}</dd></div>
             )}
           </dl>
         </article>

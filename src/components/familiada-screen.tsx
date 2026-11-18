@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import styles from "@/components/familiada.module.css";
 import { formatPolishChips } from "@/lib/chips";
 import { getTeam } from "@/lib/constants";
-import type { FamiliadaSnapshot, FamiliadaStage, GameSnapshot, TeamId } from "@/lib/types";
+import type { FamiliadaSnapshot, FamiliadaStage, GameSnapshot } from "@/lib/types";
 import type { FamiliadaAction } from "@/lib/validation";
 
 export const familiadaPhaseLabel: Record<FamiliadaStage, string> = {
@@ -60,10 +60,9 @@ export function useFamiliadaAction(revision: string, refresh: () => Promise<void
   return { send, pending, error };
 }
 
-export function FamiliadaBoard({ round, questionIndex, teams }: {
+export function FamiliadaBoard({ round, questionIndex }: {
   round: NonNullable<FamiliadaSnapshot["round"]>;
   questionIndex: number;
-  teams: [TeamId, TeamId];
 }) {
   return (
     <div className={styles.board}>
@@ -82,20 +81,14 @@ export function FamiliadaBoard({ round, questionIndex, teams }: {
       </ol>
       <div className={styles.boardFooter}>
         <div className={styles.pool}>Pula rundy <strong>{round.pool} pkt</strong></div>
-        {teams.map((id, index) => {
-          const team = getTeam(id);
-          const count = round.strikesByTeam[index];
-          return (
-            <div key={id} className={styles.teamStrikes} role="status" aria-label={`${team.name}, błędy: ${count} z 3`}>
-              <span style={{ color: team.color }}>{team.name}</span>
-              <div className={styles.strikes} aria-hidden="true">
-                {[1, 2, 3].map((number) => (
-                  <span key={`${number}-${number <= count}`} className={number <= count ? styles.struck : undefined}>×</span>
-                ))}
-              </div>
-            </div>
-          );
-        })}
+        <div className={styles.strikeCounter} role="status">
+          <span>Wspólne błędy: {round.strikes} z 3</span>
+          <div className={styles.strikes} aria-hidden="true">
+            {[1, 2, 3].map((number) => (
+              <span key={`${number}-${number <= round.strikes}`} className={number <= round.strikes ? styles.struck : undefined}>×</span>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -134,7 +127,7 @@ export function FamiliadaRoundStatus({ state }: { state: FamiliadaSnapshot }) {
       {first && <p>Pierwszeństwo: <strong>{first.nickname}</strong></p>}
       {stage === "second" && second && <p>Teraz odpowiada <strong>{second.nickname}</strong>.</p>}
       {stage === "play" && round.controllingTeam && <p>Odpowiada <strong>{getTeam(round.controllingTeam).name}</strong>.</p>}
-      {stage === "steal" && stealingTeam && <p><strong>{getTeam(stealingTeam).name}</strong> próbuje przejąć pulę.</p>}
+      {stage === "steal" && stealingTeam && <p><strong>{getTeam(stealingTeam).name}</strong> ma jedną próbę przejęcia puli.</p>}
       {stage === "round-result" && round.winner && (
         <p className={styles.announcement}>{round.stealFailed && "Nieudane przejęcie. "}<strong>{getTeam(round.winner).name}</strong> wygrywa rundę i zdobywa {round.pool} pkt.</p>
       )}
@@ -167,7 +160,7 @@ export function FamiliadaScreen({ snapshot, refresh, viewerPlayerId }: {
       {canBuzz && <button type="button" className={styles.buzzer} disabled={pending} onClick={() => void send({ action: "buzz" })}>ODPOWIADAM!</button>}
       {showBoard && (
         <>
-          <FamiliadaBoard round={round} questionIndex={state.questionIndex} teams={match.teams} />
+          <FamiliadaBoard round={round} questionIndex={state.questionIndex} />
           <FamiliadaRoundStatus state={state} />
         </>
       )}

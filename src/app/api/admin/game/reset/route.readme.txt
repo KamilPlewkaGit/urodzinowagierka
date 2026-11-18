@@ -17,3 +17,7 @@ The shared reset clears Melodia songs and their associated lyric-auction declara
 Segment VI update: The shared reset also clears the Pojedynki bet rows before their foreign-key parent slots and restores the independent Segment VI stage and sequence to `intro`/zero.
 
 Segment VIII update: The same transaction clears Familiada match state and wager rows and rotates its revision. Active players receive the standard full-reset balance.
+
+An explicit full reset also clears FINAŁ qualification, progress and history and rotates its revision. FINAŁ's separate completion command preserves the final and prior game history.
+
+Full reset clears Alkoholicy progress and wagers and the gold challenge's live state and nominations. It rotates both revisions and preserves the historical gold transfer ledger.

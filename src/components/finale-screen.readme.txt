@@ -1,0 +1,5 @@
+File: src/components/finale-screen.tsx
+
+Purpose: Renders the Polish FINAŁ introduction and ranking, finalist matchup, current estimate and direction, reveal, confirmed question winner, physical-wheel presentation card, and final summary. FinalePresentation is shared with the administrator dashboard and only uses publicly revealed answer fields for the presentation.
+
+Inputs and outputs: Receives FinaleSnapshot through the existing authenticated GameSnapshot. Formats estimates with Polish digits and decimal punctuation. The title, game progression and winners come from the server snapshot. The screen has no player mutations or reward controls.

@@ -148,7 +148,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-.teamStrikes {
+.strikeCounter {
   display: grid;
   justify-items: center;
   gap: .35rem;

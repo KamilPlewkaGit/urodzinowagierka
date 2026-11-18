@@ -1,0 +1,187 @@
+.stage {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  min-block-size: clamp(25rem, 57vw, 42rem);
+  padding: clamp(1.25rem, 5vw, 4rem);
+  overflow: hidden;
+  border: 1px solid #886932;
+  border-radius: 1.2rem;
+  background: radial-gradient(ellipse at 50% 0%, #3b2917 0%, #131018 49%, #09090e 82%);
+  color: #f9ead3;
+  text-align: center;
+}
+
+.stage::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0.55rem;
+  border: 1px solid #caa35b35;
+  border-radius: 0.82rem;
+  background: linear-gradient(130deg, #ffc9740d, transparent 36%, transparent 68%, #ffc9740a);
+  content: "";
+  pointer-events: none;
+}
+
+.presentation {
+  inline-size: min(100%, 58rem);
+  animation: appear 380ms ease-out both;
+}
+
+.kicker,
+.questionNumber,
+.revealTitle {
+  color: #edc477;
+  font-weight: 750;
+  letter-spacing: 0.13em;
+}
+
+.kicker { font-size: clamp(0.75rem, 2vw, 1rem); }
+.questionNumber { margin-block: 0.75rem 0; }
+
+.title,
+.question,
+.answer,
+.celebration {
+  font-family: Georgia, serif;
+  font-weight: 500;
+  text-wrap: balance;
+}
+
+.title {
+  margin: 0;
+  color: #fce0a2;
+  font-size: clamp(2.4rem, 8vw, 7rem);
+  line-height: 1.03;
+  text-shadow: 0 0 1.8rem #f5a84150;
+}
+
+.question {
+  margin: 1rem auto 1.6rem;
+  max-inline-size: 26ch;
+  font-size: clamp(1.65rem, 4.2vw, 3.65rem);
+  line-height: 1.15;
+}
+
+.revealTitle { margin-block: 1rem 0; font-size: clamp(0.95rem, 3.1vw, 2.2rem); }
+
+.answer {
+  margin: 0.25em 0;
+  color: #fff0bd;
+  font-size: clamp(3.25rem, 13vw, 12rem);
+  line-height: 0.95;
+  font-variant-numeric: lining-nums tabular-nums;
+  text-shadow: 0 0 0.4em #fabe5d70;
+}
+
+.celebration {
+  margin-block: 1rem 0.5rem;
+  color: #ffdd95;
+  font-size: clamp(1.35rem, 4.4vw, 3.35rem);
+  animation: celebrate 700ms ease-out both;
+}
+
+.message { margin-block: 1rem; color: #eaddc7; font-size: clamp(1rem, 2.2vw, 1.35rem); }
+
+.matchup {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(1rem, 5vw, 3.75rem);
+  max-inline-size: 44rem;
+  margin: 1.5rem auto;
+}
+
+.matchup article {
+  display: grid;
+  align-content: start;
+  gap: 0.4rem;
+  padding: clamp(0.65rem, 3vw, 1.35rem);
+  border: 1px solid #f1d2913b;
+  border-radius: 0.75rem;
+  background: #09090eb5;
+}
+
+.matchup h3 {
+  margin: 0;
+  font-size: clamp(0.95rem, 2.5vw, 1.55rem);
+  overflow-wrap: anywhere;
+}
+
+.matchup p { margin: 0; color: #d2bf9e; font-size: clamp(0.78rem, 1.8vw, 1rem); }
+.teamIcon { font-size: clamp(1.6rem, 4vw, 2.65rem); line-height: 1; }
+.matchup .teamEntry { color: #fff0bd; font-size: clamp(0.875rem, 2.7vw, 1.75rem); font-weight: 750; }
+
+.versus {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  translate: -50% -50%;
+  padding: 0.2rem 0.32rem;
+  border-radius: 0.35rem;
+  background: #161019;
+  color: #f5c978;
+  font-size: clamp(0.57rem, 1.3vw, 0.85rem);
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.matchup .leader,
+.ranking .leader {
+  border-color: #dcac5aa8;
+  box-shadow: inset 0 0 1.2rem #c187291d;
+}
+
+.setup { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: clamp(1rem, 4vw, 2.75rem); margin-block-start: 1.75rem; text-align: start; }
+.setup h2 { margin-block: 0 0.65rem; color: #f5d394; font-size: 1.18rem; }
+.setup p { color: #d7c4a1; font-size: 0.87rem; }
+.ranking, .rules, .history { display: grid; gap: 0.4rem; margin: 0; padding: 0; list-style: none; }
+.ranking li, .history li { display: flex; justify-content: space-between; gap: 0.7rem; padding: 0.55rem 0.75rem; border: 1px solid #b1966833; border-radius: 0.45rem; background: #09090e77; }
+.ranking strong { flex: none; color: #f5d394; }
+.rules div { display: grid; grid-template-columns: 7.5rem 1fr; gap: 0.5rem; padding-block-end: 0.34rem; border-block-end: 1px solid #b1966833; font-size: 0.87rem; }
+.rules dt { color: #f5d394; font-weight: 700; }
+.rules dd { margin: 0; color: #eaddc7; }
+.history { max-inline-size: 32rem; margin: 1rem auto 0; text-align: start; }
+.history strong { text-align: end; }
+
+.admin { display: grid; gap: 1rem; margin-block-start: 1.5rem; }
+.controls {
+  display: grid;
+  justify-items: start;
+  gap: 0.8rem;
+  min-inline-size: 0;
+  margin: 0;
+  padding: clamp(0.85rem, 3vw, 1.65rem);
+  border: 1px solid #886932;
+  border-radius: 0.8rem;
+  background: #17131b;
+  color: #f9ead3;
+}
+
+.controls legend { padding-inline: 0.5rem; color: #f5d394; font-weight: 750; }
+.controls p { margin: 0; }
+.controls strong { color: #f5d394; }
+.controls select { display: block; margin-block-start: 0.4rem; }
+.controls option { background: #17131b; }
+.estimateForm { display: grid; justify-items: start; gap: 0.65rem; inline-size: min(100%, 26rem); }
+.estimateForm p { color: #d7c4a1; font-size: 0.85rem; }
+.actions { display: flex; flex-wrap: wrap; gap: 0.65rem; }
+.actions [aria-pressed="true"] { border-color: #f5d394; background: #4c3620; color: #fff0bd; }
+
+@keyframes appear {
+  from { opacity: 0; transform: translateY(0.65rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes celebrate {
+  from { opacity: 0; text-shadow: 0 0 1.8rem #f5a841; }
+  to { opacity: 1; text-shadow: 0 0 0.9rem #f5a84145; }
+}
+
+@media (max-width: 640px) {
+  .setup { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .presentation, .celebration { animation: none; }
+}

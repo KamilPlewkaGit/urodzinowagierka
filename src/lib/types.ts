@@ -1,7 +1,7 @@
 export type TeamId = "royal" | "ruby" | "emerald" | "onyx";
 
 export type GameStatus = "waiting" | "started";
-export type SegmentId = "solenizant" | "the-floor" | "sport" | "melodia" | "pojedynki" | "familiada";
+export type SegmentId = "solenizant" | "the-floor" | "sport" | "melodia" | "pojedynki" | "familiada" | "gold-challenge" | "alkoholicy" | "finale";
 export type SolenizantStage = "intro" | "question" | "scoring" | "results";
 export type TheFloorStage = "intro" | "setup" | "betting" | "live" | "result" | "results";
 export type TheFloorDuelStage = "pending" | "betting" | "live" | "result";
@@ -220,11 +220,82 @@ export interface FamiliadaSnapshot {
     representatives: FamiliadaRepresentative[];
     buzzerWinner: number | null;
     controllingTeam: TeamId | null;
-    strikesByTeam: [number, number];
+    strikes: number;
     stealFailed: boolean;
     pool: number;
     winner: TeamId | null;
   } | null;
+}
+
+export type FinaleStage = "intro" | "ready" | "question" | "answer" | "winner" | "wheel" | "summary" | "completed";
+export type FinaleDirection = "more" | "less";
+export type FinaleUnit = "percent" | "people" | "years";
+
+export interface FinaleSnapshot {
+  revision: string;
+  stage: FinaleStage;
+  ranking: TeamScore[];
+  eligibleOrders: [TeamId, TeamId][];
+  finalists: [TeamScore, TeamScore] | null;
+  needsConfirmation: boolean;
+  question: {
+    number: number;
+    text: string;
+    unit: FinaleUnit;
+    estimate: number | null;
+    direction: FinaleDirection | null;
+    answer: string | null;
+    adminAnswer?: string;
+    winner: TeamId | null;
+  } | null;
+  winners: (TeamId | null)[];
+}
+
+export type AlkoholicyStage = "intro" | "order" | "charades-ready" | "charades-betting" | "charades-play" | "charades-review" | "charades-results" | "duel-setup" | "duel-betting" | "duel-live" | "results" | "completed";
+export type AlkoholicyBetResult = "pending" | "won" | "lost" | "refunded";
+
+export interface AlkoholicyMarket {
+  counts: Record<AlkoholicyBetResult, number>;
+  viewerBet: { target: TeamId; result: AlkoholicyBetResult; payout: string } | null;
+}
+
+export interface AlkoholicyProgress {
+  stage: AlkoholicyStage;
+  order: TeamId[];
+  performance: number;
+  scores: Partial<Record<TeamId, number>>;
+  duelTeams: [TeamId, TeamId] | null;
+  duelResult: { winner: TeamId; points: number } | null;
+}
+
+export interface AlkoholicySnapshot extends AlkoholicyProgress {
+  revision: string;
+  charadesLeaders: TeamId[];
+  charadesMarket: AlkoholicyMarket;
+  duelMarket: AlkoholicyMarket;
+}
+
+export type GoldStage = "intro" | "nominations" | "live" | "result" | "completed";
+export type GoldRepresentative = { id: number; nickname: string; teamId: TeamId };
+export type GoldReward = {
+  pool: string;
+  losingCount: number;
+  shares: { playerId: number; nickname: string; amount: string }[];
+};
+
+export interface GoldProgress {
+  stage: GoldStage;
+  teams: TeamId[];
+  representatives: GoldRepresentative[];
+  winner: GoldRepresentative | null;
+  reward: GoldReward | null;
+}
+
+export interface GoldSnapshot extends GoldProgress {
+  revision: string;
+  viewerNominationId: number | null;
+  adminNominations?: Record<number, number>;
+  adminPreviews?: Partial<Record<TeamId, { reward: GoldReward; shortfalls: string[] }>>;
 }
 
 export interface GameSnapshot {
@@ -237,6 +308,9 @@ export interface GameSnapshot {
   melodia: MelodiaState;
   pojedynki: PojedynkiState;
   familiada: FamiliadaSnapshot;
+  alkoholicy: AlkoholicySnapshot;
+  goldChallenge: GoldSnapshot;
+  finale: FinaleSnapshot;
 }
 
 export type Session =

@@ -1,0 +1,5 @@
+File: src/components/segment-command.ts
+
+Purpose: Sends one client command at a time for player betting and nomination forms. The caller supplies a fixed route, current revision, command type and existing snapshot-refresh callback.
+
+Implementation: Shows a Polish failure message, refreshes after the response, and disables repeated submissions until the request finishes. The server retains all validation and write authority.

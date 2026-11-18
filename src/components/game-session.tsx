@@ -4,7 +4,10 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { CasinoLogo } from "@/components/casino-logo";
+import { AlkoholicyScreen } from "@/components/alkoholicy-screen";
+import { GoldChallengeScreen } from "@/components/gold-challenge-screen";
 import { FamiliadaScreen } from "@/components/familiada-screen";
+import { FinaleScreen } from "@/components/finale-screen";
 import { FloorScreen } from "@/components/floor-screen";
 import { GameScreen } from "@/components/game-screen";
 import { MelodiaScreen } from "@/components/melodia-screen";
@@ -96,6 +99,9 @@ const segmentScreens = {
   melodia: MelodiaScreen,
   pojedynki: PojedynkiScreen,
   familiada: FamiliadaScreen,
+  "gold-challenge": GoldChallengeScreen,
+  alkoholicy: AlkoholicyScreen,
+  finale: FinaleScreen,
 } satisfies Record<SegmentId, typeof FloorScreen>;
 
 export function ActiveSegment({ snapshot, refresh, viewerPlayerId }: {

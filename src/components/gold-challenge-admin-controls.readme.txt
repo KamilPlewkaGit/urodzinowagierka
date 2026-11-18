@@ -1,0 +1,5 @@
+File: src/components/gold-challenge-admin-controls.tsx
+
+Purpose: Renders gold controls for participating teams, nomination counts, one confirmed representative per team, start, manual winner selection, reward preview and completion.
+
+Implementation: All four teams are selectable. Active rosters populate representative selectors, with nomination counts in the options. The current server preview shows exact individual shares and insufficient balances before payout. The server rechecks eligibility and funds atomically at confirmation.

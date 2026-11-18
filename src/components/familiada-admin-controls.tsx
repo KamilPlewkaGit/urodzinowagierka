@@ -134,7 +134,7 @@ export function FamiliadaAdminControls({ snapshot, onRefresh }: { snapshot: Game
       )}
       {round && (
         <>
-          <FamiliadaBoard round={round} questionIndex={questionIndex} teams={match.teams} />
+          <FamiliadaBoard round={round} questionIndex={questionIndex} />
           <FamiliadaRoundStatus state={state} />
         </>
       )}

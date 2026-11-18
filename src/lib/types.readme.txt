@@ -18,8 +18,12 @@ Segment VI update: `SegmentId` additionally includes `pojedynki`. `PojedynkiStat
 
 Segment VIII adds `familiada` to `SegmentId` and `FamiliadaSnapshot` to the shared game snapshot. It carries an opaque revision, match score summaries, current phase, the current ranked board, representatives and the viewer's private wager. An unrevealed slot carries only its position and null. The optional current answer key is populated by authorized administrator reads.
 
-The current round's `strikesByTeam` tuple follows the same team order as the current match.
+The current round's `strikes` field is the shared count from zero to three. `stealFailed` records an unsuccessful steal attempt.
 
 The Floor snapshot content carries the active category name, instructions, item count, a Polish category error if applicable, and the current typed text/image/error prompt during play.
 
 The optional Floor adminAnswer field is projected only for verified administrators during live play. catalogErrors reports setup material problems in the admin introduction.
+
+The `finale` segment snapshot carries the overall ranking, eligible ordered finalist pairs during qualification, confirmed finalists in opening order, and the current question with estimate, choice, revealed answer and winner. `adminAnswer` holds the current private answer key for the administrator. `winners` retains the result of each of the four questions for the summary.
+
+The `alkoholicy` snapshot includes performance order, saved scores, duel pair and result, charades leaders, and two markets with aggregate counts and the viewer's own wager. `goldChallenge` carries participating teams, representative records, the result, exact decimal payouts and the viewer's nomination. Nomination totals and live payout previews are optional administrator-only fields. Both snapshots expose opaque revisions.

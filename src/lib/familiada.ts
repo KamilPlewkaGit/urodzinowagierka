@@ -26,8 +26,8 @@ type Round = {
   buzzerWinner: number | null;
   firstPoints: number;
   controllingTeam: TeamId | null;
-  strikesByTeam?: [number, number];
-  strikes?: number; // Legacy count for the controlling team.
+  strikes?: number;
+  strikesByTeam?: [number, number]; // Legacy split counters.
   stealFailed: boolean;
   pool: number;
   winner: TeamId | null;
@@ -70,7 +70,7 @@ function createMatch(teams: [TeamId, TeamId], index: 0 | 1): Match {
       buzzerWinner: null,
       firstPoints: 0,
       controllingTeam: null,
-      strikesByTeam: [0, 0],
+      strikes: 0,
       stealFailed: false,
       pool: 0,
       winner: null,
@@ -86,12 +86,9 @@ function opponent(match: Match, team: TeamId) {
   return match.teams[0] === team ? match.teams[1] : match.teams[0];
 }
 
-function getRoundStrikes(round: Round, match: Match): [number, number] {
-  if (round.strikesByTeam) return round.strikesByTeam;
-  if (!round.controllingTeam) return [0, 0];
-  const leadStrikes = round.strikes ?? 0;
-  const stealStrikes = round.stealFailed ? 1 : 0;
-  return match.teams[0] === round.controllingTeam ? [leadStrikes, stealStrikes] : [stealStrikes, leadStrikes];
+function getRoundStrikes(round: Round): number {
+  const [first, second] = round.strikesByTeam ?? [round.strikes ?? 0, 0];
+  return Math.min(3, first + second);
 }
 
 function finishRound(state: StoredFamiliada, round: Round, winner: TeamId) {
@@ -138,7 +135,7 @@ export function getFamiliadaSnapshot(state: StoredFamiliada | null, revision: st
       representatives: currentRound.representatives,
       buzzerWinner: currentRound.buzzerWinner,
       controllingTeam: currentRound.controllingTeam,
-      strikesByTeam: getRoundStrikes(currentRound, currentMatch),
+      strikes: getRoundStrikes(currentRound),
       stealFailed: currentRound.stealFailed,
       pool: currentRound.pool,
       winner: currentRound.winner,
@@ -245,17 +242,13 @@ export function advanceFamiliada(state: StoredFamiliada | null, command: Command
           if (stage === "steal" || round.revealed.length === round.answers.length) {
             finishRound(state, round, answeringTeam);
           }
+        } else if (stage === "steal") {
+          round.stealFailed = true;
+          finishRound(state, round, controllingTeam);
         } else {
-          const strikes = round.strikesByTeam ??= getRoundStrikes(round, match);
-          const side = match.teams[0] === answeringTeam ? 0 : 1;
-          if (++strikes[side] === 3) {
-            if (stage === "play") {
-              state.stage = "steal";
-            } else {
-              round.stealFailed = true;
-              finishRound(state, round, controllingTeam);
-            }
-          }
+          round.strikes = Math.min(3, getRoundStrikes(round) + 1);
+          delete round.strikesByTeam;
+          if (round.strikes === 3) state.stage = "steal";
         }
       }
       return state;

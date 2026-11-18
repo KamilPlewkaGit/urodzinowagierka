@@ -5,6 +5,7 @@ import type { CSSProperties } from "react";
 
 import { CasinoLogo } from "@/components/casino-logo";
 import { ActiveSegment, useGameSession } from "@/components/game-session";
+import { GOLD_TITLE } from "@/components/gold-challenge-screen";
 import { compareChipBalances, formatPolishChips } from "@/lib/chips";
 import { TEAMS, getTeam } from "@/lib/constants";
 import { THE_FLOOR_TITLE } from "@/lib/floor";
@@ -27,6 +28,9 @@ const segmentNames = {
   melodia: MELODIA_TITLE,
   pojedynki: POJEDYNKI_TITLE,
   familiada: "Familiada",
+  "gold-challenge": GOLD_TITLE,
+  alkoholicy: "ALKOHOLICY",
+  finale: "FINAŁ",
 } satisfies Record<SegmentId, string>;
 
 function Lobby({ snapshot, player }: { snapshot: GameSnapshot; player: Player }) {
@@ -38,7 +42,7 @@ function Lobby({ snapshot, player }: { snapshot: GameSnapshot; player: Player })
       <section className="lobby-hero">
         <div>
           <h1>Witaj, <em>{player.nickname}</em>.</h1>
-          <p>{started ? "Gra trwa" : "Oczekiwanie na administratora"}</p>
+          <p>{snapshot.finale.stage === "completed" ? "Gra zakończona" : started ? "Gra trwa" : "Oczekiwanie na administratora"}</p>
           <p>Aktualny segment: <strong>{segmentNames[snapshot.game.activeSegment]}</strong></p>
           <p>Twoja drużyna: <strong style={{ color: team.color }}>{team.icon} {team.name}</strong></p>
         </div>

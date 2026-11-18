@@ -1,0 +1,5 @@
+File: src/components/finale.module.css
+
+Purpose: Styles the FINAŁ introduction, two-team matchup, oversized answer reveal, physical-wheel message, summary and controls in the dark and gold casino theme. Layout adapts to narrow screens. Presentation and winner transitions respect reduced-motion preferences.
+
+Dependencies: Next.js CSS Modules scope the classes to the finale components. Buttons and text inputs also use the shared casino classes.

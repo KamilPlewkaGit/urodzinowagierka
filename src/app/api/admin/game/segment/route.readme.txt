@@ -17,3 +17,7 @@ Segment V update: The fixed schema additionally accepts `"melodia"`. Navigation 
 Segment VI update: The fixed schema additionally accepts `"pojedynki"`. Navigation changes only the active view and never resets the four persisted duel slots or their betting outcomes.
 
 Segment VIII update: The fixed schema accepts `"familiada"`. Navigation resumes the saved match, board and betting state.
+
+The fixed schema accepts `"finale"` as the final segment. Navigating away and back resumes the persisted finale screen.
+
+The same navigation accepts `"gold-challenge"` and `"alkoholicy"`; their progress and settlements stay saved when switching.

@@ -21,3 +21,7 @@ Segment VIII adds match summaries and the current Familiada board. The verified 
 For the active Floor duel, the snapshot includes category metadata, item count and the current live prompt. Embedded images use a dedicated URL, so the poll stays small.
 
 The same verified administrator projection includes the current Floor answer. Player snapshots omit the field. Prompt and answer advance together in a single response.
+
+The `finale` projection uses the shared poll for finalist qualification, question, estimate, direction, reveal, winner, wheel presentation and completion. Before reveal, only the verified administrator projection contains the current `adminAnswer` key.
+
+The `alkoholicy` and `goldChallenge` projections synchronize the new stages, results and balances. Wager choices and nomination selections are scoped to the viewer. Only verified administrators see the aggregate nomination counts and live gold payout previews.
