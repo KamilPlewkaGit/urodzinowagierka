@@ -134,7 +134,7 @@ export function FamiliadaAdminControls({ snapshot, onRefresh }: { snapshot: Game
       )}
       {round && (
         <>
-          <FamiliadaBoard round={round} questionIndex={questionIndex} />
+          <FamiliadaBoard round={round} questionIndex={questionIndex} teams={match.teams} />
           <FamiliadaRoundStatus state={state} />
         </>
       )}
@@ -172,7 +172,7 @@ export function FamiliadaAdminControls({ snapshot, onRefresh }: { snapshot: Game
               );
             })}
           </ol>
-          {evaluating && <button type="button" className={styles.errorButton} onClick={() => void send({ action: "mistake" })}>{stage === "steal" ? "NIEUDANE PRZEJĘCIE – X" : "BŁĄD – X"}</button>}
+          {evaluating && <button type="button" className={styles.errorButton} onClick={() => void send({ action: "mistake" })}>BŁĄD – X</button>}
         </fieldset>
       )}
       {stage === "round-result" && (

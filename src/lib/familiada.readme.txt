@@ -7,3 +7,5 @@ Inputs and outputs: advanceFamiliada accepts the stored document, a validated ga
 Dependencies: Shared Familiada types, the inferred server validation contract and server-only.
 
 Implementation: Saving matchups seeds the exact question text and descending answer values. The state machine governs opening priority, ranked answer reveals, strikes, stealing, presentation reveals, and stage changes. Match scores sum awarded round pools. Hidden slots have a position and null reveal. The full key for the current question is emitted only for the admin projection. Revision and transaction checks belong to database.ts.
+
+After the opening face-off, mistakes count toward the answering team's three-strike limit for the question. The controlling team's third strike starts the steal, and the opponent either wins with a hidden answer or concedes the pool on its own third strike. The legacy scalar belongs to the controlling team. A recorded legacy failed steal counts as one opponent strike and retains the saved round result.

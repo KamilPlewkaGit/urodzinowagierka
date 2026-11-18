@@ -7,3 +7,5 @@ Inputs and outputs: FamiliadaScreen receives the authenticated snapshot, optiona
 Dependencies: React, shared snapshot and command types, team metadata, exact decimal formatting, Familiada CSS and the existing game session poll.
 
 Implementation: Only selected player IDs get a buzzer button, placed above the board for quick use on narrow screens. Only eligible viewers get wager choices. Server authorization and arbitration remain authoritative. The board displays only the projected revealed field, even when mounted for an administrator. Commands use the present revision, are single-flight per form, and refresh the existing snapshot after a response.
+
+The shared board labels each team's three strike markers and fills them from the current round's server counters.

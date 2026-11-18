@@ -148,6 +148,13 @@
   font-variant-numeric: tabular-nums;
 }
 
+.teamStrikes {
+  display: grid;
+  justify-items: center;
+  gap: .35rem;
+  font-weight: 700;
+}
+
 .strikes {
   display: flex;
   align-items: center;
@@ -156,16 +163,10 @@
   font: 900 clamp(1.8rem, 5vw, 3.7rem)/.8 system-ui, sans-serif;
 }
 
-.struck,
-.failedSteal {
+.struck {
   color: #ff616d;
   text-shadow: 0 0 .5em #fa3342a0;
   animation: strike .32s ease-out both;
-}
-
-.failedSteal {
-  padding-inline-start: .2em;
-  border-inline-start: 1px solid #b9904a;
 }
 
 .scores,

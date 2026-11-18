@@ -26,7 +26,8 @@ type Round = {
   buzzerWinner: number | null;
   firstPoints: number;
   controllingTeam: TeamId | null;
-  strikes: number;
+  strikesByTeam?: [number, number];
+  strikes?: number; // Legacy count for the controlling team.
   stealFailed: boolean;
   pool: number;
   winner: TeamId | null;
@@ -69,7 +70,7 @@ function createMatch(teams: [TeamId, TeamId], index: 0 | 1): Match {
       buzzerWinner: null,
       firstPoints: 0,
       controllingTeam: null,
-      strikes: 0,
+      strikesByTeam: [0, 0],
       stealFailed: false,
       pool: 0,
       winner: null,
@@ -83,6 +84,14 @@ function score(match: Match, teamId: TeamId) {
 
 function opponent(match: Match, team: TeamId) {
   return match.teams[0] === team ? match.teams[1] : match.teams[0];
+}
+
+function getRoundStrikes(round: Round, match: Match): [number, number] {
+  if (round.strikesByTeam) return round.strikesByTeam;
+  if (!round.controllingTeam) return [0, 0];
+  const leadStrikes = round.strikes ?? 0;
+  const stealStrikes = round.stealFailed ? 1 : 0;
+  return match.teams[0] === round.controllingTeam ? [leadStrikes, stealStrikes] : [stealStrikes, leadStrikes];
 }
 
 function finishRound(state: StoredFamiliada, round: Round, winner: TeamId) {
@@ -100,7 +109,8 @@ export function getFamiliadaSnapshot(state: StoredFamiliada | null, revision: st
   const stage = state?.stage ?? "setup";
   const matchIndex = state?.matchIndex ?? 0;
   const questionIndex = state?.questionIndex ?? 0;
-  const currentRound = state?.matches[matchIndex]?.rounds[questionIndex];
+  const currentMatch = state?.matches[matchIndex];
+  const currentRound = currentMatch?.rounds[questionIndex];
   const visible = currentRound && ["question", "buzzer", "first", "second", "no-answer", "play", "steal", "round-result"].includes(stage);
   return {
     revision,
@@ -128,7 +138,7 @@ export function getFamiliadaSnapshot(state: StoredFamiliada | null, revision: st
       representatives: currentRound.representatives,
       buzzerWinner: currentRound.buzzerWinner,
       controllingTeam: currentRound.controllingTeam,
-      strikes: currentRound.strikes,
+      strikesByTeam: getRoundStrikes(currentRound, currentMatch),
       stealFailed: currentRound.stealFailed,
       pool: currentRound.pool,
       winner: currentRound.winner,
@@ -228,12 +238,25 @@ export function advanceFamiliada(state: StoredFamiliada | null, command: Command
         } else {
           state.stage = "no-answer";
         }
-      } else if (stage === "play") {
-        if (answer && round.revealed.length === round.answers.length) finishRound(state, round, round.controllingTeam!);
-        if (!answer && ++round.strikes === 3) state.stage = "steal";
       } else {
-        round.stealFailed = !answer;
-        finishRound(state, round, answer ? opponent(match, round.controllingTeam!) : round.controllingTeam!);
+        const controllingTeam = round.controllingTeam!;
+        const answeringTeam = stage === "play" ? controllingTeam : opponent(match, controllingTeam);
+        if (answer) {
+          if (stage === "steal" || round.revealed.length === round.answers.length) {
+            finishRound(state, round, answeringTeam);
+          }
+        } else {
+          const strikes = round.strikesByTeam ??= getRoundStrikes(round, match);
+          const side = match.teams[0] === answeringTeam ? 0 : 1;
+          if (++strikes[side] === 3) {
+            if (stage === "play") {
+              state.stage = "steal";
+            } else {
+              round.stealFailed = true;
+              finishRound(state, round, controllingTeam);
+            }
+          }
+        }
       }
       return state;
     }

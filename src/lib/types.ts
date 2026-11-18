@@ -220,7 +220,7 @@ export interface FamiliadaSnapshot {
     representatives: FamiliadaRepresentative[];
     buzzerWinner: number | null;
     controllingTeam: TeamId | null;
-    strikes: number;
+    strikesByTeam: [number, number];
     stealFailed: boolean;
     pool: number;
     winner: TeamId | null;
