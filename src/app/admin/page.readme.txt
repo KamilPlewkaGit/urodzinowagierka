@@ -11,3 +11,5 @@ Backend/database interactions: Resolves the opaque session from Neon and reads a
 Implementation details: Authorization uses the server-resolved session role, never the nickname or a client-supplied value. Dynamic rendering avoids serving a cached dashboard.
 
 Future expansion: New administrative panels belong in protected components plus separately authorized Route Handlers; do not make this page a mutation endpoint.
+
+The verified administrator read includes the current Familiada answer key for the initial dashboard render.

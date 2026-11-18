@@ -15,3 +15,5 @@ Future expansion: Add fields only after their persistent and API behavior is def
 Segment V models the confirmed-team stage, five song slots, lyric-auction details, team totals, final leaders, selected winner, settlement marker, range of per-player debits, and the viewer's own recorded balance delta. Chip values are exact decimal strings. Previously settled legacy results carry an archive flag.
 
 Segment VI update: `SegmentId` additionally includes `pojedynki`. `PojedynkiState` and `PojedynkiDuel` expose only the four durable slots, selected team sides, stage, result, aggregate bet count, and the requesting player's isolated bet outcome. `GameState` holds its independent stage and zero-based current-duel sequence.
+
+Segment VIII adds `familiada` to `SegmentId` and `FamiliadaSnapshot` to the shared game snapshot. It carries an opaque revision, match score summaries, current phase, the current ranked board, representatives and the viewer's private wager. An unrevealed slot carries only its position and null. The optional current answer key is populated by authorized administrator reads.

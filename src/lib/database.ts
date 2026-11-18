@@ -5,6 +5,8 @@ import { randomBytes } from "node:crypto";
 import { defaults, neon, type NeonQueryPromise } from "@neondatabase/serverless";
 
 import { STARTING_TOKENS } from "@/lib/constants";
+import { advanceFamiliada, FamiliadaConflict, getFamiliadaSnapshot, type FamiliadaBetSummary, type StoredFamiliada } from "@/lib/familiada";
+import type { FamiliadaAction } from "@/lib/validation";
 import { THE_FLOOR_BET_STAKE, THE_FLOOR_CATEGORY_COUNT, THE_FLOOR_DUEL_SECONDS, THE_FLOOR_PASS_PENALTY_SECONDS } from "@/lib/floor";
 import { SOLENIZANT_LAST_QUESTION_INDEX } from "@/lib/solenizant";
 import { SPORT_BET_STAKE, SPORT_BONUS_ROUND_COUNT, SPORT_CHALLENGE_COUNT, SPORT_CORRECT_BET_PROFIT, SPORT_CHALLENGES } from "@/lib/sport";
@@ -109,6 +111,7 @@ type MelodiaSongRow = { id: number; sequence: number; stage: MelodiaSongStage; w
 type MelodiaBidRow = { song_id: number; team_id: TeamId; declared_lines: number };
 type MelodiaTeamScoreRow = { team_id: TeamId; points: number };
 type SnapshotQuery<Row> = NeonQueryPromise<false, false, Row[]>;
+type FamiliadaRow = { familiada_state: StoredFamiliada | null; familiada_revision: string };
 type SnapshotRows<Queries extends readonly PromiseLike<unknown>[]> = { [Index in keyof Queries]: Awaited<Queries[Index]> };
 
 type MelodiaSettlementRow = { debit_min: string | null; debit_max: string | null; viewer_delta: string | null };
@@ -137,6 +140,208 @@ async function runWithGameLock(sql: ReturnType<typeof database>, query: NeonQuer
   // Acquire the shared lock before taking the write statement's snapshot.
   const [, rows] = await sql.transaction([sql`SELECT id FROM game_state WHERE id = 1 FOR UPDATE`, query]);
   return rows;
+}
+
+async function saveFamiliada(
+  sql: ReturnType<typeof database>,
+  revision: string,
+  state: StoredFamiliada,
+  requiredPlayerIds: number[],
+) {
+  return runWithGameLock(sql, sql`
+    WITH available AS (
+      SELECT id FROM players
+      WHERE id = ANY(${requiredPlayerIds}::BIGINT[]) AND active
+      ORDER BY id
+      FOR UPDATE
+    )
+    UPDATE game_state SET familiada_state = ${JSON.stringify(state)}::JSONB, familiada_revision = gen_random_uuid()
+    WHERE id = 1 AND status = 'started' AND active_segment = 'familiada' AND familiada_revision = ${revision}::UUID
+      AND (SELECT COUNT(*) FROM available) = ${requiredPlayerIds.length}::INTEGER
+    RETURNING id
+  `);
+}
+
+async function placeFamiliadaBet(sql: ReturnType<typeof database>, revision: string, state: StoredFamiliada, bettorId: number, target: TeamId) {
+  const match = state.matches[state.matchIndex];
+  if (state.stage !== "betting" || !match.teams.includes(target)) return [];
+  return runWithGameLock(sql, sql`
+    WITH debited AS (
+      UPDATE players player
+      SET tokens = player.tokens - ${SPORT_BET_STAKE}::NUMERIC
+      FROM game_state game
+      WHERE game.id = 1 AND game.status = 'started' AND game.active_segment = 'familiada'
+        AND game.familiada_revision = ${revision}::UUID
+        AND player.id = ${bettorId} AND player.active
+        AND player.team_id NOT IN (${match.teams[0]}, ${match.teams[1]})
+        AND player.tokens >= ${SPORT_BET_STAKE}::NUMERIC
+        AND NOT EXISTS (
+          SELECT 1 FROM familiada_bets WHERE match_index = ${state.matchIndex} AND bettor_id = player.id
+        )
+      RETURNING player.id
+    )
+    INSERT INTO familiada_bets (match_index, bettor_id, target_team_id, stake)
+    SELECT ${state.matchIndex}::SMALLINT, id, ${target}, ${SPORT_BET_STAKE}::NUMERIC FROM debited
+    RETURNING bettor_id
+  `);
+}
+
+/** One transaction confirms the scoreboard and applies the SPORT-style chip settlement. */
+async function settleFamiliadaMatch(sql: ReturnType<typeof database>, revision: string, state: StoredFamiliada, winner: TeamId) {
+  const match = state.matches[state.matchIndex];
+  const loser = match.teams[0] === winner ? match.teams[1] : match.teams[0];
+  return runWithGameLock(sql, sql`
+    WITH candidate AS (
+      SELECT id FROM game_state
+      WHERE id = 1 AND status = 'started' AND active_segment = 'familiada'
+        AND familiada_revision = ${revision}::UUID
+        AND familiada_state ->> 'stage' = 'match-confirmation'
+    ),
+    bets AS (
+      SELECT bet.* FROM familiada_bets bet CROSS JOIN candidate
+      WHERE bet.match_index = ${state.matchIndex} AND bet.result = 'pending'
+    ),
+    totals AS (
+      SELECT COALESCE(SUM(stake) FILTER (WHERE target_team_id <> ${winner}), 0) AS lost_stakes,
+        COUNT(*) FILTER (WHERE target_team_id = ${winner}) * ${SPORT_CORRECT_BET_PROFIT}::NUMERIC AS profit_due
+      FROM bets
+    ),
+    locked_players AS (
+      SELECT player.id, player.team_id, player.tokens, player.created_at, player.active
+      FROM players player CROSS JOIN candidate
+      WHERE (player.active AND player.team_id IN (${winner}, ${loser}))
+        OR player.id IN (SELECT bettor_id FROM bets WHERE target_team_id = ${winner})
+      ORDER BY player.id
+      FOR UPDATE OF player
+    ),
+    ranked_members AS (
+      SELECT id, team_id, tokens,
+        ROW_NUMBER() OVER (PARTITION BY team_id ORDER BY created_at, id) AS member_rank,
+        COUNT(*) OVER (PARTITION BY team_id) AS team_size
+      FROM locked_players
+      WHERE active AND team_id IN (${winner}, ${loser})
+    ),
+    split_amounts AS (
+      SELECT member.*, CASE WHEN team_id = ${winner} THEN lost_stakes ELSE -profit_due END AS team_delta
+      FROM ranked_members member CROSS JOIN totals
+    ),
+    member_deltas AS (
+      SELECT id, tokens,
+        TRUNC(team_delta / team_size, 4) +
+        CASE WHEN member_rank = 1 THEN team_delta - TRUNC(team_delta / team_size, 4) * team_size ELSE 0 END AS delta
+      FROM split_amounts
+    ),
+    approved AS (
+      SELECT candidate.id FROM candidate CROSS JOIN totals
+      WHERE (lost_stakes = 0 OR EXISTS (SELECT 1 FROM ranked_members WHERE team_id = ${winner}))
+        AND (profit_due = 0 OR EXISTS (SELECT 1 FROM ranked_members WHERE team_id = ${loser}))
+        AND NOT EXISTS (SELECT 1 FROM member_deltas WHERE tokens + delta < 0)
+    ),
+    settled_bets AS (
+      UPDATE familiada_bets bet
+      SET result = CASE WHEN bet.target_team_id = ${winner} THEN 'won' ELSE 'lost' END,
+        payout = CASE WHEN bet.target_team_id = ${winner} THEN bet.stake + ${SPORT_CORRECT_BET_PROFIT}::NUMERIC ELSE 0 END,
+        settled_at = NOW()
+      FROM bets CROSS JOIN approved
+      WHERE bet.match_index = bets.match_index AND bet.bettor_id = bets.bettor_id
+      RETURNING bet.bettor_id, bet.payout
+    ),
+    allocations AS (
+      SELECT id, SUM(delta) AS delta FROM (
+        SELECT id, delta FROM member_deltas
+        UNION ALL
+        SELECT bettor_id, payout FROM settled_bets
+      ) transfers GROUP BY id
+    ),
+    updated_players AS (
+      UPDATE players player SET tokens = player.tokens + allocations.delta
+      FROM allocations CROSS JOIN approved
+      WHERE player.id = allocations.id AND allocations.delta <> 0
+      RETURNING player.id, allocations.delta
+    ),
+    saved AS (
+      UPDATE game_state game SET familiada_state = ${JSON.stringify(state)}::JSONB, familiada_revision = gen_random_uuid()
+      FROM approved WHERE game.id = approved.id
+      RETURNING game.id
+    )
+    INSERT INTO admin_actions (action, details)
+    SELECT 'familiada_match_settled', jsonb_build_object(
+      'matchIndex', ${state.matchIndex}::INTEGER, 'winnerTeamId', ${winner}::TEXT,
+      'transfers', COALESCE((SELECT jsonb_object_agg(id, delta) FROM updated_players), '{}'::JSONB)
+    ) FROM saved
+    RETURNING id
+  `);
+}
+
+async function restartFamiliada(sql: ReturnType<typeof database>, revision: string) {
+  return runWithGameLock(sql, sql`
+    WITH reset AS (
+      UPDATE game_state SET familiada_state = NULL, familiada_revision = gen_random_uuid()
+      WHERE id = 1 AND status = 'started' AND active_segment = 'familiada' AND familiada_revision = ${revision}::UUID
+      RETURNING id
+    ),
+    cleared AS (
+      DELETE FROM familiada_bets WHERE EXISTS (SELECT 1 FROM reset)
+      RETURNING bettor_id, stake, result
+    ),
+    refunds AS (
+      SELECT bettor_id, SUM(stake) AS amount FROM cleared WHERE result = 'pending' GROUP BY bettor_id
+    ),
+    refunded AS (
+      UPDATE players player SET tokens = player.tokens + refunds.amount FROM refunds
+      WHERE player.id = refunds.bettor_id
+      RETURNING player.id
+    )
+    INSERT INTO admin_actions (action, details)
+    SELECT 'familiada_restart', jsonb_build_object('refundedPlayers', (SELECT COUNT(*) FROM refunded)) FROM reset
+    RETURNING id
+  `);
+}
+
+export async function applyFamiliadaAction({ revision, command }: FamiliadaAction, voterId?: number) {
+  await ensureDatabase();
+  const sql = database();
+  const stale = "Stan Familiady się zmienił. Sprawdź obecny etap i ponów akcję.";
+  const [current] = await sql`
+    SELECT familiada_state, familiada_revision FROM game_state
+    WHERE id = 1 AND status = 'started' AND active_segment = 'familiada'
+  ` as FamiliadaRow[];
+  if (!current || current.familiada_revision !== revision) throw new FamiliadaConflict(stale);
+
+  const state = current.familiada_state;
+  if (command.action === "restart") {
+    if (!(await restartFamiliada(sql, revision)).length) throw new FamiliadaConflict(stale);
+    return;
+  }
+  if (command.action === "bet") {
+    if (!state || voterId === undefined || !(await placeFamiliadaBet(sql, revision, state, voterId, command.teamId)).length) {
+      throw new FamiliadaConflict("Nie możesz postawić zakładu. Sprawdź etap meczu, swoją drużynę i saldo.");
+    }
+    return;
+  }
+
+  const round = state?.matches[state.matchIndex].rounds[state.questionIndex];
+  let ids: number[] = [];
+  switch (command.action) {
+    case "start-question":
+    case "replace-representatives": ids = command.players; break;
+    case "activate": ids = round?.representatives.map((player) => player.id) ?? []; break;
+    case "respondent": ids = [command.playerId]; break;
+    case "buzz": if (voterId !== undefined) ids = [voterId]; break;
+  }
+  const activePlayers = ids.length ? await sql`
+    SELECT id, nickname, team_id AS "teamId" FROM players WHERE active AND id = ANY(${ids}::BIGINT[])
+  ` as { id: number; nickname: string; teamId: TeamId }[] : [];
+  const representatives = ids.flatMap((id) => activePlayers.filter((player) => player.id === id));
+  const next = advanceFamiliada(state, command, representatives, voterId);
+
+  if (command.action === "confirm-match") {
+    if (!(await settleFamiliadaMatch(sql, revision, next, command.teamId)).length) {
+      throw new FamiliadaConflict("Nie udało się rozliczyć meczu. Sprawdź aktualny etap, aktywnych członków drużyn i salda przegranych.");
+    }
+  } else if (!(await saveFamiliada(sql, revision, next, ids)).length) {
+    throw new FamiliadaConflict(stale);
+  }
 }
 
 function toPlayer(row: PlayerRow): Player {
@@ -323,7 +528,7 @@ export async function ensureDatabase() {
           id SMALLINT PRIMARY KEY CHECK (id = 1),
           status VARCHAR(16) NOT NULL DEFAULT 'waiting' CHECK (status IN ('waiting', 'started')),
           started_at TIMESTAMPTZ,
-          active_segment VARCHAR(16) NOT NULL DEFAULT 'solenizant' CONSTRAINT game_state_active_segment_check CHECK (active_segment IN ('solenizant', 'the-floor', 'sport', 'melodia', 'pojedynki')),
+          active_segment VARCHAR(16) NOT NULL DEFAULT 'solenizant' CONSTRAINT game_state_active_segment_check CHECK (active_segment IN ('solenizant', 'the-floor', 'sport', 'melodia', 'pojedynki', 'familiada')),
           solenizant_stage VARCHAR(16) NOT NULL DEFAULT 'intro' CONSTRAINT game_state_solenizant_stage_check CHECK (solenizant_stage IN ('intro', 'question', 'scoring', 'results')),
           current_question_index SMALLINT NOT NULL DEFAULT 0 CONSTRAINT game_state_solenizant_question_index_check CHECK (current_question_index BETWEEN 0 AND 5),
           the_floor_stage VARCHAR(16) NOT NULL DEFAULT 'intro' CONSTRAINT game_state_the_floor_stage_check CHECK (the_floor_stage IN ('intro', 'setup', 'betting', 'live', 'result', 'results')),
@@ -354,11 +559,12 @@ export async function ensureDatabase() {
       await sql`ALTER TABLE game_state ADD COLUMN IF NOT EXISTS melodia_settled_at TIMESTAMPTZ`;
       await sql`ALTER TABLE game_state ADD COLUMN IF NOT EXISTS pojedynki_stage VARCHAR(16) NOT NULL DEFAULT 'intro'`;
       await sql`ALTER TABLE game_state ADD COLUMN IF NOT EXISTS current_pojedynki_duel_sequence SMALLINT NOT NULL DEFAULT 0`;
+      await sql`ALTER TABLE game_state ADD COLUMN IF NOT EXISTS familiada_state JSONB, ADD COLUMN IF NOT EXISTS familiada_revision UUID NOT NULL DEFAULT gen_random_uuid()`;
       await sql`
         DO $$
         BEGIN
           ALTER TABLE game_state DROP CONSTRAINT IF EXISTS game_state_active_segment_check;
-          ALTER TABLE game_state ADD CONSTRAINT game_state_active_segment_check CHECK (active_segment IN ('solenizant', 'the-floor', 'sport', 'melodia', 'pojedynki'));
+          ALTER TABLE game_state ADD CONSTRAINT game_state_active_segment_check CHECK (active_segment IN ('solenizant', 'the-floor', 'sport', 'melodia', 'pojedynki', 'familiada'));
           IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'game_state_solenizant_stage_check') THEN
             ALTER TABLE game_state ADD CONSTRAINT game_state_solenizant_stage_check CHECK (solenizant_stage IN ('intro', 'question', 'scoring', 'results'));
           END IF;
@@ -733,6 +939,18 @@ export async function ensureDatabase() {
         )
       `;
       await sql`CREATE INDEX IF NOT EXISTS pojedynki_bets_duel_index ON pojedynki_bets (duel_id)`;
+      await sql`
+        CREATE TABLE IF NOT EXISTS familiada_bets (
+          match_index SMALLINT NOT NULL CHECK (match_index BETWEEN 0 AND 1),
+          bettor_id BIGINT NOT NULL REFERENCES players(id),
+          target_team_id VARCHAR(16) NOT NULL CHECK (target_team_id IN ('royal', 'ruby', 'emerald', 'onyx')),
+          stake NUMERIC(20,4) NOT NULL DEFAULT 2 CHECK (stake = 2),
+          result VARCHAR(8) NOT NULL DEFAULT 'pending' CHECK (result IN ('pending', 'won', 'lost')),
+          payout NUMERIC(20,4) NOT NULL DEFAULT 0 CHECK (payout >= 0),
+          settled_at TIMESTAMPTZ,
+          PRIMARY KEY (match_index, bettor_id)
+        )
+      `;
     })().catch((error: unknown) => {
       schemaPromise = undefined;
       throw error;
@@ -813,7 +1031,7 @@ export async function revokeSession(token: string | undefined) {
   await sql`DELETE FROM sessions WHERE token = ${token}`;
 }
 
-export async function getGameSnapshot(viewerPlayerId?: number): Promise<GameSnapshot> {
+export async function getGameSnapshot(viewerPlayerId?: number, options?: { familiadaAdmin: boolean }): Promise<GameSnapshot> {
   await ensureDatabase();
   const sql = database();
   const reads = [
@@ -821,10 +1039,10 @@ export async function getGameSnapshot(viewerPlayerId?: number): Promise<GameSnap
       SELECT id, status, started_at, active_segment, solenizant_stage, current_question_index, the_floor_stage, current_the_floor_duel_sequence,
         sport_stage, current_sport_challenge_sequence, current_sport_bonus_sequence,
         melodia_stage, current_melodia_song_sequence, melodia_winning_team_id, melodia_settled_at,
-        pojedynki_stage, current_pojedynki_duel_sequence
+        pojedynki_stage, current_pojedynki_duel_sequence, familiada_state, familiada_revision
       FROM game_state
       WHERE id = 1
-    ` as SnapshotQuery<GameRow>,
+    ` as SnapshotQuery<GameRow & FamiliadaRow>,
     sql`
       SELECT id, nickname, team_id, tokens, created_at
       FROM players
@@ -872,8 +1090,15 @@ export async function getGameSnapshot(viewerPlayerId?: number): Promise<GameSnap
     sql`SELECT id, sequence, stage, team_a_id, team_b_id, winner_team_id FROM pojedynki_duels ORDER BY sequence` as SnapshotQuery<PojedynkiDuelRow>,
     sql`SELECT duel_id, COUNT(*)::INTEGER AS bet_count FROM pojedynki_bets GROUP BY duel_id` as SnapshotQuery<PojedynkiBetCountRow>,
     sql`SELECT duel_id, target_team_id, result, payout FROM pojedynki_bets WHERE bettor_id = ${viewerPlayerId ?? null}::BIGINT` as SnapshotQuery<PojedynkiViewerBetRow>,
+    sql`
+      SELECT match_index, COUNT(*)::INTEGER AS bet_count,
+        MAX(target_team_id) FILTER (WHERE bettor_id = ${viewerPlayerId ?? null}::BIGINT) AS target,
+        MAX(result) FILTER (WHERE bettor_id = ${viewerPlayerId ?? null}::BIGINT) AS result,
+        MAX(payout) FILTER (WHERE bettor_id = ${viewerPlayerId ?? null}::BIGINT) AS payout
+      FROM familiada_bets GROUP BY match_index
+    ` as SnapshotQuery<FamiliadaBetSummary>,
   ] as const;
-  const [gameRows, playerRows, teamScoreRows, totalTokenRows, floorDuelRows, floorBetCountRows, viewerBetRows, sportPairingRows, sportPlayerNumberRows, sportChallengeRows, sportBetCountRows, sportViewerBetRows, sportBonusRows, sportBonusRequirementRows, melodiaSongRows, melodiaBidRows, melodiaTeamScoreRows, melodiaSettlementRows, pojedynkiDuelRows, pojedynkiBetCountRows, pojedynkiViewerBetRows] = await sql.transaction([...reads], {
+  const [gameRows, playerRows, teamScoreRows, totalTokenRows, floorDuelRows, floorBetCountRows, viewerBetRows, sportPairingRows, sportPlayerNumberRows, sportChallengeRows, sportBetCountRows, sportViewerBetRows, sportBonusRows, sportBonusRequirementRows, melodiaSongRows, melodiaBidRows, melodiaTeamScoreRows, melodiaSettlementRows, pojedynkiDuelRows, pojedynkiBetCountRows, pojedynkiViewerBetRows, familiadaBets] = await sql.transaction([...reads], {
     isolationLevel: "RepeatableRead",
     readOnly: true,
   }) as unknown as SnapshotRows<typeof reads>;
@@ -957,6 +1182,7 @@ export async function getGameSnapshot(viewerPlayerId?: number): Promise<GameSnap
     sport,
     melodia,
     pojedynki,
+    familiada: getFamiliadaSnapshot(gameRows[0].familiada_state, gameRows[0].familiada_revision, familiadaBets, options?.familiadaAdmin === true && viewerPlayerId === undefined),
   };
 }
 
@@ -1083,6 +1309,10 @@ export async function resetGame() {
       DELETE FROM pojedynki_duels
       RETURNING id
     ),
+    cleared_familiada_bets AS (
+      DELETE FROM familiada_bets
+      RETURNING match_index
+    ),
     reset_scores AS (
       UPDATE solenizant_team_scores
       SET points = 0
@@ -1112,7 +1342,9 @@ export async function resetGame() {
         melodia_winning_team_id = NULL,
         melodia_settled_at = NULL,
         pojedynki_stage = 'intro',
-        current_pojedynki_duel_sequence = 0
+        current_pojedynki_duel_sequence = 0,
+        familiada_state = NULL,
+        familiada_revision = gen_random_uuid()
       WHERE id = 1
       RETURNING id
     )
@@ -1125,7 +1357,8 @@ export async function resetGame() {
         'clearedFloorDuels', (SELECT COUNT(*) FROM cleared_floor_duels),
         'clearedSportChallenges', (SELECT COUNT(*) FROM cleared_sport_challenges),
         'clearedMelodiaSongs', (SELECT COUNT(*) FROM cleared_melodia_songs),
-        'clearedPojedynkiDuels', (SELECT COUNT(*) FROM cleared_pojedynki_duels)
+        'clearedPojedynkiDuels', (SELECT COUNT(*) FROM cleared_pojedynki_duels),
+        'clearedFamiliadaBets', (SELECT COUNT(*) FROM cleared_familiada_bets)
       )
     FROM reset_state
   `);

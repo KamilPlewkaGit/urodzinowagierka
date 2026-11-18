@@ -7,6 +7,8 @@ import { CasinoLogo } from "@/components/casino-logo";
 import { FloorAdminControls } from "@/components/floor-admin-controls";
 import { MelodiaAdminControls } from "@/components/melodia-admin-controls";
 import { PojedynkiAdminControls } from "@/components/pojedynki-admin-controls";
+import { FamiliadaAdminControls } from "@/components/familiada-admin-controls";
+import { familiadaPhaseLabel } from "@/components/familiada-screen";
 import { SportAdminControls } from "@/components/sport-admin-controls";
 import { POLL_INTERVAL_MS, TEAMS, getTeam } from "@/lib/constants";
 import { formatChips } from "@/lib/chips";
@@ -15,7 +17,7 @@ import type { GameSnapshot, TeamId } from "@/lib/types";
 
 type ApiError = { error?: string };
 
-const AVAILABLE_SEGMENTS = [{ id: "solenizant", name: "Solenizant" }, { id: "the-floor", name: "The Floor" }, { id: "sport", name: "Sport" }, { id: "melodia", name: "Jaka to melodia?" }, { id: "pojedynki", name: "Pojedynki" }] as const;
+const AVAILABLE_SEGMENTS = [{ id: "solenizant", name: "Solenizant" }, { id: "the-floor", name: "The Floor" }, { id: "sport", name: "Sport" }, { id: "melodia", name: "Jaka to melodia?" }, { id: "pojedynki", name: "Pojedynki" }, { id: "familiada", name: "Familiada" }] as const;
 
 interface AdminDashboardProps {
   initialSnapshot: GameSnapshot;
@@ -117,6 +119,12 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
   }
 
   async function restartSegment() {
+    if (snapshot.game.activeSegment === "familiada") {
+      if (window.confirm("Uruchomić Familiadę od początku? Postęp obu meczów zostanie usunięty, a oczekujące stawki zostaną zwrócone.")) {
+        await postAction("restart", "/api/segment/familiada", { revision: snapshot.familiada.revision, command: { action: "restart" } });
+      }
+      return;
+    }
     const segmentName = AVAILABLE_SEGMENTS.find((segment) => segment.id === snapshot.game.activeSegment)?.name ?? "wybrany";
     if (!window.confirm(`Czy na pewno uruchomić segment ${segmentName} od początku? Zostanie skasowany tylko jego postęp. Żetony graczy pozostaną bez zmian.`)) {
       return;
@@ -223,7 +231,7 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
           : snapshot.pojedynki.stage === "live" ? "Pojedynek trwa"
             : snapshot.pojedynki.stage === "result" ? "Wynik pojedynku"
               : "Segment zakończony";
-  const statusLabel = activeSegment === "the-floor" ? floorStatusLabel : activeSegment === "sport" ? sportStatusLabel : activeSegment === "melodia" ? melodiaStatusLabel : activeSegment === "pojedynki" ? pojedynkiStatusLabel : solenizantStatusLabel;
+  const statusLabel = activeSegment === "the-floor" ? floorStatusLabel : activeSegment === "sport" ? sportStatusLabel : activeSegment === "melodia" ? melodiaStatusLabel : activeSegment === "pojedynki" ? pojedynkiStatusLabel : activeSegment === "familiada" && isStarted ? familiadaPhaseLabel[snapshot.familiada.stage] : solenizantStatusLabel;
   const activeSegmentIndex = AVAILABLE_SEGMENTS.findIndex((segment) => segment.id === activeSegment);
 
   return (
@@ -293,6 +301,14 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
               <p>Pełne sterowanie czterema pojedynkami, zakładami i wynikami znajduje się poniżej.</p>
             </>
           ) : null}
+
+          {isStarted && activeSegment === "familiada" && (
+            <>
+              <span className="panel-index">SEGMENT VIII</span>
+              <h2>Familiada</h2>
+              <p>Dwa mecze po cztery pytania.</p>
+            </>
+          )}
 
           {isStarted && activeSegment === "solenizant" && solenizantStage === "intro" ? (
             <>
@@ -382,6 +398,7 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
       {isStarted && activeSegment === "sport" ? <SportAdminControls snapshot={snapshot} onRefresh={refresh} /> : null}
       {isStarted && activeSegment === "melodia" ? <MelodiaAdminControls snapshot={snapshot} onRefresh={refresh} /> : null}
       {isStarted && activeSegment === "pojedynki" ? <PojedynkiAdminControls snapshot={snapshot} onRefresh={refresh} /> : null}
+      {isStarted && activeSegment === "familiada" ? <FamiliadaAdminControls snapshot={snapshot} onRefresh={refresh} /> : null}
 
       <section className="admin-management-grid" aria-label="Zarządzanie grą">
         <article className="management-panel">
@@ -421,7 +438,7 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
             {activeSegment === "melodia" ? (
               <div><dt>Rozliczenie żetonów</dt><dd>{snapshot.melodia.settledAt ? "Zatwierdzone" : "Po piątej piosence"}</dd></div>
             ) : (
-              <div><dt>Zakłady</dt><dd>{activeSegment === "the-floor" || activeSegment === "sport" || activeSegment === "pojedynki" ? "Zależne od pojedynku" : "Brak w tym segmencie"}</dd></div>
+              <div><dt>Zakłady</dt><dd>{activeSegment === "familiada" ? "Przed każdym meczem" : activeSegment === "the-floor" || activeSegment === "sport" || activeSegment === "pojedynki" ? "Zależne od pojedynku" : "Brak w tym segmencie"}</dd></div>
             )}
           </dl>
         </article>

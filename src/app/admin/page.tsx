@@ -10,5 +10,5 @@ export default async function AdminPage() {
   const session = await getCurrentSession();
   if (!session || session.role !== "admin") redirect("/");
 
-  return <AdminDashboard initialSnapshot={await getGameSnapshot()} />;
+  return <AdminDashboard initialSnapshot={await getGameSnapshot(undefined, { familiadaAdmin: true })} />;
 }

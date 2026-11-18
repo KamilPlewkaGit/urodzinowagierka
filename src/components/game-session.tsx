@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { CasinoLogo } from "@/components/casino-logo";
+import { FamiliadaScreen } from "@/components/familiada-screen";
 import { FloorScreen } from "@/components/floor-screen";
 import { GameScreen } from "@/components/game-screen";
 import { MelodiaScreen } from "@/components/melodia-screen";
@@ -94,6 +95,7 @@ const segmentScreens = {
   sport: SportScreen,
   melodia: MelodiaScreen,
   pojedynki: PojedynkiScreen,
+  familiada: FamiliadaScreen,
 } satisfies Record<SegmentId, typeof FloorScreen>;
 
 export function ActiveSegment({ snapshot, refresh, viewerPlayerId }: {

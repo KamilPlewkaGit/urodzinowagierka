@@ -15,3 +15,5 @@ Notes for future development: Expand `activeSegmentSchema` and the database serv
 Segment V update: The fixed schema additionally accepts `"melodia"`. Navigation still changes only `active_segment`; persisted music songs, scores and settlements are untouched.
 
 Segment VI update: The fixed schema additionally accepts `"pojedynki"`. Navigation changes only the active view and never resets the four persisted duel slots or their betting outcomes.
+
+Segment VIII update: The fixed schema accepts `"familiada"`. Navigation resumes the saved match, board and betting state.

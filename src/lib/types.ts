@@ -1,7 +1,7 @@
 export type TeamId = "royal" | "ruby" | "emerald" | "onyx";
 
 export type GameStatus = "waiting" | "started";
-export type SegmentId = "solenizant" | "the-floor" | "sport" | "melodia" | "pojedynki";
+export type SegmentId = "solenizant" | "the-floor" | "sport" | "melodia" | "pojedynki" | "familiada";
 export type SolenizantStage = "intro" | "question" | "scoring" | "results";
 export type TheFloorStage = "intro" | "setup" | "betting" | "live" | "result" | "results";
 export type TheFloorDuelStage = "pending" | "betting" | "live" | "result";
@@ -179,6 +179,38 @@ export interface PojedynkiState {
   duels: PojedynkiDuel[];
 }
 
+export type FamiliadaStage = "setup" | "match-ready" | "betting" | "betting-closed" | "question-ready" | "question" | "buzzer" | "first" | "second" | "no-answer" | "play" | "steal" | "round-result" | "match-confirmation" | "match-result" | "completed";
+
+export type FamiliadaAnswer = { position: number; text: string; points: number };
+export type FamiliadaRepresentative = { id: number; nickname: string; teamId: TeamId };
+
+export interface FamiliadaSnapshot {
+  revision: string;
+  stage: FamiliadaStage;
+  matchIndex: number;
+  matches: {
+    teams: [TeamId, TeamId];
+    scores: [number, number];
+    winner: TeamId | null;
+    settledAt: string | null;
+    betCount: number;
+    viewerBet: { target: TeamId; result: "pending" | "won" | "lost"; payout: string } | null;
+  }[];
+  questionIndex: number;
+  round: {
+    question: string;
+    answers: { position: number; revealed: FamiliadaAnswer | null }[];
+    adminAnswers?: FamiliadaAnswer[];
+    representatives: FamiliadaRepresentative[];
+    buzzerWinner: number | null;
+    controllingTeam: TeamId | null;
+    strikes: number;
+    stealFailed: boolean;
+    pool: number;
+    winner: TeamId | null;
+  } | null;
+}
+
 export interface GameSnapshot {
   game: GameState;
   players: Player[];
@@ -188,6 +220,7 @@ export interface GameSnapshot {
   sport: SportState;
   melodia: MelodiaState;
   pojedynki: PojedynkiState;
+  familiada: FamiliadaSnapshot;
 }
 
 export type Session =

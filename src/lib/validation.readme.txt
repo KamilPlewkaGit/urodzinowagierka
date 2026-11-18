@@ -17,3 +17,5 @@ Future expansion: Keep every sensitive endpoint on a narrow, focused schema.
 Segment V accepts exactly the four distinct fixed team IDs for setup, a positive safe song identifier for song and final-result actions, and a stable team ID for tie resolution and settlement approval. Song scores accept artist/title correctness, 0–5 singing lines, a mistake flag, and optional lyric-auction declarations with unique participants and a declared winner.
 
 Segment VI update: `activeSegmentSchema` includes `pojedynki`. Its focused configuration schema accepts exactly two different fixed team IDs; player bets and administrator result confirmation each accept only a team ID. The database repeats all phase, eligibility, membership, and balance checks.
+
+Segment VIII adds `familiada` navigation and `familiadaActionSchema`. Its UUID revision and discriminated command schema accept four distinct team IDs for setup, validated player IDs for selecting representatives or overriding priority, a bounded answer position, or a fixed team ID for a bet or result. The database resolves stage, roles' applicable state, match membership and position bounds for the question.

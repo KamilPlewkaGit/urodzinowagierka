@@ -1,0 +1,9 @@
+File: src/lib/familiada.ts
+
+Purpose: Defines the eight ordered Polish question sets and server-side rules for Segment VIII. It is marked server-only and has no database access.
+
+Inputs and outputs: advanceFamiliada accepts the stored document, a validated gameplay command, resolved active representatives and, for buzzes, a session-derived player ID. It produces the next document or a Polish FamiliadaConflict. getFamiliadaSnapshot explicitly projects that document and aggregate/private bet rows into the shared read model.
+
+Dependencies: Shared Familiada types, the inferred server validation contract and server-only.
+
+Implementation: Saving matchups seeds the exact question text and descending answer values. The state machine governs opening priority, ranked answer reveals, strikes, stealing, presentation reveals, and stage changes. Match scores sum awarded round pools. Hidden slots have a position and null reveal. The full key for the current question is emitted only for the admin projection. Revision and transaction checks belong to database.ts.

@@ -1,0 +1,9 @@
+File: src/components/familiada-admin-controls.tsx
+
+Purpose: Presents Polish administrator controls for match setup, betting, opening confrontation, answer judging, round progression and match confirmation.
+
+Inputs and outputs: Receives the administrator's game snapshot and existing refresh callback. Sends matchups, representative IDs, buzzer actions, ranked positions, mistakes and progression intents using the current revision.
+
+Dependencies: React, Familiada board/score components and action hook, shared types, team metadata and Familiada CSS.
+
+Implementation: Empty teams remain selectable. Representative options come from the active roster. Setup and representative drafts reset only when their persisted selection or round changes. The administrator sees the current question and its full answer key in preparation, while phase-specific controls govern when answers can be published. The server awards round points automatically and commits matches only after an explicit confirmation.

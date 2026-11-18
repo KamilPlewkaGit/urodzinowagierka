@@ -1,0 +1,9 @@
+File: src/components/familiada-screen.tsx
+
+Purpose: Shows the Polish public Familiada board, match scores, game phase, representatives, buzzer priority, strike and steal feedback, results and optional wagers.
+
+Inputs and outputs: FamiliadaScreen receives the authenticated snapshot, optional viewer player ID and shared refresh callback. Players submit buzz or bet intents through useFamiliadaAction. FamiliadaBoard and FamiliadaScores also render the published view inside the admin controls.
+
+Dependencies: React, shared snapshot and command types, team metadata, exact decimal formatting, Familiada CSS and the existing game session poll.
+
+Implementation: Only selected player IDs get a buzzer button, placed above the board for quick use on narrow screens. Only eligible viewers get wager choices. Server authorization and arbitration remain authoritative. The board displays only the projected revealed field, even when mounted for an administrator. Commands use the present revision, are single-flight per form, and refresh the existing snapshot after a response.

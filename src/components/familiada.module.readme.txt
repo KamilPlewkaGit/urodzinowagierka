@@ -1,0 +1,9 @@
+File: src/components/familiada.module.css
+
+Purpose: Styles the responsive Polish Familiada player board and administrator controls with dark blue panels, gold accents, large scores, red strikes and a touch-sized buzzer.
+
+Inputs and outputs: Next.js CSS Modules exports scoped class names for the two Familiada components. Classes select the visible, hidden and mistake states supplied by the components.
+
+Dependencies: Next.js CSS Modules and inherited casino button and typography styles.
+
+Implementation: The live title and rows are compact to keep eight answers and the strike indicators in view on a television. The board wraps long answer text across screen widths, and the admin selectors stack on narrow displays. Brief reveal, buzzer and strike animations honor reduced-motion preferences.

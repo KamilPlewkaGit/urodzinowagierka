@@ -5,3 +5,5 @@ Purpose: Renders the Polish player dashboard with Lobby, Aktualny segment, and Å
 LobbyClient takes the server-verified player ID and initial game snapshot. It uses useGameSession for a shared polling and logout flow. Lobby displays all four colored teams, active players, team counts, game status, and the selected segment. The read-only ranking compares exact numeric balances in descending order, breaks ties by ascending player ID, and marks the signed-in player.
 
 Navigation updates the widok query parameter via browser history. Refreshing or using Back and Forward restores the chosen view. With no explicit selection, the dashboard shows the lobby while waiting and the current segment once play starts. During play, ActiveSegment stays mounted while hidden so changing views preserves drafts and in-flight bets. Polling updates every view from a single server snapshot.
+
+The Polish segment label map includes Familiada. Its screen is opened through Aktualny segment while the lobby and balances remain available.

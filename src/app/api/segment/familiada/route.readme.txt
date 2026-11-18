@@ -1,0 +1,9 @@
+File: src/app/api/segment/familiada/route.ts
+
+Purpose: Handles authenticated Segment VIII mutations. POST accepts JSON with the current UUID revision and a validated command.
+
+Dependencies: Next.js Route Handlers, opaque session verification, Zod schemas, FamiliadaConflict and the database persistence boundary.
+
+Inputs and outputs: Only verified player sessions can submit buzz or bet. The player ID comes from the session. All other commands require a verified administrator. Responses are { ok: true } or Polish 400, 401, 403, 409 or 500 errors. Database errors stay on the server.
+
+Implementation: The database checks current stage, membership, balances and revision before any action takes effect. The endpoint returns no board or answer data. Views poll the authenticated game-state endpoint.

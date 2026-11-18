@@ -1,8 +1,8 @@
 # The Grand Table
 
-The Grand Table is a polished, casino-inspired multiplayer team game. A participant selects one of four teams, receives 100 virtual chips, and opens a live dashboard. A separately authenticated administrator controls SOLENIZANT, The Floor, SPORT, JAKA TO MELODIA?, and POJEDYNKI, manages available segments, resets/restarts explicit state, inspects players, sets an exact player balance, and safely deactivates a player.
+The Grand Table is a polished, casino-inspired multiplayer team game. A participant selects one of four teams, receives 100 virtual chips, and opens a live dashboard. A separately authenticated administrator controls SOLENIZANT, The Floor, SPORT, JAKA TO MELODIA?, POJEDYNKI, and FAMILIADA, manages available segments, resets/restarts explicit state, inspects players, sets an exact player balance, and safely deactivates a player.
 
-This repository is intentionally limited to team registration/rejoining, persistent chips and game state, the player dashboard, administrator authentication, player administration, SOLENIZANT, The Floor, SPORT, JAKA TO MELODIA?, and POJEDYNKI. It contains no real-money functions or player-submitted answers.
+This repository is intentionally limited to team registration/rejoining, persistent chips and game state, the player dashboard, administrator authentication, player administration, SOLENIZANT, The Floor, SPORT, JAKA TO MELODIA?, POJEDYNKI, and FAMILIADA. It contains no real-money functions or player-submitted answers.
 
 ## Architecture
 
@@ -15,6 +15,7 @@ Browser client
   ├─ GET  /api/game/state (4 sec) ──► Authenticated Neon snapshot (players + chips + game/segment/scores)
   ├─ POST /api/segment/solenizant/* ──► Admin-only stage and scoring writes
   ├─ POST /api/segment/floor/* ───────► Floor team selection, betting, timer and result writes
+  ├─ POST /api/segment/familiada ─────► Familiada admin actions, player buzzes and match bets
   ├─ POST /api/admin/game/* ──────────► Admin-only navigation and full reset
   ├─ POST /api/admin/players/* ───────► Admin-only chip adjustment/deactivation
   └─ POST /api/game/start ──────────► Neon-verified admin session + UPDATE game_state
@@ -97,16 +98,19 @@ The tree also contains protected `solenizant/*`, `floor/*`, `sport/*`, `melodia/
 
 Every source file has a neighboring `.readme.txt` file. Read the focused file documentation before changing a file; it records its responsibility, interface, dependencies, persistence relationship, and extension boundary.
 
+Segment VIII adds `src/app/api/segment/familiada/route.ts`, the server-only `src/lib/familiada.ts` rules and questions, and `src/components/familiada-screen.tsx`, `familiada-admin-controls.tsx` and `familiada.module.css` for the Polish views. Each has its own matching documentation file.
+
 ## Modules and responsibilities
 
 | Area | Responsibility |
 | --- | --- |
 | `src/app` | Routes and server-rendered access gates. |
 | `src/app/api` | Server-side registration/rejoining, login, logout, authenticated game synchronization, and protected game, segment, and player-admin transitions. |
-| `src/components` | Responsive Polish casino-themed display components, including SOLENIZANT and focused The Floor, SPORT, JAKA TO MELODIA?, and POJEDYNKI player/admin views. |
-| `src/lib/database.ts` | Neon queries, schema bootstrap/migration, mapping, constraints, rejoining, game/segment/player-admin reads, The Floor team-duel writes, SPORT pairing/challenge/betting/bonus writes, JAKA TO MELODIA? scoring and reward settlement, and POJEDYNKI team-duel/betting/settlement writes. |
+| `src/components` | Responsive Polish casino-themed display components, including SOLENIZANT and focused The Floor, SPORT, JAKA TO MELODIA?, POJEDYNKI, and FAMILIADA player/admin views. |
+| `src/lib/database.ts` | Neon queries, schema bootstrap/migration, mapping, constraints, rejoining, game/segment/player-admin reads, and authoritative writes and settlement for all segments, including Familiada buzzer arbitration and match wagers. |
 | `src/lib/session.ts` | Creation/verification of database-backed opaque HttpOnly session cookies; never imported by client code. |
-| `src/lib/validation.ts` | Shared server input schemas, including SOLENIZANT, The Floor, SPORT, JAKA TO MELODIA?, POJEDYNKI, navigation, exact decimal balance, and player-removal validation. |
+| `src/lib/validation.ts` | Shared server input schemas for segments, including the Familiada command contract, navigation, exact decimal balance, and player removal. |
+| `src/lib/familiada.ts` | Server-only ordered question bank, gameplay transitions and role-specific snapshot projection. |
 | `src/lib/chips.ts` / `constants.ts` / `types.ts` / `solenizant.ts` / `floor.ts` / `sport.ts` / `melodia.ts` / `pojedynki.ts` | Decimal chip display helper, stable metadata/contracts, fixed questions, The Floor content/timing, SPORT schedule, music metadata, and four-duel metadata shared by UI and server code. |
 
 ## Data model
@@ -129,7 +133,7 @@ Chip balances are represented as server decimal strings in the API snapshot and 
 
 ### `game_state`
 
-There is exactly one current game row (`id = 1`). It has `status` (`waiting` or `started`), nullable `started_at`, and `active_segment` (`solenizant`, `the-floor`, `sport`, `melodia`, or `pojedynki`). It stores independent SOLENIZANT, Floor, SPORT, music-segment, and Pojedynki stages. SPORT has a current main-challenge sequence (0–7) and bonus-round sequence (0–1); Melodia has a current song sequence (0–4), a selected or settled winner when applicable, and a settlement timestamp; Pojedynki has a current duel sequence (0–3). Switching segments never resets another segment's saved state.
+There is exactly one current game row (`id = 1`). It has `status` (`waiting` or `started`), nullable `started_at`, and `active_segment` (`solenizant`, `the-floor`, `sport`, `melodia`, `pojedynki`, or `familiada`). It stores independent segment stages. SPORT has a main-challenge sequence (0–7) and bonus sequence (0–1). Melodia has a song sequence (0–4), a winner and a settlement timestamp. Pojedynki has a duel sequence (0–3). Familiada stores both matches and their rounds in `familiada_state` and rotates the UUID `familiada_revision` on each gameplay change. Switching segments preserves saved progress.
 
 ### `solenizant_team_scores`
 
@@ -253,8 +257,8 @@ The administrator password is intentionally `admin` for this private game. Anyon
 1. Create a Neon project and copy its pooled `DATABASE_URL` connection string.
 2. Import this Git repository in Vercel. The framework preset is Next.js; build command can remain `npm run build`.
 3. Set `DATABASE_URL` for Production (and Preview if needed).
-4. Deploy. The first request automatically creates or migrates the required tables, session table, SOLENIZANT score tables, The Floor duel/bet tables, SPORT pair/number/challenge/bet/transfer/bonus tables, JAKA TO MELODIA? song/score/lyric-auction/transfer tables, POJEDYNKI duel/bet tables, player-management ledger tables, and initial `game_state` row.
-5. Verify a player can register and rejoin with the same normalized nickname, an admin can authenticate, start the game and all five segments, then select two Floor teams, try a 2-chip bet from an eligible remaining-team player, lock betting, run correct/pass team timer actions, select and confirm a winning team, and advance to the next slot. For SPORT, verify two disjoint ordered pairs, dynamic rankings from 1 through each team's player count, the required ranks 1–5, all eight scheduled challenges, only non-competing-team betting, result settlement, two no-bet limb-count bonuses, and team-score updates. For JAKA TO MELODIA?, verify team confirmation, the five numbered rounds, scoring and the optional lyric auction, tie resolution, insufficient-balance handling, and one-time settlement with a conserved chip total. For POJEDYNKI, verify all four team selections, optional 2-chip bets from remaining-team players, betting lock, only-competing-team winner confirmation, one-time settlement, and durable progression. Confirm that an undersized SPORT team gets the Polish validation message and that refreshing does not reset an unsaved, unchanged setup selection. For each betting segment, verify that cancelling the administrator's start confirmation keeps betting open, and that confirming closes it and starts play with zero bets or a partial pool. Check that only submitted bets settle. Also verify that reset restores active players to 100 chips and that the dashboard shows the waiting status.
+4. Deploy. The first request automatically creates or migrates the required tables, session table, SOLENIZANT score tables, The Floor duel/bet tables, SPORT pair/number/challenge/bet/transfer/bonus tables, JAKA TO MELODIA? song/score/lyric-auction/transfer tables, POJEDYNKI duel/bet tables, Familiada wager table, player-management ledger tables, and initial `game_state` row.
+5. Verify a player can register and rejoin with the same normalized nickname, an admin can authenticate, start the game and all available segments, then select two Floor teams, try a 2-chip bet from an eligible remaining-team player, lock betting, run correct/pass team timer actions, select and confirm a winning team, and advance to the next slot. For SPORT, verify two disjoint ordered pairs, dynamic rankings from 1 through each team's player count, the required ranks 1–5, all eight scheduled challenges, only non-competing-team betting, result settlement, two no-bet limb-count bonuses, and team-score updates. For JAKA TO MELODIA?, verify team confirmation, the five numbered rounds, scoring and the optional lyric auction, tie resolution, insufficient-balance handling, and one-time settlement with a conserved chip total. For POJEDYNKI, verify all four team selections, optional 2-chip bets from remaining-team players, betting lock, only-competing-team winner confirmation, one-time settlement, and durable progression. Confirm that an undersized SPORT team gets the Polish validation message and that refreshing does not reset an unsaved, unchanged setup selection. For each betting segment, verify that cancelling the administrator's start confirmation keeps betting open, and that confirming closes it and starts play with zero bets or a partial pool. Check that only submitted bets settle. Also verify that reset restores active players to 100 chips and that the dashboard shows the waiting status.
 
 ## Important implementation decisions
 
@@ -311,6 +315,44 @@ The sixth segment has focused protected routes: administrator-only `start`, `con
 - **Explicit destructive actions:** Reopening or directly navigating to a segment never resets it. Segment restart and full-game reset are separate admin-only endpoints with Polish UI confirmation. Full reset preserves active registrations and teams but restores their balances to 100 and resets game/segment state.
 - **Audited manual balances:** An exact chip balance change is server validated, uses `NUMERIC(20,4)`, records before/after/delta atomically, and is the only current operation allowed to add or remove virtual chips from the total.
 - **Future expansion seam:** Add a dedicated fixed-question module, focused database service functions, new admin-only Route Handlers, then client components for a future segment. Keep chips and game state mutations server-owned and extend the snapshot contract deliberately.
+
+## Segment VIII – FAMILIADA
+
+### Mecze i zakłady
+
+1. W panelu prowadzącego wybierz cztery różne drużyny i zapisz je jako dwie uporządkowane pary. Puste drużyny również można wybrać. Skład obu meczów można zmieniać do naciśnięcia **Rozpocznij segment**. Każdy mecz ma cztery własne pytania i osobną punktację.
+2. Przed pierwszym pytaniem każdego meczu prowadzący otwiera zakłady albo je pomija. Aktywny gracz z jednej z pozostałych drużyn może postawić jeden zakład na zwycięzcę meczu za 2 wirtualne żetony. Prowadzący zamyka zakłady przed przejściem do pytania.
+3. Po czterech pytaniach prowadzący potwierdza drużynę z większą liczbą punktów. Przy remisie wskazuje zwycięzcę spośród obu drużyn. Następnie przygotowuje drugi mecz albo kończy segment. Wyniki obu meczów pozostają dostępne w podsumowaniu.
+4. Potwierdzenie rozlicza wszystkie zakłady na mecz według zasad SPORT. Trafiony zakład oddaje stawkę i wypłaca 2 żetony zysku finansowane po równo przez aktywnych członków przegranej drużyny. Stawki nietrafionych zakładów trafiają po równo do aktywnych członków wygranej drużyny. Salda mają cztery miejsca po przecinku, a resztę zaokrąglenia otrzymuje lub pokrywa najwcześniej zarejestrowany aktywny członek danej drużyny według daty rejestracji i ID. Jeśli brakuje uczestników potrzebnych do wykonania transferu lub wystarczającego salda, cały zapis wyniku i wypłaty czeka na ponowną próbę. Punkty z pytań są oddzielone od żetonów i punktacji ogólnej.
+
+### Konfrontacja, tablica i punkty
+
+1. Przed każdym pytaniem prowadzący wybiera po jednym aktywnym przedstawicielu obu drużyn. **Rozpocznij pytanie** pokazuje treść i właściwą liczbę ukrytych pól. Po **Aktywuj przyciski** tylko wybrani gracze mają przycisk **ODPOWIADAM!**. Pierwsze zgłoszenie zatwierdzone przez serwer blokuje przyciski i publikuje pseudonim. Przed oceną pierwszej odpowiedzi administrator może wskazać pierwszeństwo ręcznie lub zresetować przyciski. Po resecie można zmienić przedstawicieli.
+2. Przedstawiciele odpowiadają ustnie. Pierwsza odpowiedź z pozycji 1 od razu daje prowadzenie jej drużynie. W pozostałych przypadkach drugi przedstawiciel ma jedną próbę. Prowadzi drużyna z wyżej punktowaną poprawną odpowiedzią. Przy dwóch błędach prowadzący ponawia konfrontację albo wskazuje drużynę, która przejmuje prowadzenie.
+3. Każdą poprawną odpowiedź prowadzący odsłania w jej zapisanej pozycji. W pytaniu z `N` odpowiedziami pozycja `i` otrzymuje `N − i + 1` punktów. Każda poprawna odpowiedź zasila pulę raz, również podczas konfrontacji. Odsłonięcie całej tablicy daje prowadzącej drużynie pełną pulę.
+4. Prowadzący rejestruje błędną lub powtórzoną odpowiedź przyciskiem **BŁĄD – X**. Pierwszy i drugi X pozwalają drużynie kontynuować. Trzeci X daje rywalom jedną próbę przejęcia. Poprawna ukryta odpowiedź powiększa pulę i oddaje ją rywalom. Nieudana próba pokazuje dodatkowy X i oddaje zebraną pulę drużynie prowadzącej. Błędy z konfrontacji rozstrzygają pierwszeństwo odpowiedzi, a trzy X liczą wyłącznie błędy drużyny prowadzącej.
+5. Rozstrzygnięcie rundy od razu zapisuje zwycięzcę i jego punkty. Prowadzący może odsłonić pozostałe odpowiedzi pokazowo bez zmiany puli lub wyniku. Tablica czeka na **Następne pytanie** albo przejście do podsumowania po czwartej rundzie. Każde pytanie ma własne błędy, pulę, przedstawicieli i wynik.
+
+### Pytania i klucz odpowiedzi
+
+| Mecz | Pytanie | Odpowiedzi w kolejności z punktami |
+| --- | --- | --- |
+| 1.1 | Jakie jest najgorsze miejsce, w którym można zostać przyłapanym na kłamstwie? | W kościele (5), W pracy (na rozmowie kwalifikacyjnej) (4), W sądzie (3), W domu (2), Na policji (1) |
+| 1.2 | Do czego mężczyźnie najtrudniej przyznać się, że nie jest w tym dobry? | Seks (8), Prowadzenie samochodu / orientacja w terenie (7), Naprawianie rzeczy (6), Sport (5), Gotowanie (4), Finanse (3), Słuchanie innych (2), Sprzątanie (1) |
+| 1.3 | Co mogłoby się znaleźć na ziemi pod kolejką górską po przejażdżce? | Pieniądze / portfel (8), Telefon (7), Okulary (6), Czapka / kapelusz (5), Klucze (4), Wymiociny (3), But (2), Sztuczne zęby (1) |
+| 1.4 | Zapytaliśmy 100 żonatych mężczyzn: Jaki jest jeden dobry aspekt twojej teściowej? | Jest miła / pozytywna (8), Dobrze gotuje (7), Mieszka daleko (6), Nie żyje (5), Jest cicha (4), Pilnuje wnuków (3), Jest zabawna (2), Jest bogata (1) |
+| 2.1 | Jaki obcy akcent udają mężczyźni w barze, żeby poderwać kobietę? | Brytyjski (5), Australijski (4), Francuski (3), Włoski (2), Irlandzki (1) |
+| 2.2 | Co skąpy mężczyzna mógłby wyjąć z lodówki i użyć zamiast żelu do włosów? | Majonez (7), Masło / margaryna (6), Olej (5), Galaretka (4), Surowe jajko (3), Bita śmietana (2), Smalec / tłuszcz (1) |
+| 2.3 | W co człowiek może się „wsunąć” lub „wpaść”? | W wygodne ubrania / buty (4), W śpiączkę (3), Do wanny / pod prysznic (2), Do łóżka (1) |
+| 2.4 | Więcej niż jedno zwierzę to: | Lama (7), Owca (6), Stado (5), Wataha (4), Ławica (3), Gromada (2), Rój (1) |
+
+### Stan, API i wdrożenie
+
+- `POST /api/segment/familiada` przyjmuje `{ revision, command }`. Akcje gracza to `buzz` i `bet`. `configure`, `start`, `open-betting`, `close-betting`, `start-question`, `replace-representatives`, `activate`, `reset-buzzer`, `respondent`, `answer`, `mistake`, `control`, `next`, `confirm-match`, `complete` i `restart` są dostępne wyłącznie dla zweryfikowanej sesji administratora.
+- `game_state.familiada_state` przechowuje pary drużyn, osiem pytań i odpowiedzi, fazę, bieżący mecz i pytanie, ujawnione pozycje, przedstawicieli, pierwszeństwo, drużynę prowadzącą, błędy, pulę, rozstrzygnięcia i daty rozliczenia. Wynik meczu jest sumą zapisanych pul wygranych rund. Wspólna blokada wiersza gry i warunek aktualnej rewizji chronią przed akceptacją dwóch naciśnięć, ponowieniem błędu, powtórnym naliczeniem punktów i rozliczeniem tego samego meczu.
+- `familiada_bets` zapisuje stawkę, typ, wynik, wypłatę i datę rozliczenia pod unikatowym kluczem meczu i gracza. Zatwierdzenie wyniku, rozliczenie zakładów, transfery i wpis audytu w `admin_actions` zapisują się atomowo. Restart segmentu zwraca oczekujące stawki i czyści stan Familiady. Zaksięgowane transfery pozostają w saldach. Pełny reset dodatkowo przywraca salda aktywnych graczy do 100.
+- `GET /api/game/state` synchronizuje wszystkie ekrany co cztery sekundy i publikuje tylko zakład zalogowanego gracza. Dla gracza odpowiedź przed odsłonięciem ma wyłącznie pozycję i pustą wartość. Klucz bieżącego pytania otrzymuje zweryfikowany administrator. Dane pytań znajdują się w module serwerowym. Odświeżenie i nawigacja odczytują trwały postęp.
+- Pierwsze żądanie po wdrożeniu automatycznie rozszerza `game_state` i tworzy `familiada_bets`. Po wdrożeniu sprawdź w dwóch przeglądarkach równoczesne użycie przycisków, widoczność odpowiedzi, oba rozstrzygnięcia przejęcia i wyniki zakładów. Sprawdź też powrót przez Lobby i zachowanie tablicy po odświeżeniu.
 
 ## Documentation maintenance
 

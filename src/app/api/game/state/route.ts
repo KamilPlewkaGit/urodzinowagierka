@@ -12,7 +12,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const snapshot = await getGameSnapshot(session.role === "player" ? session.playerId : undefined);
+    const snapshot = await getGameSnapshot(
+      session.role === "player" ? session.playerId : undefined,
+      { familiadaAdmin: session.role === "admin" },
+    );
     return NextResponse.json(snapshot, { headers: { "Cache-Control": "no-store, max-age=0" } });
   } catch (error) {
     console.error("Nie udało się pobrać stanu gry", error);

@@ -17,3 +17,5 @@ The Jaka to melodia? navigation option displays its own status and reward confir
 Segment VI update: Navigation now includes a fifth option, `Pojedynki`, with its own status labels and restart endpoint. `PojedynkiAdminControls` is mounted only while that segment is active, keeping its four team-duel actions separate from all prior segment controls.
 
 The game-start panel tells the administrator where the active segment appears in the player dashboard.
+
+Segment VIII adds Familiada after Pojedynki in navigation. The dashboard displays its current phase, mounts the focused controls, and posts the current revision with a restart command only after confirmation. The confirmation explains the refund of pending stakes.

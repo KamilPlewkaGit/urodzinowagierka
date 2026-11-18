@@ -26,6 +26,7 @@ const segmentNames = {
   sport: SPORT_TITLE,
   melodia: MELODIA_TITLE,
   pojedynki: POJEDYNKI_TITLE,
+  familiada: "Familiada",
 } satisfies Record<SegmentId, string>;
 
 function Lobby({ snapshot, player }: { snapshot: GameSnapshot; player: Player }) {

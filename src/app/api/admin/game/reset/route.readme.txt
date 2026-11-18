@@ -15,3 +15,5 @@ Notes for future development: Extend the one atomic reset service when additiona
 The shared reset clears Melodia songs and their associated lyric-auction declarations, resets its totals, stage and settlement marker, and retains the historical chip-transfer ledger.
 
 Segment VI update: The shared reset also clears the Pojedynki bet rows before their foreign-key parent slots and restores the independent Segment VI stage and sequence to `intro`/zero.
+
+Segment VIII update: The same transaction clears Familiada match state and wager rows and rotates its revision. Active players receive the standard full-reset balance.

@@ -45,7 +45,21 @@ export const adminChipAdjustmentSchema = z.object({
 
 export const adminPlayerRemovalSchema = z.object({ playerId: playerIdSchema });
 
-export const activeSegmentSchema = z.object({ segmentId: z.enum(["solenizant", "the-floor", "sport", "melodia", "pojedynki"]) });
+export const activeSegmentSchema = z.object({ segmentId: z.enum(["solenizant", "the-floor", "sport", "melodia", "pojedynki", "familiada"]) });
+
+export const familiadaActionSchema = z.object({
+  revision: z.uuid(),
+  command: z.discriminatedUnion("action", [
+    z.object({ action: z.literal("configure"), teams: z.tuple([teamIdSchema, teamIdSchema, teamIdSchema, teamIdSchema]).refine((teams) => new Set(teams).size === 4) }),
+    z.object({ action: z.enum(["start", "open-betting", "close-betting", "activate", "reset-buzzer", "buzz", "mistake", "next", "complete", "restart"]) }),
+    z.object({ action: z.enum(["start-question", "replace-representatives"]), players: z.tuple([playerIdSchema, playerIdSchema]) }),
+    z.object({ action: z.literal("respondent"), playerId: playerIdSchema }),
+    z.object({ action: z.literal("answer"), position: z.number().int().min(1).max(8) }),
+    z.object({ action: z.enum(["control", "confirm-match", "bet"]), teamId: teamIdSchema }),
+  ]),
+});
+
+export type FamiliadaAction = z.infer<typeof familiadaActionSchema>;
 
 export const theFloorDuelConfigurationSchema = z.object({
   teamAId: teamIdSchema,
