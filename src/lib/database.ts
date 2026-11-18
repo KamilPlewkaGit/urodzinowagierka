@@ -7,7 +7,8 @@ import { defaults, neon, type NeonQueryPromise } from "@neondatabase/serverless"
 import { STARTING_TOKENS } from "@/lib/constants";
 import { advanceFamiliada, FamiliadaConflict, getFamiliadaSnapshot, type FamiliadaBetSummary, type StoredFamiliada } from "@/lib/familiada";
 import type { FamiliadaAction } from "@/lib/validation";
-import { THE_FLOOR_BET_STAKE, THE_FLOOR_CATEGORY_COUNT, THE_FLOOR_DUEL_SECONDS, THE_FLOOR_PASS_PENALTY_SECONDS } from "@/lib/floor";
+import { THE_FLOOR_BET_STAKE, THE_FLOOR_CATEGORY_COUNT, THE_FLOOR_CATEGORY_IDS, THE_FLOOR_DUEL_SECONDS, THE_FLOOR_PASS_PENALTY_SECONDS } from "@/lib/floor";
+import { getTheFloorContent, getTheFloorItemCounts } from "@/lib/floor-content";
 import { SOLENIZANT_LAST_QUESTION_INDEX } from "@/lib/solenizant";
 import { SPORT_BET_STAKE, SPORT_BONUS_ROUND_COUNT, SPORT_CHALLENGE_COUNT, SPORT_CORRECT_BET_PROFIT, SPORT_CHALLENGES } from "@/lib/sport";
 import { MELODIA_REWARD, MELODIA_SONG_COUNT } from "@/lib/melodia";
@@ -643,7 +644,7 @@ export async function ensureDatabase() {
           team_a_id VARCHAR(16) CONSTRAINT the_floor_duels_team_a_check CHECK (team_a_id IS NULL OR team_a_id IN ('royal', 'ruby', 'emerald', 'onyx')),
           team_b_id VARCHAR(16) CONSTRAINT the_floor_duels_team_b_check CHECK (team_b_id IS NULL OR team_b_id IN ('royal', 'ruby', 'emerald', 'onyx')),
           active_team_id VARCHAR(16) CONSTRAINT the_floor_duels_active_team_check CHECK (active_team_id IS NULL OR active_team_id IN ('royal', 'ruby', 'emerald', 'onyx')),
-          item_index SMALLINT NOT NULL DEFAULT 0 CHECK (item_index BETWEEN 0 AND 49),
+          item_index SMALLINT NOT NULL DEFAULT 0 CONSTRAINT the_floor_duels_item_index_nonnegative CHECK (item_index >= 0),
           player_a_time_seconds SMALLINT NOT NULL DEFAULT 45 CHECK (player_a_time_seconds BETWEEN 0 AND 45),
           player_b_time_seconds SMALLINT NOT NULL DEFAULT 45 CHECK (player_b_time_seconds BETWEEN 0 AND 45),
           team_a_time_seconds SMALLINT NOT NULL DEFAULT 45 CONSTRAINT the_floor_duels_team_a_time_check CHECK (team_a_time_seconds BETWEEN 0 AND 45),
@@ -673,6 +674,24 @@ export async function ensureDatabase() {
           settled_at TIMESTAMPTZ,
           UNIQUE (duel_id, bettor_id)
         )
+      `;
+      await sql`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint
+            WHERE conrelid = 'the_floor_duels'::regclass AND conname = 'the_floor_duels_item_index_nonnegative'
+          ) THEN
+            LOCK TABLE the_floor_duels IN ACCESS EXCLUSIVE MODE;
+            IF NOT EXISTS (
+              SELECT 1 FROM pg_constraint
+              WHERE conrelid = 'the_floor_duels'::regclass AND conname = 'the_floor_duels_item_index_nonnegative'
+            ) THEN
+              ALTER TABLE the_floor_duels DROP CONSTRAINT IF EXISTS the_floor_duels_item_index_check,
+                ADD CONSTRAINT the_floor_duels_item_index_nonnegative CHECK (item_index >= 0);
+            END IF;
+          END IF;
+        END $$
       `;
       await sql`ALTER TABLE the_floor_duels ADD COLUMN IF NOT EXISTS team_a_id VARCHAR(16)`;
       await sql`ALTER TABLE the_floor_duels ADD COLUMN IF NOT EXISTS team_b_id VARCHAR(16)`;
@@ -1113,7 +1132,10 @@ export async function getGameSnapshot(viewerPlayerId?: number, options?: { famil
     viewerBetRows.find((bet) => bet.duel_id === row.id),
   ));
   const currentFloorDuel = floorDuels.find((duel) => duel.sequence === game.currentTheFloorDuelSequence) ?? null;
-  const theFloor: TheFloorState = { stage: game.theFloorStage, currentDuel: currentFloorDuel, duels: floorDuels };
+  const floorContent = game.activeSegment === "the-floor" && currentFloorDuel && game.theFloorStage !== "results"
+    ? await getTheFloorContent(currentFloorDuel.categoryId, game.theFloorStage === "live" ? currentFloorDuel.itemIndex : null)
+    : null;
+  const theFloor: TheFloorState = { stage: game.theFloorStage, currentDuel: currentFloorDuel, duels: floorDuels, content: floorContent };
   const sportChallenges = sportChallengeRows.map((row) => toSportChallenge(
     row,
     sportBetCountRows.find((count) => count.challenge_id === row.id)?.bet_count ?? 0,
@@ -1530,9 +1552,8 @@ export async function startTheFloorSegment() {
   const rows = (await sql`
     WITH seeded AS (
       INSERT INTO the_floor_duels (sequence, category_id)
-      VALUES
-        (0, 'znajome-twarze'), (1, 'lokalne-miejsca'), (2, 'loga'),
-        (3, 'od-tylu'), (4, 'dzialania'), (5, 'znane-kobiety')
+      SELECT (position - 1)::SMALLINT, category_id
+      FROM jsonb_array_elements_text(${JSON.stringify(THE_FLOOR_CATEGORY_IDS)}::JSONB) WITH ORDINALITY AS category(category_id, position)
       ON CONFLICT (sequence) DO NOTHING
       RETURNING id
     ),
@@ -1770,6 +1791,7 @@ async function settleTheFloorBets(duelId: number) {
 /** Materializes elapsed server time and applies a team correct-answer switch or pass penalty. */
 export async function advanceTheFloorDuel(action: "correct" | "pass") {
   await ensureDatabase();
+  const itemCounts = JSON.stringify(await getTheFloorItemCounts());
   const sql = database();
   const rows = (await sql`
     WITH locked AS (
@@ -1797,7 +1819,10 @@ export async function advanceTheFloorDuel(action: "correct" | "pass") {
       SET
         team_a_time_seconds = prepared.next_a,
         team_b_time_seconds = prepared.next_b,
-        item_index = CASE WHEN prepared.next_a = 0 OR prepared.next_b = 0 THEN duel.item_index ELSE (duel.item_index + 1) % 50 END,
+        item_index = CASE
+          WHEN prepared.next_a = 0 OR prepared.next_b = 0 THEN duel.item_index
+          ELSE (duel.item_index + 1) % GREATEST(1, (${itemCounts}::JSONB ->> duel.category_id)::INTEGER)
+        END,
         stage = CASE WHEN prepared.next_a = 0 OR prepared.next_b = 0 THEN 'result' ELSE 'live' END,
         active_team_id = CASE
           WHEN prepared.next_a = 0 OR prepared.next_b = 0 THEN NULL

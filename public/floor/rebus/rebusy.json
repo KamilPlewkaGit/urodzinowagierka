@@ -1,0 +1,145 @@
+{
+  "category": "Rebusy",
+  "items": [
+    {
+      "id": 1,
+      "answer": "atlas",
+      "image": "atlas.png"
+    },
+    {
+      "id": 2,
+      "answer": "brzuchomówca",
+      "image": "brzuchomówca.png"
+    },
+    {
+      "id": 3,
+      "answer": "chusteczka",
+      "image": "chusteczka.png"
+    },
+    {
+      "id": 4,
+      "answer": "europa",
+      "image": "europa.png"
+    },
+    {
+      "id": 5,
+      "answer": "goździki",
+      "image": "goździki.png"
+    },
+    {
+      "id": 6,
+      "answer": "halina",
+      "image": "halina.png"
+    },
+    {
+      "id": 7,
+      "answer": "herbata",
+      "image": "herbata.png"
+    },
+    {
+      "id": 8,
+      "answer": "jarząbek",
+      "image": "jarząbek.png"
+    },
+    {
+      "id": 9,
+      "answer": "katarzyna",
+      "image": "katarzyna.png"
+    },
+    {
+      "id": 10,
+      "answer": "kiełbasa",
+      "image": "kiełbasa.png"
+    },
+    {
+      "id": 11,
+      "answer": "kijanka",
+      "image": "kijanka.png"
+    },
+    {
+      "id": 12,
+      "answer": "konieczność",
+      "image": "konieczność.png"
+    },
+    {
+      "id": 13,
+      "answer": "końcówka",
+      "image": "końcówka.png"
+    },
+    {
+      "id": 14,
+      "answer": "kotlet",
+      "image": "kotlet.png"
+    },
+    {
+      "id": 15,
+      "answer": "królewna",
+      "image": "królewna.png"
+    },
+    {
+      "id": 16,
+      "answer": "leser",
+      "image": "leser.png"
+    },
+    {
+      "id": 17,
+      "answer": "lewarek",
+      "image": "lewarek.png"
+    },
+    {
+      "id": 18,
+      "answer": "likier",
+      "image": "likier.png"
+    },
+    {
+      "id": 19,
+      "answer": "maszynka",
+      "image": "maszynka.png"
+    },
+    {
+      "id": 20,
+      "answer": "morski",
+      "image": "morski.png"
+    },
+    {
+      "id": 21,
+      "answer": "okoliczność",
+      "image": "okoliczność.png"
+    },
+    {
+      "id": 22,
+      "answer": "polisa",
+      "image": "polisa.png"
+    },
+    {
+      "id": 23,
+      "answer": "porażka",
+      "image": "porażka.png"
+    },
+    {
+      "id": 24,
+      "answer": "rozkosz",
+      "image": "rozkosz.png"
+    },
+    {
+      "id": 25,
+      "answer": "strawa",
+      "image": "strawa.png"
+    },
+    {
+      "id": 26,
+      "answer": "strączki",
+      "image": "strączki.png"
+    },
+    {
+      "id": 27,
+      "answer": "szaleństwo",
+      "image": "szaleństwo.png"
+    },
+    {
+      "id": 28,
+      "answer": "wnoszę",
+      "image": "wnoszę.png"
+    }
+  ]
+}

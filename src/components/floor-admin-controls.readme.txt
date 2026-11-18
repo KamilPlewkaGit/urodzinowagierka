@@ -11,3 +11,5 @@ Backend/database interactions: Indirect only through `/api/segment/floor/*`. The
 Implementation details: The UI never selects individual players. It disables the second-side copy of the first selected team, shows received bets, and asks the administrator to confirm closing betting and starting the duel with any number of bets. A completed duel first requires selection and confirmation of one of its two teams before settlement and progression are offered.
 
 Future expansion: Keep administrator choices advisory until a protected server transition confirms them.
+
+Category metadata, prompt, and total item count come from the shared snapshot. A Polish content error leaves the live turn and pass controls available.

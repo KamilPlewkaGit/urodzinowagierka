@@ -1,13 +1,5 @@
-File: `src/lib/floor.ts`
+File: src/lib/floor.ts
 
-Purpose and responsibilities: Defines client-safe The Floor category content, the fixed 45-second team clock, the 3-second pass penalty, the fixed 2-chip stake, and category/time helpers.
+Client-safe The Floor metadata lists the six played category IDs in order, plus display metadata for historical znane-kobiety duels. Category aliases support finding root and nested JSON sources. The module also exports the fixed 45-second starting time, 3-second pass penalty, 2-chip stake, and display-only clock calculation.
 
-Important exports, inputs, and outputs: Exports category IDs and content, timing/stake constants, lookup helpers, and `getTheFloorTimes`, which derives display-only remaining time for both competing teams.
-
-Dependencies: Type-only dependency on `src/lib/types.ts`.
-
-Backend/database interactions: None. The database stores category IDs, selected teams, team clocks, and result data.
-
-Implementation details: The time helper never writes state; server timestamps and stored bases remain authoritative. Category assets and their fallback cards preserve the fixed content order.
-
-Future expansion: Preserve category IDs and item order so saved duels remain stable.
+The server-only floor-content.ts reads the actual deck data. PostgreSQL owns the clocks and current position.

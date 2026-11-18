@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { FloorPrompt } from "@/components/floor-prompt";
 import { formatChips } from "@/lib/chips";
 import { getTeam } from "@/lib/constants";
-import { THE_FLOOR_BET_STAKE, THE_FLOOR_TITLE, getTheFloorCategory, getTheFloorItem, getTheFloorTimes } from "@/lib/floor";
+import { THE_FLOOR_BET_STAKE, THE_FLOOR_CATEGORY_COUNT, THE_FLOOR_TITLE, getTheFloorTimes } from "@/lib/floor";
 import type { GameSnapshot, TeamId, TeamMeta } from "@/lib/types";
 
 interface FloorScreenProps {
@@ -29,7 +30,7 @@ function TeamDuelists({ teamA, teamB, activeTeamId = null, teamATimeSeconds, tea
       <strong className={activeTeamId === teamA.id ? "is-active" : ""} style={{ color: teamA.color, borderColor: teamA.color }}>
         {teamA.icon} {teamA.name}{teamATimeSeconds !== undefined ? <small>{teamATimeSeconds} s</small> : null}
       </strong>
-      <span>VS</span>
+      <span>kontra</span>
       <strong className={activeTeamId === teamB.id ? "is-active" : ""} style={{ color: teamB.color, borderColor: teamB.color }}>
         {teamB.icon} {teamB.name}{teamBTimeSeconds !== undefined ? <small>{teamBTimeSeconds} s</small> : null}
       </strong>
@@ -68,8 +69,7 @@ export function FloorScreen({ snapshot, refresh, viewerRole, viewerPlayerId }: F
 
   const floor = snapshot.theFloor;
   const duel = floor.currentDuel;
-  const category = duel ? getTheFloorCategory(duel.categoryId) : null;
-  const item = duel ? getTheFloorItem(duel.categoryId, duel.itemIndex) : null;
+  const category = floor.content;
   const teamA = duel?.teamAId ? getTeam(duel.teamAId) : null;
   const teamB = duel?.teamBId ? getTeam(duel.teamBId) : null;
   const winnerTeam = duel?.winnerTeamId ? getTeam(duel.winnerTeamId) : null;
@@ -88,12 +88,12 @@ export function FloorScreen({ snapshot, refresh, viewerRole, viewerPlayerId }: F
           </> : null}
 
           {floor.stage === "setup" && category ? <>
-            <span className="eyebrow">Pojedynek {duel ? duel.sequence + 1 : 1}/6 · wybór drużyn</span><h1>{category.name}</h1>
+            <span className="eyebrow">Pojedynek {duel ? duel.sequence + 1 : 1}/{THE_FLOOR_CATEGORY_COUNT} · wybór drużyn</span><h1>{category.name}</h1>
             <p>{category.instructions}</p><p className="floor-waiting">Prowadzący wybiera teraz dwie rywalizujące drużyny.</p>
           </> : null}
 
           {floor.stage === "betting" && duel && category && teamA && teamB ? <>
-            <span className="eyebrow">Pojedynek {duel.sequence + 1}/6 · obstawianie trwa</span><h1>{category.name}</h1>
+            <span className="eyebrow">Pojedynek {duel.sequence + 1}/{THE_FLOOR_CATEGORY_COUNT} · obstawianie trwa</span><h1>{category.name}</h1>
             <p>{category.instructions}</p>
             <TeamDuelists teamA={teamA} teamB={teamB} />
             {viewerRole === "player" && viewerTeamId && !viewerIsCompeting && !duel.viewerBetTargetTeamId ? <div className="floor-bet-panel"><p>Zakład jest opcjonalny. Poczekaj na start albo wybierz drużynę. Stawka: <strong>{formatChips(THE_FLOOR_BET_STAKE)} żetony</strong>.</p><div className="floor-bet-buttons"><button className="gold-button" disabled={betting} onClick={() => placeBet(teamA.id)}>Stawiam na {teamA.name}</button><button className="gold-button" disabled={betting} onClick={() => placeBet(teamB.id)}>Stawiam na {teamB.name}</button></div></div> : null}
@@ -101,16 +101,16 @@ export function FloorScreen({ snapshot, refresh, viewerRole, viewerPlayerId }: F
             {viewerRole === "player" && duel.viewerBetTargetTeamId ? <p className="floor-waiting">Twój zakład na {getTeam(duel.viewerBetTargetTeamId).name} został przyjęty. Prowadzący zamknie zakłady przed startem.</p> : null}
           </> : null}
 
-          {floor.stage === "live" && duel && category && item && teamA && teamB && times ? <>
-            <span className="eyebrow">Pojedynek {duel.sequence + 1}/6 · w toku · zakłady zamknięte</span>
+          {floor.stage === "live" && duel && category && teamA && teamB && times ? <>
+            <span className="eyebrow">Pojedynek {duel.sequence + 1}/{THE_FLOOR_CATEGORY_COUNT} · w toku · zakłady zamknięte</span>
             <h1 className="floor-category-title">{category.name}</h1><p>{category.instructions}</p>
             <TeamDuelists teamA={teamA} teamB={teamB} activeTeamId={duel.activeTeamId} teamATimeSeconds={times.teamA} teamBTimeSeconds={times.teamB} />
             <p className="floor-active-player">Teraz odpowiada: <strong>{duel.activeTeamId ? getTeam(duel.activeTeamId).name : "—"}</strong></p>
-            <img className="floor-prompt-image" src={item.imageUrl} onError={(event) => { if (item.fallbackImageUrl) { event.currentTarget.onerror = null; event.currentTarget.src = item.fallbackImageUrl; } }} alt={`Grafika kategorii ${category.name}, pozycja ${duel.itemIndex + 1}`} />
+            <FloorPrompt key={`${duel.id}:${duel.itemIndex}`} prompt={category.prompt} alt={`Grafika kategorii ${category.name}, pozycja ${duel.itemIndex + 1}`} />
           </> : null}
 
           {floor.stage === "result" && duel ? <>
-            <span className="eyebrow">Wynik pojedynku {duel.sequence + 1}/6</span>
+            <span className="eyebrow">Wynik pojedynku {duel.sequence + 1}/{THE_FLOOR_CATEGORY_COUNT}</span>
             {winnerTeam ? <><h1>Wygrywa <em>{winnerTeam.name}</em>.</h1><p>Zakłady zostały rozliczone z puli tego pojedynku. Prowadzący przygotuje kolejny pojedynek.</p></> : <><h1>Pojedynek dobiegł <em>końca.</em></h1><p>Prowadzący wybiera i zatwierdza zwycięską drużynę.</p></>}
             {viewerRole === "player" && duel.viewerBetResult ? <p className="floor-waiting">{duel.viewerBetResult === "won" ? `Twój zakład wygrał. Otrzymujesz ${formatChips(duel.viewerBetPayout ?? "0")} żetonów z puli.` : duel.viewerBetResult === "refunded" ? `Nikt nie obstawił zwycięzcy — Twoja stawka ${formatChips(duel.viewerBetPayout ?? "0")} żetonów została zwrócona.` : "Twój zakład nie wygrał."}</p> : null}
           </> : null}
@@ -119,6 +119,7 @@ export function FloorScreen({ snapshot, refresh, viewerRole, viewerPlayerId }: F
             <span className="eyebrow">The Floor · zakończono</span><h1>To już <em>koniec.</em></h1>
             <p>Wszystkie dostępne pojedynki drużynowe w segmencie zostały rozegrane.</p>
           </> : null}
+          {category?.categoryError && floor.stage !== "result" ? <p className="form-error" role="alert">{category.name} – {category.categoryError}</p> : null}
           {error ? <p className="form-error" role="alert">{error}</p> : null}
         </div>
       </section>

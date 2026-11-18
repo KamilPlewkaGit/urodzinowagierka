@@ -53,6 +53,7 @@ Wszystkie widoki korzystają z jednego odczytu `/api/game/state` co cztery sekun
 ├── .gitignore
 ├── AGENTS.md                            # Mandatory instructions for coding agents
 ├── README.md                            # This system overview
+├── public/floor/                        # The Floor ordered JSON and images
 ├── next.config.ts
 ├── next.config.readme.txt
 ├── next-env.d.ts
@@ -110,8 +111,9 @@ Segment VIII adds `src/app/api/segment/familiada/route.ts`, the server-only `src
 | `src/lib/database.ts` | Neon queries, schema bootstrap/migration, mapping, constraints, rejoining, game/segment/player-admin reads, and authoritative writes and settlement for all segments, including Familiada buzzer arbitration and match wagers. |
 | `src/lib/session.ts` | Creation/verification of database-backed opaque HttpOnly session cookies; never imported by client code. |
 | `src/lib/validation.ts` | Shared server input schemas for segments, including the Familiada command contract, navigation, exact decimal balance, and player removal. |
+| `src/lib/floor-content.ts` | Server-side loader for ordered The Floor content and images from `public/floor/`. |
 | `src/lib/familiada.ts` | Server-only ordered question bank, gameplay transitions and role-specific snapshot projection. |
-| `src/lib/chips.ts` / `constants.ts` / `types.ts` / `solenizant.ts` / `floor.ts` / `sport.ts` / `melodia.ts` / `pojedynki.ts` | Decimal chip display helper, stable metadata/contracts, fixed questions, The Floor content/timing, SPORT schedule, music metadata, and four-duel metadata shared by UI and server code. |
+| `src/lib/chips.ts` / `constants.ts` / `types.ts` / `solenizant.ts` / `floor.ts` / `sport.ts` / `melodia.ts` / `pojedynki.ts` | Decimal chip display helper, stable metadata/contracts, fixed questions, The Floor category metadata and timing, SPORT schedule, music metadata, and four-duel metadata shared by UI and server code. |
 
 ## Data model
 
@@ -154,6 +156,14 @@ Each eligible player can hold at most one bet per duel, targeting exactly one of
 ### The Floor: workflow drużynowy
 
 For each category slot, the administrator sees all four teams, chooses the first and second competing side, then confirms the selection to open betting. Active players assigned to the other two teams may bet the fixed 2-chip stake on one of the selected teams. When the administrator confirms the start, the server closes betting and begins the team timer flow, even with an empty pot. When the duel ends, the administrator chooses one of the two teams, confirms the result, and only then can proceed to the next duel. The server validates every transition and guards settlement with a durable timestamp.
+
+### Treści The Floor
+
+Serwer wyszukuje pliki JSON rekurencyjnie w `public/floor/`. Rozpoznaje kategorię po nazwie folderu, nazwie pliku albo polu `category`, a pozycje wyświetla w kolejności z tablicy. Migawka gry zawiera opis kategorii, liczbę pozycji i bieżącą zagadkę. Duże obrazy osadzone w JSON-ie są pobierane osobno. Ścieżki lokalne prowadzą do publicznych adresów `/floor/…`.
+
+Nowy segment nadal ma sześć pojedynków. Szósty to **Rebusy**. Zapisane pojedynki zachowują swoje identyfikatory kategorii, w tym dawną kategorię **Znane kobiety**. Gdy brakuje jej pliku JSON, pojawia się komunikat. Serwer przewija zagadki po rzeczywistej liczbie pozycji w kategorii, korzystając z tego samego źródła co widok gracza i prowadzącego. Czasy, zmiana drużyny, kara za pominięcie oraz rozliczenie zakładów działają według swoich dotychczasowych reguł.
+
+Pliki w katalogu głównym i zagnieżdżone mogą zawierać tablicę pozycji lub obiekt z tablicą `items` i opcjonalnym polem `category`. Na przykład `public/floor/rebus/rebusy.json` wskazuje istniejące grafiki przez `image: "atlas.png"`. Next.js dołącza materiały do śladów plików wykorzystywanych na Vercel. Po zmianie danych zrestartuj serwer lokalny lub wdróż nową wersję. Dokładne ścieżki, pola i obsługę błędów opisuje [public/floor/README.md](public/floor/README.md).
 
 ### SPORT: pairs, player ranks, and challenges
 
@@ -276,7 +286,6 @@ The administrator password is intentionally `admin` for this private game. Anyon
 - **SPORT form synchronization is bounded:** SPORT uses the existing polling architecture rather than application WebSockets. A stable persisted-data key controls one-time form hydration, eliminating the former effect/state dependency cycle, preserving unchanged local selections across polls, and preventing development HMR WebSocket warnings caused by the render loop.
 - **SPORT betting reuses authoritative chip handling:** A fixed 2-chip stake is server-debited only from players outside the current pair. Correct bettors receive stake plus a fixed 2-chip profit funded evenly by the losing competing team, while incorrect stakes are distributed evenly to the winning competing team. All decimal remainders are deterministic and the durable transfer ledger plus challenge settlement marker block duplicate payouts.
 - **SPORT bonuses affect only scores:** Both all-team limb challenges have persisted requirements, winner, and administrator-entered points. They update the existing team-score table once and never change chips.
-- **Asset-ready Floor content:** `src/lib/floor.ts` declares six 50-item easy-to-hard categories. "Od tyłu" and "Działania" include generated SVG prompts. The supplied Word, PDF, and local album files were not present in this workspace, so face/place/logo/women prompts automatically fall back to neutral cards until matching `/public/floor/<category>/<01-50>.webp` assets are added. This preserves gameplay and saved item order without a code change.
 
 ## Segment V: JAKA TO MELODIA?
 

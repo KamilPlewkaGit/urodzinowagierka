@@ -17,3 +17,5 @@ Segment V exposes the five songs, current stage, team totals and leaders, final 
 Segment VI update: The snapshot now also includes four Pojedynki slots, their selected team sides/stages/winners, safe per-slot wager counts, and only the current player's own target/result/payout. It never exposes another bettor's identity or choice.
 
 Segment VIII adds match summaries and the current Familiada board. The verified session role alone controls the privileged current answer key. The player projection contains only ranked slot placeholders and already published text and points, plus that player's own bet. The same no-cache poll synchronizes all phases.
+
+For the active Floor duel, the snapshot includes category metadata, item count and the current live prompt. Embedded images use a dedicated URL, so the poll stays small.

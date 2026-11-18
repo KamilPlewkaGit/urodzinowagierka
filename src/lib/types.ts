@@ -68,7 +68,21 @@ export interface TheFloorDuel {
   viewerBetPayout: string | null;
 }
 
+export type TheFloorPrompt =
+  | { kind: "image"; url: string }
+  | { kind: "text"; text: string }
+  | { kind: "error"; message: string };
+
+export interface TheFloorContent {
+  name: string;
+  instructions: string;
+  itemCount: number;
+  categoryError: string | null;
+  prompt: TheFloorPrompt | null;
+}
+
 export interface TheFloorState {
+  content: TheFloorContent | null;
   stage: TheFloorStage;
   currentDuel: TheFloorDuel | null;
   duels: TheFloorDuel[];

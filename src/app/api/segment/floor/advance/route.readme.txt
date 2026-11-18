@@ -9,3 +9,5 @@ Dependencies: Next Route Handler APIs, Floor action validation, opaque sessions,
 Backend/database interactions: The database materializes server elapsed time, advances the image, switches the active team after a correct answer, or deducts 3 seconds while retaining that team after a pass. A zero clock ends the duel and opens winner selection without settlement.
 
 Implementation details: The route never accepts a client clock, item position, team, or winner.
+
+The persistence service uses the actual category item count from the content loader to wrap progression in JSON order.

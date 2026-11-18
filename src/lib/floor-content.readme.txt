@@ -1,0 +1,7 @@
+File: src/lib/floor-content.ts
+
+Server-only loader for public/floor. Walks the folder recursively, finds category JSON by folder/file alias or category metadata, and validates the bare array or items envelope with Zod. The process caches the parsed catalog. Restart the dev process or redeploy to load changes.
+
+Normalizes each row to text, a local or HTTPS image URL, a typed embedded raster image, or a Polish error. Image paths are relative to the declaring JSON file by default. Existing Wikimedia entries use the source file title for the Commons image URL. Invalid image references preserve their positions. Worksheet answers are not included in the snapshot projection.
+
+getTheFloorContent projects one category and its current prompt. getTheFloorItemCounts supplies authoritative progression bounds. getTheFloorEmbeddedImage supplies bytes via the image route. next.config.ts traces the catalog and raster files for the runtime.
