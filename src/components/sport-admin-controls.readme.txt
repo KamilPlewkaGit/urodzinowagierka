@@ -1,0 +1,13 @@
+File: `src/components/sport-admin-controls.tsx`
+
+Purpose and responsibilities: Provides the Polish administrator workflow for SPORT: two configurable team pairs, a complete dynamic player ranking per team, eight challenge transitions, team winner confirmation, and two bonus rounds.
+
+Important exports, inputs, and outputs: `SportAdminControls({ snapshot, onRefresh })` first renders all four teams and a working `Zatwierdź drużyny` action, then renders one rank selector for every active player after pairs are persisted. It also renders betting progress, challenge winners, bonus limb requirements, and bonus points. A team's rank list always runs from 1 through its current active-player count.
+
+Dependencies: React hooks, team metadata, SPORT schedule metadata, shared snapshot types, and existing casino CSS classes.
+
+Backend/database interactions: Indirect only through protected `/api/segment/sport/*` routes. Local selections are never authoritative and are refreshed from the safe game snapshot after every successful action.
+
+Implementation details: Teams can be released and reselected while setup is open, but each position prevents duplicate use. Pair confirmation persists an empty ranking payload without clearing any saved rankings; the separate rank save then persists all active members. The fixed ranks 1–5 used by the challenge schedule remain available only when each team has at least five active players; additional ranks are persisted but never alter the schedule. Setup and bonus form state hydrate only when a stable primitive key derived from persisted data changes. The prior loop came from hydration setters recreating object state when polling supplied equivalent data; hydration now compares pairs, rank records, and bonus requirements and returns the existing state reference when values are equal. The `intro` stage still calls no setter. Polling can therefore refresh server state without overwriting an unchanged local selection or destabilizing the Next development WebSocket.
+
+Future expansion: Add new challenge controls only with matching server validation and persistent stage transitions.

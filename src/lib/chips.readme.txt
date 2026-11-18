@@ -1,0 +1,13 @@
+File: `src/lib/chips.ts`
+
+Purpose and responsibilities: Formats server-supplied decimal chip strings for Polish UI display without performing arithmetic.
+
+Important exports, inputs, and outputs: `formatChips(value)` removes only insignificant trailing decimal zeros and returns a display string.
+
+Dependencies: None.
+
+Backend/database interactions: None. Precision-sensitive balance arithmetic remains exclusively in PostgreSQL.
+
+Implementation details: The function deliberately operates on strings so browser floating-point arithmetic cannot alter a chip balance.
+
+Future expansion: Keep arithmetic in server/database code; add only presentation helpers here.

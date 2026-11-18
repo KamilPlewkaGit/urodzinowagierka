@@ -1,0 +1,11 @@
+File: `src/app/api/segment/floor/start-duel/route.ts`
+
+Purpose and responsibilities: Locks team bets and starts the first competing team's 45-second turn.
+
+Important exports, inputs, and outputs: Admin-only bodyless `POST(request)` returns `{ ok: true }` or Polish authorization, conflict, and server errors.
+
+Dependencies: Next Route Handler APIs, opaque sessions, and `database.ts`.
+
+Backend/database interactions: `startTheFloorDuel` accepts only the persisted betting stage, requires a bet from every eligible active player outside the two teams, sets the active team, and records a server timestamp.
+
+Implementation details: Once the stage is live, later bet requests are rejected even from a stale browser.

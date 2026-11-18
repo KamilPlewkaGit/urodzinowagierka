@@ -1,0 +1,11 @@
+File: `src/app/api/segment/pojedynki/configure/route.ts`
+
+Purpose and responsibilities: Persists the two different teams for the current Pojedynki slot and opens betting.
+
+Important exports, inputs, and outputs: Administrator-only `POST(request)` validates `{ teamAId, teamBId }` with `pojedynkiDuelConfigurationSchema` and returns `{ ok: true }` or Polish errors.
+
+Dependencies: Next Route Handler APIs, opaque sessions, focused validation, and `configurePojedynkiDuel`.
+
+Backend/database interactions: The service locks current setup state and writes two team IDs only; no individual participant can be submitted.
+
+Implementation details: It accepts only a pending current slot and always moves that slot to betting when both distinct IDs are valid.

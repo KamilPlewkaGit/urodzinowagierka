@@ -1,0 +1,13 @@
+File: `src/app/api/segment/solenizant/restart/route.ts`
+
+Purpose and responsibilities: Provides an explicit administrator-only restart of the SOLENIZANT segment.
+
+Important exports, inputs, and outputs: `POST(request)` takes no body and returns `{ ok: true }`, a Polish 403 authorization error, or a Polish server error.
+
+Dependencies: Next Route Handler APIs, `src/lib/session.ts`, and `src/lib/database.ts`.
+
+Backend/database interactions: After verifying the opaque admin session it calls `restartSolenizantSegment`, which clears only question-award rows and team points and returns SOLENIZANT to its introduction stage. It logs an `admin_actions` record.
+
+Important technical details: This is intentionally separate from segment navigation. It never resets chips, player identities, or the full game status, so revisiting a segment alone remains non-destructive.
+
+Notes for future development: Every future segment needs its own explicit, server-side restart operation if its state can be safely reset.

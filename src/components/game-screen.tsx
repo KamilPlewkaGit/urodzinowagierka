@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 
 import { CasinoLogo } from "@/components/casino-logo";
 import { POLL_INTERVAL_MS, TEAMS } from "@/lib/constants";
-import type { GameSnapshot } from "@/lib/types";
+import { getSolenizantQuestion, SOLENIZANT_QUESTION_COUNT, SOLENIZANT_TITLE } from "@/lib/solenizant";
+import type { GameSnapshot, TeamId } from "@/lib/types";
 
 interface GameScreenProps {
   initialSnapshot: GameSnapshot;
@@ -20,20 +21,32 @@ export function GameScreen({ initialSnapshot, viewerRole }: GameScreenProps) {
   const refresh = useCallback(async () => {
     try {
       const response = await fetch("/api/game/state", { cache: "no-store" });
-      if (!response.ok) throw new Error("State request failed");
-      setSnapshot((await response.json()) as GameSnapshot);
+      if (response.status === 401) {
+        router.replace("/");
+        router.refresh();
+        return;
+      }
+      if (!response.ok) throw new Error("Nie udało się pobrać stanu gry.");
+      const nextSnapshot = (await response.json()) as GameSnapshot;
+      setSnapshot(nextSnapshot);
       setSyncError(false);
+      if (nextSnapshot.game.activeSegment !== "solenizant") {
+        router.refresh();
+        return;
+      }
+      if (nextSnapshot.game.status === "waiting") {
+        router.replace(viewerRole === "admin" ? "/admin" : "/lobby");
+        router.refresh();
+      }
     } catch {
       setSyncError(true);
     }
-  }, []);
+  }, [router, viewerRole]);
 
   useEffect(() => {
     const interval = window.setInterval(refresh, POLL_INTERVAL_MS);
     return () => window.clearInterval(interval);
   }, [refresh]);
-
-  const totalChips = useMemo(() => snapshot.players.reduce((sum, player) => sum + player.tokens, 0), [snapshot.players]);
 
   async function leave() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -41,45 +54,73 @@ export function GameScreen({ initialSnapshot, viewerRole }: GameScreenProps) {
     router.refresh();
   }
 
+  const { solenizantStage, currentQuestionIndex } = snapshot.game;
+  const question = getSolenizantQuestion(currentQuestionIndex);
+  const questionIsVisible = solenizantStage === "question" || solenizantStage === "scoring";
+  const pointsFor = (teamId: TeamId) => snapshot.teamScores.find((score) => score.teamId === teamId)?.points ?? 0;
+
   return (
     <main className="app-shell game-shell">
       <header className="topbar">
         <CasinoLogo />
         <div className="topbar-actions">
-          <span className="sync-indicator"><i /> Game live</span>
-          {viewerRole === "admin" ? <button className="quiet-button" onClick={() => router.push("/admin")}>Command table</button> : null}
-          <button className="quiet-button" onClick={leave}>Leave</button>
+          <span className="sync-indicator"><i /> {syncError ? "Ponowne łączenie…" : "Segment na żywo"}</span>
+          {viewerRole === "admin" ? <button className="quiet-button" onClick={() => router.push("/admin")}>Panel prowadzącego</button> : null}
+          <button className="quiet-button" onClick={leave}>Wyjdź</button>
         </div>
       </header>
 
-      <section className="game-stage">
+      <section className="game-stage segment-stage">
         <div className="game-stage-glow" />
         <div className="game-stage-content">
-          <span className="eyebrow">The Grand Table · live</span>
-          <h1>The cards are <em>in motion.</em></h1>
-          <p>The game has started. Future rounds and casino mechanics will appear here without changing the team or wallet foundations.</p>
-          <div className="live-figure"><strong>{totalChips}</strong><span>chips at the table</span></div>
+          {solenizantStage === "intro" ? (
+            <>
+              <span className="eyebrow">Pierwszy segment</span>
+              <h1>{SOLENIZANT_TITLE}</h1>
+              <p>Za chwilę rozpocznie się pierwszy segment gry. Odpowiedzi podajecie poza aplikacją, a prowadzący przyzna punkty drużynom.</p>
+              <div className="segment-rules">
+                <span><strong>Grają:</strong> wszyscy</span>
+                <span><strong>Zakłady:</strong> wyłączone</span>
+                <span><strong>Punktacja:</strong> punkty za poprawne odpowiedzi</span>
+              </div>
+            </>
+          ) : null}
+
+          {questionIsVisible && question ? (
+            <>
+              <span className="eyebrow">{SOLENIZANT_TITLE} · pytanie {currentQuestionIndex + 1}/{SOLENIZANT_QUESTION_COUNT}</span>
+              <h1 className="segment-question">{question}</h1>
+              <p>Grają wszyscy. Zakłady są wyłączone. Odpowiedzi podajcie prowadzącemu poza aplikacją.</p>
+            </>
+          ) : null}
+
+          {solenizantStage === "results" ? (
+            <>
+              <span className="eyebrow">{SOLENIZANT_TITLE} · zakończono</span>
+              <h1>Wyniki <em>segmentu.</em></h1>
+              <p>Wszystkie pytania zostały rozliczone. Poniżej znajduje się końcowa punktacja drużyn.</p>
+            </>
+          ) : null}
         </div>
-        <div className="table-felt" aria-hidden="true"><span>♠</span><span>♦</span><span>♣</span><span>♥</span></div>
       </section>
 
       <section className="score-section">
         <div className="section-heading">
-          <div><span className="eyebrow">Table view</span><h2>Team stacks</h2></div>
-          {syncError ? <span className="sync-warning">Reconnecting…</span> : <span className="poll-note">Live balance sync</span>}
+          <div>
+            <span className="eyebrow">{solenizantStage === "results" ? "Wynik końcowy" : "Aktualna punktacja"}</span>
+            <h2>Punkty drużyn</h2>
+          </div>
+          <span className="poll-note">Odświeżanie co 4 sekundy</span>
         </div>
         <div className="score-grid">
-          {TEAMS.map((team) => {
-            const members = snapshot.players.filter((player) => player.teamId === team.id);
-            const chips = members.reduce((sum, player) => sum + player.tokens, 0);
-            return (
-              <article className="score-card" key={team.id} style={{ "--team-color": team.color, "--team-soft": team.softColor } as CSSProperties}>
-                <span className="score-symbol">{team.icon}</span>
-                <h3>{team.name}</h3>
-                <strong>{chips}</strong><span className="score-caption">team chips · {members.length} {members.length === 1 ? "player" : "players"}</span>
-              </article>
-            );
-          })}
+          {TEAMS.map((team) => (
+            <article className="score-card" key={team.id} style={{ "--team-color": team.color, "--team-soft": team.softColor } as CSSProperties}>
+              <span className="score-symbol">{team.icon}</span>
+              <h3>{team.name}</h3>
+              <strong>{pointsFor(team.id)}</strong>
+              <span className="score-caption">punkty</span>
+            </article>
+          ))}
         </div>
       </section>
     </main>

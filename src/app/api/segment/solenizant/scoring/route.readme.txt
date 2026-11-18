@@ -1,0 +1,13 @@
+File: `src/app/api/segment/solenizant/scoring/route.ts`
+
+Purpose and responsibilities: Moves only the administrator workflow from a visible SOLENIZANT question into its scoring stage.
+
+Important exports, inputs, and outputs: `POST(request)` validates JSON `{ questionIndex }` and returns `{ ok: true }`, or a safe 400, 403, 409, or 500 error response.
+
+Dependencies: `src/lib/validation.ts` validates the bounded question index, `src/lib/session.ts` verifies admin authority, and `src/lib/database.ts` changes the stage.
+
+Backend/database interactions: Calls `openSolenizantScoring`, which atomically checks the current question and changes only the persisted stage to `scoring`.
+
+Implementation details: Player screens continue rendering the same question for both `question` and `scoring` stages. No score is changed by this endpoint.
+
+Future expansion: Keep scoring-stage transitions separate from point confirmation so future workflows cannot accidentally grant points while opening a form.

@@ -6,7 +6,7 @@ Important exports, inputs, and outputs: `LobbyPage` accepts no props; it returns
 
 Dependencies: `src/lib/session.ts`, `src/lib/database.ts`, and `src/components/lobby-client.tsx`.
 
-Backend/database interactions: Reads the signed cookie through `getCurrentSession`, then reads the player record and complete game snapshot from Neon.
+Backend/database interactions: Resolves the opaque cookie through `getCurrentSession`, then reads the player record and complete game snapshot from Neon.
 
 Implementation details: `dynamic = "force-dynamic"` prevents stale route caching. The player record is rechecked in case a valid but orphaned session remains after database maintenance.
 

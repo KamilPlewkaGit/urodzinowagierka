@@ -1,0 +1,9 @@
+File: `src/app/api/segment/sport/bonus-configure/route.ts`
+
+Purpose and responsibilities: Saves the required limb count for every team in the active SPORT bonus setup.
+
+Important exports, inputs, and outputs: Admin-only `POST(request)` validates four unique `{ teamId, limbs }` requirements with values from 0 to 100.
+
+Dependencies: Next Route Handler APIs, SPORT bonus validation, opaque sessions, and `database.ts`.
+
+Backend/database interactions: Replaces requirements only for the current setup round. It does not open betting or alter chips or scores.

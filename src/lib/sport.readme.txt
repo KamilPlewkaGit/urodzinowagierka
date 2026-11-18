@@ -1,0 +1,13 @@
+File: `src/lib/sport.ts`
+
+Purpose and responsibilities: Defines client-safe, fixed metadata for SPORT: title, eight main challenges, two bonus-round count, and fixed virtual-chip betting values.
+
+Important exports, inputs, and outputs: `SPORT_CHALLENGES` records the pair slot and player-rank positions 1–5 used by every challenge. `getSportChallenge` returns one definition by zero-based sequence.
+
+Dependencies: None.
+
+Backend/database interactions: None. The database persists only challenge sequence, chosen pair slot, stages, and outcomes; this module supplies immutable Polish presentation and schedule data.
+
+Implementation details: Pair slots `a` and `b` are placeholders resolved from administrator-selected team pairings. No team matchup is hardcoded.
+
+Future expansion: Change schedule metadata only together with the seeded challenge count and documentation.

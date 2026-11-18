@@ -1,0 +1,17 @@
+File: `src/app/api/admin/game/reset/route.ts`
+
+Purpose and responsibilities: Provides the destructive, administrator-only complete-game reset endpoint.
+
+Important exports, inputs, and outputs: `POST(request)` takes no body and returns `{ ok: true }`, a Polish 403 error for non-admin sessions, or a Polish server error.
+
+Dependencies: Next Route Handler APIs, `src/lib/session.ts`, and `src/lib/database.ts`.
+
+Backend/database interactions: After server-side administrator verification it calls `resetGame`, which clears SOLENIZANT, The Floor, SPORT, Melodia, and Pojedynki state/bets/bonus records, resets singleton progression and active-player balances to 100 while retaining active identities and team assignments.
+
+Important technical details: Browser confirmation belongs in the administrator UI; this route remains secure even if called directly because it requires the verified server session. Removed players remain inactive.
+
+Notes for future development: Extend the one atomic reset service when additional persisted segment or betting tables are introduced, rather than adding client-side cleanup.
+
+Segment V update: The shared reset also clears `melodia_songs`, `melodia_bids`, `melodia_bets`, and the four segment totals before restoring the singleton music stage to `intro`.
+
+Segment VI update: The shared reset also clears the Pojedynki bet rows before their foreign-key parent slots and restores the independent Segment VI stage and sequence to `intro`/zero.

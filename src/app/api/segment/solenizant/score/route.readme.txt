@@ -1,0 +1,13 @@
+File: `src/app/api/segment/solenizant/score/route.ts`
+
+Purpose and responsibilities: Validates the administrator's correct-team selection, grants points once, and advances the SOLENIZANT segment.
+
+Important exports, inputs, and outputs: `POST(request)` accepts JSON `{ questionIndex, teamIds }` and returns `{ ok: true }`, or a safe 400, 403, 409, or 500 error response.
+
+Dependencies: `src/lib/validation.ts` validates question and team IDs, `src/lib/session.ts` verifies admin authority, and `src/lib/database.ts` owns the atomic award operation.
+
+Backend/database interactions: Calls `confirmSolenizantScore`, which inserts a unique award record, updates only selected team scores, and advances the persisted stage/question in one database statement.
+
+Implementation details: Points always equal one per selected team. The client never supplies a point value, and a unique question record prevents a duplicate POST from awarding a question twice.
+
+Future expansion: If answer review is required later, add a separate server-owned review record instead of allowing score edits from the browser.

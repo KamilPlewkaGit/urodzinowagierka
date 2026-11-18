@@ -1,0 +1,13 @@
+File: `src/components/melodia-admin-controls.tsx`
+
+Purpose and responsibilities: Provides the Polish administrator controls for the Jaka to melodia? lifecycle: opening the pre-segment market, starting each of five songs, opening scoring, recording one team's score, optionally recording a simple musical bidding result, advancing, and acknowledging final results.
+
+Important exports, inputs, and outputs: `MelodiaAdminControls({ snapshot, onRefresh })` derives all persisted phase data from `snapshot`. It posts narrow action payloads to protected Segment V routes. During scoring it offers artist/title booleans, 0–5 singing lines, a mistake override, and optional participating bidding teams with declared lines, winning bidder, and completion flag.
+
+Dependencies: Team metadata, `melodia.ts`, shared types, and the parent dashboard refresh callback.
+
+Backend/database interactions: The component has no direct database access. Every mutation goes through an admin-authenticated route; only the server calculates awarded score, validates bidding consistency, advances stage, and settles chips.
+
+Implementation details: The local form resets only once when the persisted scoring song identity/stage changes, guarded by a stable string ref. This prevents polling snapshots from causing repeated state updates or overwriting an unfinished scoring choice. If bidding is enabled, selecting its winning bidder also selects that team as the song winner; a failed bid forces zero singing points on the server.
+
+Future expansion: Keep bidding deliberately small and score-neutral beyond its declared successful singing lines. Do not turn this into a browser-authoritative auction or chip mechanism.

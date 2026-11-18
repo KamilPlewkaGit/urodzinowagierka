@@ -1,0 +1,13 @@
+File: `src/components/pojedynki-screen.tsx`
+
+Purpose and responsibilities: Renders the Polish player and administrator-facing display for Segment VI: introduction, team-selection waiting state, betting, real-world duel, result, and four-duel summary.
+
+Important exports, inputs, and outputs: `PojedynkiScreen({ initialSnapshot, viewerRole, viewerPlayerId })` accepts a safe snapshot and session-derived viewer. Eligible players may post only a target team to the betting route; the fixed stake remains server-owned.
+
+Dependencies: Next router, casino logo, team/chip/polling helpers, `pojedynki.ts`, shared types, and protected state/bet routes.
+
+Backend/database interactions: Polls `/api/game/state` every four seconds and sends only `{ targetTeamId }` to `/api/segment/pojedynki/bet`. It receives only its own bet target/result/payout, never other players' bets.
+
+Implementation details: Members of the two selected teams are visibly excluded from betting. The UI shows the two teams, colors, `VS`, duel number, stage, and result but cannot select participants, winners, chips, or progression.
+
+Future expansion: Keep all administrator mutations in the focused admin control component and protected Route Handlers.

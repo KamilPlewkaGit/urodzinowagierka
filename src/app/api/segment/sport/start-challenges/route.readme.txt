@@ -1,0 +1,9 @@
+File: `src/app/api/segment/sport/start-challenges/route.ts`
+
+Purpose and responsibilities: Locks completed SPORT setup and opens betting for challenge one.
+
+Important exports, inputs, and outputs: Admin-only bodyless `POST(request)` returns `{ ok: true }` only when two complete pairs and a complete active-player ranking for every team are persisted. Every team must have at least five ranks for the fixed challenge positions.
+
+Dependencies: Next Route Handler APIs, opaque sessions, and `database.ts`.
+
+Backend/database interactions: Calls `startSportChallenges`, which validates durable configuration before moving challenge zero and SPORT state into `betting`.

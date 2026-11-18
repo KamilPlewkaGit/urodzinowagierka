@@ -4,8 +4,18 @@ import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 
 import { CasinoLogo } from "@/components/casino-logo";
-import { POLL_INTERVAL_MS, TEAMS } from "@/lib/constants";
-import type { GameSnapshot } from "@/lib/types";
+import { FloorAdminControls } from "@/components/floor-admin-controls";
+import { MelodiaAdminControls } from "@/components/melodia-admin-controls";
+import { PojedynkiAdminControls } from "@/components/pojedynki-admin-controls";
+import { SportAdminControls } from "@/components/sport-admin-controls";
+import { POLL_INTERVAL_MS, TEAMS, getTeam } from "@/lib/constants";
+import { formatChips } from "@/lib/chips";
+import { getSolenizantQuestion, SOLENIZANT_LAST_QUESTION_INDEX, SOLENIZANT_QUESTION_COUNT, SOLENIZANT_TITLE } from "@/lib/solenizant";
+import type { GameSnapshot, TeamId } from "@/lib/types";
+
+type ApiError = { error?: string };
+
+const AVAILABLE_SEGMENTS = [{ id: "solenizant", name: "Solenizant" }, { id: "the-floor", name: "The Floor" }, { id: "sport", name: "Sport" }, { id: "melodia", name: "Jaka to melodia?" }, { id: "pojedynki", name: "Pojedynki" }] as const;
 
 interface AdminDashboardProps {
   initialSnapshot: GameSnapshot;
@@ -14,39 +24,142 @@ interface AdminDashboardProps {
 export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
   const router = useRouter();
   const [snapshot, setSnapshot] = useState(initialSnapshot);
-  const [isStarting, setIsStarting] = useState(false);
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [selectedTeamIds, setSelectedTeamIds] = useState<TeamId[]>([]);
+  const [selectedSegmentId, setSelectedSegmentId] = useState("solenizant");
+  const [editingPlayerId, setEditingPlayerId] = useState<number | null>(null);
+  const [chipValue, setChipValue] = useState("");
   const [error, setError] = useState("");
 
   const refresh = useCallback(async () => {
     try {
       const response = await fetch("/api/game/state", { cache: "no-store" });
-      if (!response.ok) throw new Error("State request failed");
+      if (response.status === 401) {
+        router.replace("/");
+        router.refresh();
+        return;
+      }
+      if (!response.ok) throw new Error("Nie udało się pobrać stanu gry.");
       setSnapshot((await response.json()) as GameSnapshot);
     } catch {
-      // Polling will recover on its next interval; the last known state is still useful.
+      // Zachowaj ostatni poprawny stan; kolejne odpytywanie podejmie próbę ponownie.
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     const interval = window.setInterval(refresh, POLL_INTERVAL_MS);
     return () => window.clearInterval(interval);
   }, [refresh]);
 
-  async function start() {
+  async function postAction(action: string, endpoint: string, body?: object) {
     setError("");
-    setIsStarting(true);
+    setPendingAction(action);
     try {
-      const response = await fetch("/api/game/start", { method: "POST" });
-      const payload = (await response.json().catch(() => null)) as GameSnapshot | { error?: string } | null;
+      const response = await fetch(endpoint, {
+        method: "POST",
+        ...(body ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {}),
+      });
+      const payload = (await response.json().catch(() => null)) as ApiError | null;
       if (!response.ok) {
-        setError(payload && "error" in payload ? payload.error ?? "Unable to start the game." : "Unable to start the game.");
-        return;
+        setError(payload?.error ?? "Nie udało się wykonać tej operacji.");
+        return false;
       }
       await refresh();
+      return true;
     } catch {
-      setError("Unable to reach the game service.");
+      setError("Nie udało się połączyć z usługą gry.");
+      return false;
     } finally {
-      setIsStarting(false);
+      setPendingAction(null);
+    }
+  }
+
+  async function startGame() {
+    await postAction("game", "/api/game/start");
+  }
+
+  async function startSegment() {
+    await postAction("segment", "/api/segment/solenizant/start");
+  }
+
+  async function openScoring() {
+    setSelectedTeamIds([]);
+    await postAction("scoring", "/api/segment/solenizant/scoring", {
+      questionIndex: snapshot.game.currentQuestionIndex,
+    });
+  }
+
+  function toggleTeam(teamId: TeamId) {
+    setSelectedTeamIds((current) => current.includes(teamId)
+      ? current.filter((id) => id !== teamId)
+      : [...current, teamId]);
+  }
+
+  async function confirmScore() {
+    const completed = await postAction("score", "/api/segment/solenizant/score", {
+      questionIndex: snapshot.game.currentQuestionIndex,
+      teamIds: selectedTeamIds,
+    });
+    if (completed) setSelectedTeamIds([]);
+  }
+
+  async function navigateToSegment() {
+    await postAction("navigation", "/api/admin/game/segment", { segmentId: selectedSegmentId });
+  }
+
+  async function navigateRelative(direction: -1 | 1) {
+    const currentIndex = AVAILABLE_SEGMENTS.findIndex((segment) => segment.id === snapshot.game.activeSegment);
+    const target = AVAILABLE_SEGMENTS[currentIndex + direction];
+    if (!target) return;
+    setSelectedSegmentId(target.id);
+    await postAction("navigation", "/api/admin/game/segment", { segmentId: target.id });
+  }
+
+  async function restartSegment() {
+    const segmentName = AVAILABLE_SEGMENTS.find((segment) => segment.id === snapshot.game.activeSegment)?.name ?? "wybrany";
+    if (!window.confirm(`Czy na pewno uruchomić segment ${segmentName} od początku? Zostanie skasowany tylko jego postęp. Żetony graczy pozostaną bez zmian.`)) {
+      return;
+    }
+    const endpoint = snapshot.game.activeSegment === "the-floor"
+      ? "/api/segment/floor/restart"
+      : snapshot.game.activeSegment === "sport"
+        ? "/api/segment/sport/restart"
+        : snapshot.game.activeSegment === "melodia"
+          ? "/api/segment/melodia/restart"
+          : snapshot.game.activeSegment === "pojedynki"
+            ? "/api/segment/pojedynki/restart"
+            : "/api/segment/solenizant/restart";
+    await postAction("restart", endpoint);
+  }
+
+  async function resetEntireGame() {
+    if (!window.confirm("Czy na pewno zresetować całą grę? Postęp i wyniki segmentów zostaną usunięte, a żetony aktywnych graczy wrócą do 100. Gracze i ich drużyny pozostaną zapisani.")) {
+      return;
+    }
+    await postAction("reset", "/api/admin/game/reset");
+  }
+
+  function beginChipEdit(playerId: number, tokens: string) {
+    setEditingPlayerId(playerId);
+    setChipValue(formatChips(tokens));
+  }
+
+  async function saveChipBalance(playerId: number) {
+    const saved = await postAction("chips", "/api/admin/players/chips", { playerId, tokens: chipValue });
+    if (saved) {
+      setEditingPlayerId(null);
+      setChipValue("");
+    }
+  }
+
+  async function removePlayer(playerId: number, nickname: string) {
+    if (!window.confirm(`Czy na pewno usunąć gracza „${nickname}”? Nie będzie mógł wrócić przy użyciu tego samego pseudonimu.`)) {
+      return;
+    }
+    const removed = await postAction("remove", "/api/admin/players/remove", { playerId });
+    if (removed && editingPlayerId === playerId) {
+      setEditingPlayerId(null);
+      setChipValue("");
     }
   }
 
@@ -56,51 +169,274 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
     router.refresh();
   }
 
-  const isStarted = snapshot.game.status === "started";
+  const { status, solenizantStage, currentQuestionIndex, activeSegment } = snapshot.game;
+  const isStarted = status === "started";
+  const question = getSolenizantQuestion(currentQuestionIndex);
+  const pointsFor = (teamId: TeamId) => snapshot.teamScores.find((score) => score.teamId === teamId)?.points ?? 0;
+  const solenizantStatusLabel = !isStarted
+    ? "Lobby oczekuje"
+    : solenizantStage === "intro"
+      ? "Segment gotowy"
+      : solenizantStage === "scoring"
+        ? `Punktacja ${currentQuestionIndex + 1}/${SOLENIZANT_QUESTION_COUNT}`
+        : solenizantStage === "results"
+          ? "Segment zakończony"
+          : `Pytanie ${currentQuestionIndex + 1}/${SOLENIZANT_QUESTION_COUNT}`;
+  const floorStatusLabel = !isStarted
+    ? "Lobby oczekuje"
+    : snapshot.theFloor.stage === "intro" ? "Segment gotowy"
+      : snapshot.theFloor.stage === "setup" ? `Wybór pary ${snapshot.game.currentTheFloorDuelSequence + 1}/6`
+        : snapshot.theFloor.stage === "betting" ? "Zakłady otwarte"
+          : snapshot.theFloor.stage === "live" ? "Pojedynek trwa"
+            : snapshot.theFloor.stage === "result" ? "Wynik pojedynku"
+              : "Segment zakończony";
+  const sportStatusLabel = !isStarted
+    ? "Lobby oczekuje"
+    : snapshot.sport.stage === "intro" ? "Segment gotowy"
+      : snapshot.sport.stage === "setup" ? "Pary i numery"
+        : snapshot.sport.stage === "betting" ? `Zakłady: wyzwanie ${snapshot.game.currentSportChallengeSequence + 1}/8`
+          : snapshot.sport.stage === "live" ? "Wyzwanie trwa"
+            : snapshot.sport.stage === "result" ? "Wynik wyzwania"
+              : snapshot.sport.stage === "bonus-setup" ? "Przygotowanie bonusu"
+                : snapshot.sport.stage === "bonus-live" ? "Bonus trwa"
+                  : snapshot.sport.stage === "bonus-result" ? "Wynik bonusu"
+                    : "Segment zakończony";
+  const melodiaStatusLabel = !isStarted
+    ? "Lobby oczekuje"
+    : snapshot.melodia.stage === "intro" ? "Segment gotowy"
+      : snapshot.melodia.stage === "betting" ? "Zakłady otwarte"
+        : snapshot.melodia.stage === "song" ? `Piosenka ${snapshot.game.currentMelodiaSongSequence + 1}/5`
+          : snapshot.melodia.stage === "scoring" ? "Punktacja piosenki"
+            : snapshot.melodia.stage === "result" ? "Wynik piosenki"
+              : "Segment zakończony";
+  const pojedynkiStatusLabel = !isStarted
+    ? "Lobby oczekuje"
+    : snapshot.pojedynki.stage === "intro" ? "Segment gotowy"
+      : snapshot.pojedynki.stage === "setup" ? `Wybór drużyn: pojedynek ${snapshot.game.currentPojedynkiDuelSequence + 1}/4`
+        : snapshot.pojedynki.stage === "betting" ? "Zakłady otwarte"
+          : snapshot.pojedynki.stage === "live" ? "Pojedynek trwa"
+            : snapshot.pojedynki.stage === "result" ? "Wynik pojedynku"
+              : "Segment zakończony";
+  const statusLabel = activeSegment === "the-floor" ? floorStatusLabel : activeSegment === "sport" ? sportStatusLabel : activeSegment === "melodia" ? melodiaStatusLabel : activeSegment === "pojedynki" ? pojedynkiStatusLabel : solenizantStatusLabel;
+  const activeSegmentIndex = AVAILABLE_SEGMENTS.findIndex((segment) => segment.id === activeSegment);
+
   return (
     <main className="app-shell admin-shell">
       <header className="topbar">
         <CasinoLogo />
         <div className="topbar-actions">
-          <span className="admin-badge">Administrator</span>
-          <button className="quiet-button" onClick={logout}>Sign out</button>
+          <span className="admin-badge">Prowadzący</span>
+          <button className="quiet-button" onClick={logout}>Wyloguj się</button>
         </div>
       </header>
 
       <section className="admin-intro">
         <div>
-          <span className="eyebrow">Game control</span>
-          <h1>The command <em>table</em>.</h1>
-          <p>Review the lobby and open the game when every player is seated.</p>
+          <span className="eyebrow">Panel prowadzącego</span>
+          <h1>Steruj <em>stołem.</em></h1>
+          <p>Rozpocznij grę, uruchom segment i samodzielnie rozliczaj odpowiedzi drużyn.</p>
         </div>
         <div className={`game-status ${isStarted ? "is-live" : ""}`}>
           <span className="status-light" />
-          <span>{isStarted ? "Game is live" : "Lobby is waiting"}</span>
+          <span>{statusLabel}</span>
         </div>
       </section>
 
       <section className="admin-control-grid">
-        <article className="start-panel">
-          <span className="panel-index">01 / GAME CONTROL</span>
-          <h2>{isStarted ? "The table is open." : "Ready to deal?"}</h2>
-          <p>{isStarted ? "All connected players have been sent to the active-game screen." : "Starting is permanent for this game session and immediately updates all waiting players."}</p>
-          <button className="gold-button start-button" onClick={start} disabled={isStarting || isStarted}>
-            <span>{isStarting ? "Opening table…" : isStarted ? "Game started" : "Start game"}</span>
-            <span aria-hidden="true">{isStarted ? "✓" : "→"}</span>
-          </button>
+        <article className="start-panel segment-admin-panel">
+          {!isStarted ? (
+            <>
+              <span className="panel-index">01 / START GRY</span>
+              <h2>Gotowi do gry?</h2>
+              <p>Po rozpoczęciu wszyscy gracze przejdą z lobby do ekranu segmentu.</p>
+              <button className="gold-button start-button" onClick={startGame} disabled={pendingAction !== null}>
+                <span>{pendingAction === "game" ? "Rozpoczynanie gry…" : "Rozpocznij grę"}</span>
+                <span aria-hidden="true">→</span>
+              </button>
+            </>
+          ) : null}
+
+          {isStarted && activeSegment === "the-floor" ? (
+            <>
+              <span className="panel-index">01 / AKTYWNY SEGMENT</span>
+              <h2>The Floor</h2>
+              <p>Pełne sterowanie parami, zakładami i zegarami znajduje się poniżej.</p>
+            </>
+          ) : null}
+
+          {isStarted && activeSegment === "sport" ? (
+            <>
+              <span className="panel-index">01 / AKTYWNY SEGMENT</span>
+              <h2>Sport</h2>
+              <p>Pełne sterowanie parami, numerami, zakładami i wyzwaniami bonusowymi znajduje się poniżej.</p>
+            </>
+          ) : null}
+
+          {isStarted && activeSegment === "melodia" ? (
+            <>
+              <span className="panel-index">01 / AKTYWNY SEGMENT</span>
+              <h2>Jaka to melodia?</h2>
+              <p>Pełne sterowanie zakładami, pięcioma piosenkami i punktacją znajduje się poniżej.</p>
+            </>
+          ) : null}
+
+          {isStarted && activeSegment === "pojedynki" ? (
+            <>
+              <span className="panel-index">01 / AKTYWNY SEGMENT</span>
+              <h2>Pojedynki</h2>
+              <p>Pełne sterowanie czterema pojedynkami, zakładami i wynikami znajduje się poniżej.</p>
+            </>
+          ) : null}
+
+          {isStarted && activeSegment === "solenizant" && solenizantStage === "intro" ? (
+            <>
+              <span className="panel-index">01 / PIERWSZY SEGMENT</span>
+              <h2>{SOLENIZANT_TITLE}</h2>
+              <p>Grają wszyscy. Zakłady są wyłączone, a każda poprawna odpowiedź daje drużynie jeden punkt.</p>
+              <div className="segment-rules admin-segment-rules">
+                <span><strong>Grają:</strong> wszyscy</span>
+                <span><strong>Zakłady:</strong> wyłączone</span>
+                <span><strong>Punktacja:</strong> 1 punkt za poprawną odpowiedź</span>
+              </div>
+              <button className="gold-button start-button" onClick={startSegment} disabled={pendingAction !== null}>
+                <span>{pendingAction === "segment" ? "Uruchamianie segmentu…" : "Rozpocznij segment"}</span>
+                <span aria-hidden="true">→</span>
+              </button>
+            </>
+          ) : null}
+
+          {isStarted && activeSegment === "solenizant" && solenizantStage === "question" && question ? (
+            <>
+              <span className="panel-index">{SOLENIZANT_TITLE} / PYTANIE {currentQuestionIndex + 1}/{SOLENIZANT_QUESTION_COUNT}</span>
+              <h2 className="admin-segment-question">{question}</h2>
+              <p>Gracze widzą to pytanie, dopóki nie zatwierdzisz punktów.</p>
+              <button className="gold-button start-button" onClick={openScoring} disabled={pendingAction !== null}>
+                <span>{pendingAction === "scoring" ? "Przechodzenie dalej…" : "Przejdź dalej"}</span>
+                <span aria-hidden="true">→</span>
+              </button>
+            </>
+          ) : null}
+
+          {isStarted && activeSegment === "solenizant" && solenizantStage === "scoring" && question ? (
+            <>
+              <span className="panel-index">{SOLENIZANT_TITLE} / PUNKTACJA {currentQuestionIndex + 1}/{SOLENIZANT_QUESTION_COUNT}</span>
+              <h2 className="admin-segment-question">{question}</h2>
+              <p>Wybierz wszystkie drużyny, które odpowiedziały poprawnie. Możesz nie wybrać żadnej.</p>
+              <div className="score-choice-grid" aria-label="Wybór poprawnych drużyn">
+                {TEAMS.map((team) => {
+                  const selected = selectedTeamIds.includes(team.id);
+                  return (
+                    <button
+                      className={`score-choice ${selected ? "is-selected" : ""}`}
+                      key={team.id}
+                      type="button"
+                      onClick={() => toggleTeam(team.id)}
+                      disabled={pendingAction !== null}
+                      aria-pressed={selected}
+                      style={{ "--team-color": team.color, "--team-soft": team.softColor } as CSSProperties}
+                    >
+                      <span>{team.icon}</span>
+                      <strong>{team.name}</strong>
+                      <small>{selected ? "Poprawna odpowiedź" : "Brak punktu"}</small>
+                    </button>
+                  );
+                })}
+              </div>
+              <button className="gold-button start-button" onClick={confirmScore} disabled={pendingAction !== null}>
+                <span>{pendingAction === "score"
+                  ? "Zapisywanie punktów…"
+                  : currentQuestionIndex === SOLENIZANT_LAST_QUESTION_INDEX
+                    ? "Zatwierdź punkty i pokaż wyniki"
+                    : "Zatwierdź punkty i przejdź dalej"}</span>
+                <span aria-hidden="true">✓</span>
+              </button>
+            </>
+          ) : null}
+
+          {isStarted && activeSegment === "solenizant" && solenizantStage === "results" ? (
+            <>
+              <span className="panel-index">{SOLENIZANT_TITLE} / WYNIKI</span>
+              <h2>Segment zakończony.</h2>
+              <p>Wszystkie sześć pytań zostało rozliczonych. Wyniki drużyn są widoczne poniżej.</p>
+            </>
+          ) : null}
+
           {error ? <p className="form-error" role="alert">{error}</p> : null}
         </article>
+
         <article className="admin-stat-panel">
-          <span className="panel-index">02 / LOBBY PULSE</span>
-          <div className="admin-stat"><strong>{snapshot.players.length}</strong><span>registered players</span></div>
-          <div className="admin-stat"><strong>{snapshot.players.reduce((total, player) => total + player.tokens, 0)}</strong><span>virtual chips in play</span></div>
+          <span className="panel-index">02 / STÓŁ</span>
+          <div className="admin-stat"><strong>{snapshot.players.length}</strong><span>zarejestrowani gracze</span></div>
+          <div className="admin-stat"><strong>{formatChips(snapshot.totalTokens)}</strong><span>żetony w grze</span></div>
         </article>
+      </section>
+
+      {isStarted && activeSegment === "the-floor" ? <FloorAdminControls snapshot={snapshot} onRefresh={refresh} /> : null}
+      {isStarted && activeSegment === "sport" ? <SportAdminControls snapshot={snapshot} onRefresh={refresh} /> : null}
+      {isStarted && activeSegment === "melodia" ? <MelodiaAdminControls snapshot={snapshot} onRefresh={refresh} /> : null}
+      {isStarted && activeSegment === "pojedynki" ? <PojedynkiAdminControls snapshot={snapshot} onRefresh={refresh} /> : null}
+
+      <section className="admin-management-grid" aria-label="Zarządzanie grą">
+        <article className="management-panel">
+          <span className="panel-index">03 / ZARZĄDZANIE GRĄ</span>
+          <h2>Nawigacja segmentów</h2>
+          <p>Aktywny segment: <strong>{AVAILABLE_SEGMENTS.find((segment) => segment.id === activeSegment)?.name}</strong>.</p>
+          <div className="management-actions">
+            <button className="secondary-button" type="button" onClick={() => navigateRelative(-1)} disabled={pendingAction !== null || activeSegmentIndex <= 0} title="Przejdź do wcześniejszego segmentu">Poprzedni segment</button>
+            <button className="secondary-button" type="button" onClick={() => navigateRelative(1)} disabled={pendingAction !== null || activeSegmentIndex >= AVAILABLE_SEGMENTS.length - 1} title="Przejdź do następnego segmentu">Następny segment</button>
+          </div>
+          <label className="field-label" htmlFor="segment-select">Dostępne segmenty</label>
+          <div className="segment-navigation-row">
+            <select
+              id="segment-select"
+              className="text-input"
+              value={selectedSegmentId}
+              onChange={(event) => setSelectedSegmentId(event.target.value)}
+              disabled={pendingAction !== null}
+            >
+              {AVAILABLE_SEGMENTS.map((segment) => <option key={segment.id} value={segment.id}>{segment.name}</option>)}
+            </select>
+            <button className="secondary-button" type="button" onClick={navigateToSegment} disabled={pendingAction !== null}>Przejdź do segmentu</button>
+          </div>
+          <div className="management-actions">
+            <button className="secondary-button" type="button" onClick={restartSegment} disabled={pendingAction !== null}>Uruchom segment od początku</button>
+            <button className="danger-button" type="button" onClick={resetEntireGame} disabled={pendingAction !== null}>Zresetuj grę</button>
+          </div>
+        </article>
+
+        <article className="management-panel monitoring-panel">
+          <span className="panel-index">04 / MONITORING</span>
+          <h2>Stan stołu</h2>
+          <dl className="monitoring-list">
+            <div><dt>Aktywny segment</dt><dd>{AVAILABLE_SEGMENTS.find((segment) => segment.id === activeSegment)?.name}</dd></div>
+            <div><dt>Faza segmentu</dt><dd>{statusLabel}</dd></div>
+            <div><dt>Aktywni gracze</dt><dd>{snapshot.players.length}</dd></div>
+            <div><dt>Zakłady</dt><dd>{activeSegment === "the-floor" || activeSegment === "sport" || activeSegment === "pojedynki" ? "Zależne od pojedynku" : activeSegment === "melodia" ? "Przed pierwszą piosenką" : "Brak w tym segmencie"}</dd></div>
+          </dl>
+        </article>
+      </section>
+
+      <section className="score-section">
+        <div className="section-heading">
+          <div><span className="eyebrow">Solenizant</span><h2>Punkty drużyn</h2></div>
+          <span className="poll-note">Odświeżanie co 4 sekundy</span>
+        </div>
+        <div className="score-grid">
+          {TEAMS.map((team) => (
+            <article className="score-card" key={team.id} style={{ "--team-color": team.color, "--team-soft": team.softColor } as CSSProperties}>
+              <span className="score-symbol">{team.icon}</span>
+              <h3>{team.name}</h3>
+              <strong>{pointsFor(team.id)}</strong>
+              <span className="score-caption">punkty</span>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section className="admin-roster">
         <div className="section-heading">
-          <div><span className="eyebrow">Live roster</span><h2>Players by house</h2></div>
-          <span className="poll-note">Updates every 4 seconds</span>
+          <div><span className="eyebrow">Skład stołu</span><h2>Gracze w drużynach</h2></div>
+          <span className="poll-note">Odświeżanie co 4 sekundy</span>
         </div>
         <div className="admin-team-list">
           {TEAMS.map((team) => {
@@ -110,8 +446,39 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
                 <span className="admin-team-icon">{team.icon}</span>
                 <div><h3>{team.name}</h3><p>{team.tagline}</p></div>
                 <strong>{members.length}</strong>
-                <span>{members.length === 1 ? "player" : "players"}</span>
-                <div className="admin-names">{members.length ? members.map((member) => <span key={member.id}>{member.nickname}</span>) : <em>Empty</em>}</div>
+                <span>{members.length === 1 ? "gracz" : "graczy"}</span>
+                <div className="admin-names">{members.length ? members.map((member) => <span key={member.id}>{member.nickname}</span>) : <em>Brak graczy</em>}</div>
+              </article>
+            );
+          })}
+        </div>
+        <div className="player-management-heading">
+          <span className="eyebrow">Zarządzanie graczami</span>
+          <h3>Salda i dostęp</h3>
+        </div>
+        <div className="player-management-list">
+          {snapshot.players.map((player) => {
+            const team = getTeam(player.teamId);
+            const isEditing = editingPlayerId === player.id;
+            return (
+              <article className="player-management-row" key={player.id} style={{ "--team-color": team.color } as CSSProperties}>
+                <div><strong>{player.nickname}</strong><span>{team.icon} {team.name}</span></div>
+                {isEditing ? (
+                  <label className="chip-editor">
+                    <span className="sr-only">Nowe saldo żetonów dla {player.nickname}</span>
+                    <input className="text-input" inputMode="decimal" value={chipValue} onChange={(event) => setChipValue(event.target.value)} />
+                    <small>żetony</small>
+                  </label>
+                ) : <strong className="player-chip-balance">{formatChips(player.tokens)} <small>żetonów</small></strong>}
+                <div className="player-management-actions">
+                  {isEditing ? (
+                    <>
+                      <button className="secondary-button" type="button" onClick={() => saveChipBalance(player.id)} disabled={pendingAction !== null}>Zapisz saldo</button>
+                      <button className="quiet-button" type="button" onClick={() => setEditingPlayerId(null)} disabled={pendingAction !== null}>Anuluj</button>
+                    </>
+                  ) : <button className="secondary-button" type="button" onClick={() => beginChipEdit(player.id, player.tokens)} disabled={pendingAction !== null}>Edytuj żetony</button>}
+                  <button className="danger-button" type="button" onClick={() => removePlayer(player.id, player.nickname)} disabled={pendingAction !== null}>Usuń gracza</button>
+                </div>
               </article>
             );
           })}

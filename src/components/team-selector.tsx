@@ -14,7 +14,7 @@ interface TeamSelectorProps {
 export function TeamSelector({ value, onChange, disabled = false }: TeamSelectorProps) {
   return (
     <fieldset className="team-fieldset" disabled={disabled}>
-      <legend>Choose your house</legend>
+      <legend>Wybierz drużynę</legend>
       <div className="team-grid">
         {TEAMS.map((team) => {
           const selected = team.id === value;

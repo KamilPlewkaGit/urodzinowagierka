@@ -1,0 +1,11 @@
+File: `src/app/api/segment/melodia/complete/route.ts`
+
+Purpose and responsibilities: Records the administrator's acknowledgement of finalized Segment V results.
+
+Important exports, inputs, and outputs: Admin-only bodyless `POST(request)` returns `{ ok: true }` or Polish errors.
+
+Dependencies: Next Route Handler APIs, opaque sessions, and `completeMelodiaSegment`.
+
+Backend/database interactions: Requires the settled `results` stage and writes an administrator action without altering scores, bets, or chip balances.
+
+Implementation details: This endpoint is idempotent in outcome: a retry cannot settle the market again.

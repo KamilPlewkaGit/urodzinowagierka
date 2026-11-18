@@ -1,13 +1,13 @@
 File: `src/app/api/auth/register/route.ts`
 
-Purpose and responsibilities: Provides the regular-player registration endpoint. It normalizes and validates the nickname/team, reserves a database row with 100 chips, and creates a player session.
+Purpose and responsibilities: Provides regular-player registration and persistent nickname rejoining. It normalizes a nickname, restores an active matching player without changing their state, or validates a new nickname/team, allocates 100 chips, and creates a player session.
 
-Important exports, inputs, and outputs: `POST(request)` accepts JSON `{ nickname, teamId }`; it returns `{ player }` with 201 or an `{ error }` response with 400, 409, or 500 status.
+Important exports, inputs, and outputs: `POST(request)` accepts JSON `{ nickname, teamId }` for a first registration; an existing active nickname needs only the nickname and returns `{ player, rejoined: true }` with 200. A new player returns `{ player }` with 201. Errors use Polish 400, 409, or 500 responses.
 
 Dependencies: `src/lib/validation.ts`, `src/lib/database.ts`, and `src/lib/session.ts`.
 
-Backend/database interactions: Calls `createPlayer`, whose Neon insert allocates the authoritative starting balance and detects the case-insensitive nickname constraint.
+Backend/database interactions: Looks up an active case-insensitive match with `findActivePlayerByNickname`; otherwise calls `createPlayer`, whose Neon insert allocates the authoritative starting balance and detects the nickname constraint. Successful paths create a database-backed player session.
 
-Implementation details: The reserved `admin` nickname is rejected server-side even if a caller bypasses the landing form. The HttpOnly cookie is set only after a successful insert.
+Implementation details: The reserved `admin` nickname is rejected server-side even if a caller bypasses the landing form. An existing active player keeps the stored team and exact decimal balance; the provided team is ignored. A unique-index race is re-read as a rejoin when possible. The HttpOnly cookie is set only after a server-side session creation. Nickname rejoining is intentionally convenient but not strong player authentication.
 
 Future expansion: Add optional player profile fields through the validation schema and database service; do not accept chips or role fields in this request.

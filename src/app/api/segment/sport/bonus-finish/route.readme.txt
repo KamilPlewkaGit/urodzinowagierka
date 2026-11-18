@@ -1,0 +1,9 @@
+File: `src/app/api/segment/sport/bonus-finish/route.ts`
+
+Purpose and responsibilities: Confirms a SPORT bonus winner and administrator-selected bonus points.
+
+Important exports, inputs, and outputs: Admin-only `POST(request)` validates `{ winnerTeamId, points }`, with points between 0 and 100.
+
+Dependencies: Next Route Handler APIs, SPORT bonus validation, opaque sessions, and `database.ts`.
+
+Backend/database interactions: Stores winner/points once and increments that team's existing score atomically; player chip balances are untouched.

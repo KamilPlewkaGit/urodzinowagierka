@@ -1,0 +1,17 @@
+File: `src/app/api/admin/game/segment/route.ts`
+
+Purpose and responsibilities: Provides the administrator-only direct active-segment navigation endpoint.
+
+Important exports, inputs, and outputs: `POST(request)` accepts `{ segmentId: "solenizant" | "the-floor" | "sport" | "melodia" | "pojedynki" }` and returns that segment ID on success, or a Polish validation/authorization/server error.
+
+Dependencies: Next Route Handler APIs, `src/lib/session.ts`, `src/lib/validation.ts`, and `src/lib/database.ts`.
+
+Backend/database interactions: Verifies the opaque administrator session, validates the fixed available segment ID, then persists the active segment and writes an `admin_actions` audit row through `setActiveSegment`.
+
+Important technical details: The endpoint deliberately does not reset a segment, scores, chips, bets, questions, or Floor duels. It preserves each persisted segment state when switching.
+
+Notes for future development: Expand `activeSegmentSchema` and the database service together when a real additional segment is introduced; do not accept arbitrary segment names.
+
+Segment V update: The fixed schema additionally accepts `"melodia"`. Navigation still changes only `active_segment`; persisted music songs, scores, chips, bets, and settlements are untouched.
+
+Segment VI update: The fixed schema additionally accepts `"pojedynki"`. Navigation changes only the active view and never resets the four persisted duel slots or their betting outcomes.

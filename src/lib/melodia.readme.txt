@@ -1,0 +1,13 @@
+File: `src/lib/melodia.ts`
+
+Purpose and responsibilities: Holds immutable metadata shared by the Jaka to melodia? segment UI and server implementation.
+
+Important exports, inputs, and outputs: Exports the Polish segment title, the fixed five-song count, score caps (five singing points and seven points total), and `getMelodiaSongLabel(sequence)`, which maps persisted zero-based sequences to Polish `PIOSENKA NR 1` through `PIOSENKA NR 5` labels.
+
+Dependencies: None.
+
+Backend/database interactions: None. `database.ts` uses the song count to seed and validate durable song slots; client components use the same value for progress display.
+
+Implementation details: This module deliberately contains no media URL, audio player, artist, or song-title data. Music playback remains entirely outside the application.
+
+Future expansion: Keep it limited to stable segment metadata; store any future admin-configured data through focused server APIs rather than browser state.

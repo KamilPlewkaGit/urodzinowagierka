@@ -1,0 +1,9 @@
+File: `src/app/api/segment/sport/start-challenge/route.ts`
+
+Purpose and responsibilities: Closes SPORT betting and starts the real-world main challenge.
+
+Important exports, inputs, and outputs: Admin-only bodyless `POST(request)` returns `{ ok: true }` or Polish errors.
+
+Dependencies: Next Route Handler APIs, opaque sessions, and `database.ts`.
+
+Backend/database interactions: `startSportChallenge` requires a bet from every active player outside the two competing teams, then persists `live` state and a start timestamp.

@@ -1,0 +1,13 @@
+File: `src/app/api/admin/players/chips/route.ts`
+
+Purpose and responsibilities: Provides the administrator-only exact chip-balance adjustment endpoint.
+
+Important exports, inputs, and outputs: `POST(request)` accepts `{ playerId, tokens }`, where `tokens` is a non-negative decimal string with up to four decimal places. It returns the previous and new balances or Polish 400, 403, 404, and 500 errors.
+
+Dependencies: Next Route Handler APIs, `src/lib/session.ts`, `src/lib/validation.ts`, and `src/lib/database.ts`.
+
+Backend/database interactions: The handler verifies administrator authority and delegates the exact update to `setPlayerTokens`. That service locks/updates the active record and records previous balance, new balance, delta, kind, and timestamp in `chip_adjustments`, plus an `admin_actions` record.
+
+Important technical details: The submitted value means the complete replacement balance, not chips to add. The browser is never allowed to calculate or write a delta, and the database keeps four decimal places.
+
+Notes for future development: Optional quick increment/decrement controls must still call this server-owned exact-balance path or a similarly audited, validated service.

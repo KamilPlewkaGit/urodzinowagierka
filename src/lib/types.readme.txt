@@ -1,13 +1,17 @@
 File: `src/lib/types.ts`
 
-Purpose and responsibilities: Defines the small shared domain vocabulary for teams, players, game state, snapshots, and verified sessions.
+Purpose and responsibilities: Defines shared domain vocabulary for teams, players, SOLENIZANT, The Floor, SPORT, Jaka to melodia?, Pojedynki, snapshots, and verified sessions.
 
-Important exports, inputs, and outputs: Exports `TeamId`, `GameStatus`, `Player`, `GameState`, `GameSnapshot`, `Session`, and `TeamMeta` TypeScript contracts. These are compile-time types with no runtime output.
+Important exports, inputs, and outputs: The Floor duel contract contains two team IDs, the active team, team clocks, a winning team, bet count, and only the current viewer's own team bet outcome. SPORT adds persisted pairing/rank/challenge/bonus contracts. Melodia and Pojedynki add focused segment, slot, and safe viewer-bet contracts. Chip values remain decimal strings.
 
-Dependencies: None; this file is intentionally dependency-free.
+Dependencies: None.
 
-Backend/database interactions: It models data returned by `database.ts`, but contains no database code.
+Backend/database interactions: Models safe state returned by `database.ts`; it does not access persistence.
 
-Implementation details: `Session` is a discriminated union so protected routes and handlers must distinguish player from administrator authorization explicitly.
+Implementation details: The Floor uses teams as the competing sides. SPORT pair slots A/B are resolved from administrator-selected teams; the compatibility-named `SportPlayerNumber.number` field is a positive player rank. Ranks 1–5 identify scheduled participants, while higher ranks remain valid roster metadata. Individual players remain roster members and bettors, while a SPORT challenge winner is always a team.
 
-Future expansion: Add domain fields here only when their persistent/API behavior is defined. Keep database row shapes private to `database.ts`.
+Future expansion: Add fields only after their persistent and API behavior is defined.
+
+Segment V update: `SegmentId` now includes `melodia`. `MelodiaState`, `MelodiaSong`, `MelodiaBid`, and `MelodiaTeamScore` model the five fixed song slots, optional bidding result, segment-only score totals, final leaders, durable settlement state, and the viewer's isolated market outcome. `GameState.melodiaWinningTeamId` stores the unique final winner and remains null for a tie. These are added to `GameSnapshot`; money remains a decimal string.
+
+Segment VI update: `SegmentId` additionally includes `pojedynki`. `PojedynkiState` and `PojedynkiDuel` expose only the four durable slots, selected team sides, stage, result, aggregate bet count, and the requesting player's isolated bet outcome. `GameState` holds its independent stage and zero-based current-duel sequence.

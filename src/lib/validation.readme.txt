@@ -1,13 +1,17 @@
 File: `src/lib/validation.ts`
 
-Purpose and responsibilities: Defines server-side Zod schemas and nickname helpers used to safely accept registration and administrator-login requests.
+Purpose and responsibilities: Defines server-side Zod schemas and nickname helpers for registration, administration, SOLENIZANT, The Floor, SPORT, Jaka to melodia?, and Pojedynki actions.
 
-Important exports, inputs, and outputs: Exports `nicknameSchema`, `teamIdSchema`, `playerRegistrationSchema`, `adminLoginSchema`, `normalizeNickname`, and `isReservedNickname`. Schemas return parsed values or structured validation failures.
+Important exports, inputs, and outputs: The Floor configuration accepts distinct `teamAId` and `teamBId`; bets accept `targetTeamId`; result confirmation accepts `winnerTeamId`. SPORT setup permits a pair-only confirmation with an empty rank list, or a complete ranking in which every submitted active player is ranked exactly once. Ranks are consecutive from 1 through the submitted team size and are not capped at five. SPORT bets, winners, four limb requirements, and bounded bonus points have focused schemas. All use the fixed team-ID schema.
 
-Dependencies: Zod and `TEAM_IDS` from `src/lib/constants.ts`.
+Dependencies: Zod, team constants, and SOLENIZANT metadata.
 
-Backend/database interactions: None directly. Parsed player data is passed to `database.ts` by the registration handler.
+Backend/database interactions: None. Route Handlers pass parsed data to `database.ts`.
 
-Implementation details: Nicknames are NFKC-normalized and whitespace-collapsed before validation. The server independently reserves `admin`, even though the UI recognizes it.
+Implementation details: SPORT validation rejects reused pair teams, duplicate ranks, duplicate player assignments, and gaps in a rank sequence before the database repeats authoritative stage, roster-membership, active-player, and full-roster checks. The bonus schema always carries all four stable teams.
 
-Future expansion: Add narrowly scoped schemas for each new endpoint. Do not reuse a broad client object schema for sensitive state changes.
+Future expansion: Keep every sensitive endpoint on a narrow, focused schema.
+
+Segment V update: `activeSegmentSchema` includes `melodia`. `melodiaBetSchema` accepts only a stable team ID and a positive decimal stake with up to four decimal places. `melodiaScoreSchema` accepts bounded 0â€“5 singing points plus artist/title booleans and `melodiaBiddingSchema`; the latter rejects duplicate participants or a winner who did not submit a declared 0â€“5-line bid.
+
+Segment VI update: `activeSegmentSchema` includes `pojedynki`. Its focused configuration schema accepts exactly two different fixed team IDs; player bets and administrator result confirmation each accept only a team ID. The database repeats all phase, eligibility, membership, and balance checks.

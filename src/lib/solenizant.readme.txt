@@ -1,0 +1,13 @@
+File: `src/lib/solenizant.ts`
+
+Purpose and responsibilities: Defines the fixed SOLENIZANT segment title, its six ordered questions, and safe helpers shared by server and UI code.
+
+Important exports, inputs, and outputs: `SOLENIZANT_TITLE`, `SOLENIZANT_QUESTIONS`, question-count constants, and `getSolenizantQuestion(questionIndex)`, which returns one question or `null` for an invalid index.
+
+Dependencies: None.
+
+Backend/database interactions: The database service uses the count and last-index constants to validate and advance the persisted question flow. The module itself never queries or mutates data.
+
+Implementation details: The question text and its order are intentionally fixed for this one segment. Browser components may read this module because it contains no secrets or authoritative state.
+
+Future expansion: Add a separate focused module for another segment rather than making this list configurable from the browser.

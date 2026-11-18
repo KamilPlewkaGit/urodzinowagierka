@@ -1,0 +1,11 @@
+File: `src/app/api/segment/pojedynki/next/route.ts`
+
+Purpose and responsibilities: Advances a settled Pojedynki result to the next selection slot or final summary after Duel 4.
+
+Important exports, inputs, and outputs: Bodyless administrator-only `POST(request)` returns `{ ok: true }` or Polish errors.
+
+Dependencies: Next Route Handler APIs, opaque sessions, and `moveToNextPojedynkiDuel`.
+
+Backend/database interactions: Requires a stored winner and completed settlement, then changes only sequence/stage; it cannot create a fifth duel or pay bets again.
+
+Implementation details: The fourth result changes the segment to its durable summary stage instead of opening another selection form.

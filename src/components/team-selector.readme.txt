@@ -8,6 +8,6 @@ Dependencies: `src/lib/constants.ts` for team labels/colors and `src/lib/types.t
 
 Backend/database interactions: None. The selected value is later validated again by the registration Route Handler.
 
-Implementation details: Team metadata is an internal constant, so inline visual properties cannot be manipulated through user text. Buttons use `aria-pressed` to expose selection state.
+Implementation details: Polish team labels come from trusted internal metadata, so inline visual properties cannot be manipulated through user text. Buttons use `aria-pressed` to expose selection state.
 
 Future expansion: Add a team only by changing the shared constants, Zod enum, and database CHECK together; do not add a client-only option.

@@ -1,0 +1,13 @@
+File: `src/lib/pojedynki.ts`
+
+Purpose and responsibilities: Defines the immutable shared metadata for Segment VI, Pojedynki.
+
+Important exports, inputs, and outputs: Exports the Polish title, exact four-duel count, server-owned two-chip stake string, and `getPojedynkiDuelLabel(sequence)` for a persisted zero-based slot.
+
+Dependencies: None.
+
+Backend/database interactions: None. The database service uses the count and stake while clients use the same values for Polish progress and display.
+
+Implementation details: This module holds only stable segment configuration. It has no player, winner, balance, or persistence authority.
+
+Future expansion: Preserve the four-slot count unless the game rules themselves are deliberately changed with a migration.

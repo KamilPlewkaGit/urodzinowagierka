@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { CasinoLogo } from "@/components/casino-logo";
 import { POLL_INTERVAL_MS, TEAMS, getTeam } from "@/lib/constants";
+import { formatChips } from "@/lib/chips";
 import type { GameSnapshot, Player } from "@/lib/types";
 
 interface LobbyClientProps {
@@ -25,7 +26,12 @@ export function LobbyClient({ player, initialSnapshot }: LobbyClientProps) {
   const refresh = useCallback(async () => {
     try {
       const response = await fetch("/api/game/state", { cache: "no-store" });
-      if (!response.ok) throw new Error("State request failed");
+      if (response.status === 401) {
+        router.replace("/");
+        router.refresh();
+        return;
+      }
+      if (!response.ok) throw new Error("Nie udało się pobrać stanu gry.");
       const nextSnapshot = (await response.json()) as GameSnapshot;
       setSnapshot(nextSnapshot);
       setSyncError(false);
@@ -51,44 +57,44 @@ export function LobbyClient({ player, initialSnapshot }: LobbyClientProps) {
       <header className="topbar">
         <CasinoLogo />
         <div className="topbar-actions">
-          <span className="sync-indicator"><i /> Live lobby</span>
-          <button className="quiet-button" onClick={leaveTable}>Leave</button>
+          <span className="sync-indicator"><i /> Lobby na żywo</span>
+          <button className="quiet-button" onClick={leaveTable}>Wyjdź</button>
         </div>
       </header>
 
       <section className="lobby-hero">
         <div>
-          <span className="eyebrow">Private game lounge</span>
-          <h1>Welcome, <em>{currentPlayer.nickname}</em>.</h1>
-          <p>Waiting for the administrator to start the game.</p>
+          <span className="eyebrow">Prywatny salon gry</span>
+          <h1>Witaj, <em>{currentPlayer.nickname}</em>.</h1>
+          <p>Czekamy, aż prowadzący rozpocznie grę.</p>
         </div>
-        <div className="hero-chip" aria-label={`${currentPlayer.tokens} casino chips`}>
-          <span>♛</span><strong>{currentPlayer.tokens}</strong><small>CHIPS</small>
+        <div className="hero-chip" aria-label={`${formatChips(currentPlayer.tokens)} żetonów kasynowych`}>
+          <span>♛</span><strong>{formatChips(currentPlayer.tokens)}</strong><small>ŻETONY</small>
         </div>
       </section>
 
-      <section className="player-summary-grid" aria-label="Your player details">
+      <section className="player-summary-grid" aria-label="Dane gracza">
         <article className="summary-card">
-          <span className="summary-label">Your house</span>
+          <span className="summary-label">Twoja drużyna</span>
           <strong className="house-value" style={{ color: team.color }}><span>{team.icon}</span>{team.name}</strong>
         </article>
         <article className="summary-card">
-          <span className="summary-label">Your stack</span>
-          <strong>{currentPlayer.tokens} <small>chips</small></strong>
+          <span className="summary-label">Twoje żetony</span>
+          <strong>{formatChips(currentPlayer.tokens)} <small>żetonów</small></strong>
         </article>
         <article className="summary-card">
-          <span className="summary-label">At the table</span>
-          <strong>{snapshot.players.length} <small>players</small></strong>
+          <span className="summary-label">Przy stole</span>
+          <strong>{snapshot.players.length} <small>graczy</small></strong>
         </article>
       </section>
 
       <section className="roster-section">
         <div className="section-heading">
           <div>
-            <span className="eyebrow">Table roster</span>
-            <h2>Houses at the table</h2>
+            <span className="eyebrow">Skład stołu</span>
+            <h2>Drużyny przy stole</h2>
           </div>
-          {syncError ? <span className="sync-warning">Reconnecting…</span> : <span className="poll-note">Updates every 4 seconds</span>}
+          {syncError ? <span className="sync-warning">Ponowne łączenie…</span> : <span className="poll-note">Odświeżanie co 4 sekundy</span>}
         </div>
         <div className="roster-grid">
           {TEAMS.map((house) => {
@@ -97,16 +103,16 @@ export function LobbyClient({ player, initialSnapshot }: LobbyClientProps) {
               <article className="house-card" key={house.id} style={{ "--team-color": house.color, "--team-soft": house.softColor } as CSSProperties}>
                 <div className="house-card-header">
                   <span className="house-symbol" aria-hidden="true">{house.icon}</span>
-                  <div><h3>{house.name}</h3><p>{members.length} {members.length === 1 ? "player" : "players"}</p></div>
+                  <div><h3>{house.name}</h3><p>{members.length} {members.length === 1 ? "gracz" : "graczy"}</p></div>
                 </div>
                 <div className="member-list">
                   {members.length ? members.map((member) => (
                     <div className={`member-row ${member.id === player.id ? "is-you" : ""}`} key={member.id}>
                       <span className="member-avatar">{member.nickname.slice(0, 1).toUpperCase()}</span>
-                      <span>{member.nickname}{member.id === player.id ? <small>YOU</small> : null}</span>
-                      <strong>{member.tokens}</strong>
+                      <span>{member.nickname}{member.id === player.id ? <small>TY</small> : null}</span>
+                      <strong>{formatChips(member.tokens)}</strong>
                     </div>
-                  )) : <p className="empty-house">Awaiting a player…</p>}
+                  )) : <p className="empty-house">Oczekiwanie na gracza…</p>}
                 </div>
               </article>
             );

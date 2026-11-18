@@ -1,6 +1,6 @@
 File: `src/components/registration-form.tsx`
 
-Purpose and responsibilities: Controls public nickname entry, house selection, the administrator-password branch, user feedback, and post-authentication navigation.
+Purpose and responsibilities: Controls public nickname entry, house selection for first-time players, the administrator-password branch, user feedback, and post-authentication navigation.
 
 Important exports, inputs, and outputs: `RegistrationForm()` has no external props. It submits `{ nickname, teamId }` to player registration or `{ password }` to admin login and routes success to `/lobby` or `/admin`.
 
@@ -8,6 +8,6 @@ Dependencies: `src/components/team-selector.tsx`, Next router, and `src/lib/type
 
 Backend/database interactions: Indirect only through `/api/auth/register` and `/api/admin/login`; it never accesses Neon or cookies directly.
 
-Implementation details: Seeing `admin` changes the form UI, not security. The server remains the authority for reserved nickname, password verification, sessions, and validation.
+Implementation details: All labels, fallback errors, and accessible copy are Polish. The form explains that an existing nickname restores its saved player record, so the initially displayed team selection is ignored by the server for a rejoin. Seeing `admin` changes the form UI, not security. The server remains the authority for reserved nickname, password verification, sessions, rejoining, and validation.
 
 Future expansion: Keep client validation ergonomic but duplicate all acceptance rules in the Route Handler. Add loading/error cases here when new registration steps are introduced.

@@ -1,0 +1,13 @@
+File: `src/components/floor-screen.tsx`
+
+Purpose and responsibilities: Renders the Polish player/admin display for The Floor: team selection waiting, team betting, a live team-versus-team duel, pending result confirmation, and settled results.
+
+Important exports, inputs, and outputs: `FloorScreen({ initialSnapshot, viewerRole, viewerPlayerId })` polls the authoritative snapshot. A player outside both competing teams may submit exactly one fixed-stake bet on either team.
+
+Dependencies: Next router, casino logo, chip formatter, team metadata, Floor helpers, and shared snapshot types.
+
+Backend/database interactions: Reads `/api/game/state` and sends only `{ targetTeamId }` to `/api/segment/floor/bet`. It never sends balances, timers, participants, winners, or game state.
+
+Implementation details: The screen shows team names, icons, colors, duel number, current stage, betting status, and a prominent `VS`. It derives timer display locally from server data. Members of either competing team are shown as ineligible to bet.
+
+Future expansion: Keep team selection, winner confirmation, and settlement controls in the administrator surface.

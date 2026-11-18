@@ -1,15 +1,21 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 import { getGameSnapshot } from "@/lib/database";
+import { getRequestSession } from "@/lib/session";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const session = await getRequestSession(request);
+  if (!session) {
+    return NextResponse.json({ error: "Sesja wygasła. Zaloguj się ponownie." }, { status: 401 });
+  }
+
   try {
-    const snapshot = await getGameSnapshot();
+    const snapshot = await getGameSnapshot(session.role === "player" ? session.playerId : undefined);
     return NextResponse.json(snapshot, { headers: { "Cache-Control": "no-store, max-age=0" } });
   } catch (error) {
-    console.error("Game state request failed", error);
-    return NextResponse.json({ error: "Game state is temporarily unavailable." }, { status: 503 });
+    console.error("Nie udało się pobrać stanu gry", error);
+    return NextResponse.json({ error: "Stan gry jest chwilowo niedostępny." }, { status: 503 });
   }
 }

@@ -1,0 +1,9 @@
+File: `src/app/api/segment/sport/restart/route.ts`
+
+Purpose and responsibilities: Provides the explicit administrator-only SPORT restart used by global segment controls.
+
+Important exports, inputs, and outputs: Bodyless admin-only `POST(request)` returns `{ ok: true }` or Polish errors.
+
+Dependencies: Next Route Handler APIs, opaque sessions, and `database.ts`.
+
+Backend/database interactions: Refunds pending SPORT stakes, clears SPORT setup/challenge/bonus state, and returns SPORT to `intro`. Settled balance transfers and awarded bonus points are deliberately not reversed.

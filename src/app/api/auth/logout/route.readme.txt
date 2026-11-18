@@ -1,13 +1,13 @@
 File: `src/app/api/auth/logout/route.ts`
 
-Purpose and responsibilities: Clears either player or administrator browser session without needing to inspect the role.
+Purpose and responsibilities: Revokes either player or administrator browser session and clears its browser cookie without needing to inspect the role.
 
-Important exports, inputs, and outputs: `POST()` returns `{ ok: true }` and expires the `casino_session` cookie immediately.
+Important exports, inputs, and outputs: `POST(request)` returns `{ ok: true }`, revokes the supplied session token, and expires the `casino_session` cookie immediately.
 
-Dependencies: `src/lib/session.ts` for the shared cookie name and secure options.
+Dependencies: `src/lib/database.ts` and `src/lib/session.ts` for session revocation and shared cookie options.
 
-Backend/database interactions: None; sessions are signed stateless cookies in this first stage.
+Backend/database interactions: Deletes the opaque session row matching the request cookie through `revokeSession`.
 
-Implementation details: It preserves cookie attributes such as path and SameSite when expiring the cookie so browsers replace the original cookie correctly.
+Implementation details: It preserves cookie attributes such as path and SameSite when expiring the cookie so browsers replace the original cookie correctly. A missing or expired token is harmless and still results in a successful logout.
 
-Future expansion: If sessions become database-backed, revoke the persistent session here in addition to expiring the cookie.
+Future expansion: Add a server-side sign-out-of-all-devices flow only if the game needs it.

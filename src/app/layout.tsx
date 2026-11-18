@@ -3,13 +3,13 @@ import type { Metadata } from "next";
 import "@/app/globals.css";
 
 export const metadata: Metadata = {
-  title: "The Grand Table",
-  description: "A private, casino-inspired team game with virtual chips.",
+  title: "Wielki Stół",
+  description: "Prywatna gra drużynowa w kasynowym stylu z wirtualnymi żetonami.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="pl">
       <body>{children}</body>
     </html>
   );

@@ -1,0 +1,9 @@
+File: `src/app/api/segment/sport/bonus-start/route.ts`
+
+Purpose and responsibilities: Starts a fully configured SPORT bonus round.
+
+Important exports, inputs, and outputs: Admin-only bodyless `POST(request)` returns `{ ok: true }` or Polish errors.
+
+Dependencies: Next Route Handler APIs, opaque sessions, and `database.ts`.
+
+Backend/database interactions: Requires four saved requirements and moves only the current bonus round and SPORT state to `live`. Bonus rounds never create bets.

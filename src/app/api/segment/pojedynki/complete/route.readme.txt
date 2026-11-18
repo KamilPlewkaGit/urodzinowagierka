@@ -1,0 +1,11 @@
+File: `src/app/api/segment/pojedynki/complete/route.ts`
+
+Purpose and responsibilities: Saves the administrator acknowledgement of finalized Pojedynki results.
+
+Important exports, inputs, and outputs: Bodyless administrator-only `POST(request)` returns `{ ok: true }` only in the persisted final stage.
+
+Dependencies: Next Route Handler APIs, opaque sessions, and `completePojedynkiSegment`.
+
+Backend/database interactions: Writes an administrator audit action only; it cannot alter winners, chips, or any settlement.
+
+Implementation details: The route permits no action before all four results have been advanced to the final stage.

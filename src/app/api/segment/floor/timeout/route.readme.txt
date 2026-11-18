@@ -1,0 +1,11 @@
+File: `src/app/api/segment/floor/timeout/route.ts`
+
+Purpose and responsibilities: Ends a live The Floor team duel when the server-calculated active-team time reaches zero.
+
+Important exports, inputs, and outputs: Admin-only bodyless `POST(request)` returns `{ ok: true }` or Polish errors.
+
+Dependencies: Next Route Handler APIs, opaque sessions, and `database.ts`.
+
+Backend/database interactions: `finishExpiredTheFloorDuel` locks the duel, recalculates time with `NOW()`, ends only an expired duel, and leaves the winner unset for the administrator to choose.
+
+Implementation details: No bet is settled here; settlement begins only after the protected winner confirmation.

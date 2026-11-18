@@ -1,0 +1,13 @@
+File: `src/components/pojedynki-admin-controls.tsx`
+
+Purpose and responsibilities: Provides the Polish administrator control surface for all four Pojedynki slots.
+
+Important exports, inputs, and outputs: `PojedynkiAdminControls({ snapshot, onRefresh })` lets the administrator start the segment, choose two distinct teams, confirm the selection, start only after required bets, choose a competing winner, confirm the result, advance, and acknowledge final results.
+
+Dependencies: React local form state, shared team metadata, `pojedynki.ts`, shared snapshot types, existing casino CSS, and the parent refresh callback.
+
+Backend/database interactions: Has no direct database access. It posts small action payloads to the protected Pojedynki routes, then refreshes the authoritative snapshot.
+
+Implementation details: The two team selectors never select players and disable the first selection in the second selector. Browser button state improves usability, but the server again validates phase, participant uniqueness, complete required betting, selected winner membership, and settlement.
+
+Future expansion: Do not add browser-owned chips or outcome logic; add a focused route/service only for a concrete new segment rule.

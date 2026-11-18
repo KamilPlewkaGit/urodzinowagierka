@@ -1,0 +1,9 @@
+File: `src/app/api/segment/sport/next/route.ts`
+
+Purpose and responsibilities: Advances one settled SPORT main challenge or completed bonus round.
+
+Important exports, inputs, and outputs: Admin-only bodyless `POST(request)` returns `{ ok: true }` or Polish errors.
+
+Dependencies: Next Route Handler APIs, opaque sessions, and `database.ts`.
+
+Backend/database interactions: Requires a durable result before opening the next challenge, bonus setup, next bonus setup, or final segment state; it cannot settle or score again.

@@ -1,13 +1,17 @@
 File: `src/app/api/game/state/route.ts`
 
-Purpose and responsibilities: Returns the current public game snapshot used by lobby, admin, and active-game polling.
+Purpose and responsibilities: Returns the current authenticated game snapshot used by lobby, admin, and active-game polling.
 
-Important exports, inputs, and outputs: `GET()` has no request payload and returns `{ game, players }` or a 503 `{ error }` response.
+Important exports, inputs, and outputs: `GET(request)` requires an opaque current session and returns game, players, team scores, decimal total, Floor, SPORT, Melodia, and Pojedynki read models. A player receives only their own segment bet target, result, and payout.
 
-Dependencies: `src/lib/database.ts`.
+Dependencies: `src/lib/database.ts` and `src/lib/session.ts`.
 
-Backend/database interactions: Calls `getGameSnapshot`, which reads the singleton game state and ordered player roster from Neon.
+Backend/database interactions: Calls `getGameSnapshot` with the verified player ID when applicable, which reads game/segment state, roster, team scores, Floor duels, SPORT pairings/numbers/challenges/bonus requirements, Melodia songs/totals, Pojedynki slots, safe bet counts, and the viewer's own bets from Neon.
 
-Implementation details: The `Cache-Control: no-store` header prevents browser/CDN caching from delaying state synchronization. It returns no session secrets or mutation capability.
+Implementation details: The `Cache-Control: no-store` header prevents browser/CDN caching from delaying state synchronization. Requiring a session lets a removed player receive a 401 on its next poll; the client then returns to the landing screen. The route returns no session secrets or mutation capability.
 
 Future expansion: Add only safe spectator data to this contract; distinguish privileged fields with a separate authorized endpoint if needed.
+
+Segment V update: The snapshot now includes five durable music-song rows, segment-only team totals, leaders, stage/settlement state, a safe aggregate market count, and only the current player's own target/stake/result/payout. It never exposes other player bets.
+
+Segment VI update: The snapshot now also includes four Pojedynki slots, their selected team sides/stages/winners, safe per-slot wager counts, and only the current player's own target/result/payout. It never exposes another bettor's identity or choice.

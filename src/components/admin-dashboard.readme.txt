@@ -1,13 +1,17 @@
 File: `src/components/admin-dashboard.tsx`
 
-Purpose and responsibilities: Presents lobby metrics and house roster to an authenticated administrator and triggers the start-game command.
+Purpose and responsibilities: Provides the Polish administrator dashboard for game/player management, SOLENIZANT, and focused The Floor, SPORT, Jaka to melodia?, and Pojedynki control surfaces.
 
-Important exports, inputs, and outputs: `AdminDashboard({ initialSnapshot })` polls state every four seconds and POSTs `/api/game/start` when the button is pressed. It displays errors returned by the server.
+Important exports, inputs, and outputs: `AdminDashboard({ initialSnapshot })` polls the authenticated snapshot, routes navigation/restart actions to the active segment, renders five-segment navigation, and mounts the focused active control surface for The Floor, SPORT, Jaka to melodia?, or Pojedynki.
 
-Dependencies: `casino-logo`, Next router, `src/lib/constants.ts`, and `src/lib/types.ts`.
+Dependencies: Casino logo, focused Floor/SPORT/Melodia/Pojedynki controls, Next router, constants/chip/Solenizant helpers, and shared types.
 
-Backend/database interactions: Indirect through the public state API and protected start API; the API verifies authorization again and performs Neon writes.
+Backend/database interactions: Indirect through the safe state endpoint and protected start, SOLENIZANT, game-navigation/reset, and player-management endpoints. Each endpoint verifies the administrator session and writes through `database.ts`.
 
-Implementation details: Disabling the client button after status changes improves UX but is not the security control. The start handler verifies the server-side administrator session.
+Implementation details: The dashboard has five direct-navigation choices and enables previous/next when a neighboring segment exists. Segment restart selects the matching dedicated endpoint. The Floor, SPORT, Melodia, and Pojedynki workflows are isolated in child components; SOLENIZANT selection/scoring and player administration remain unchanged.
 
-Future expansion: Add a separate component and protected endpoint for each future admin action, rather than turning this into a generic state editor.
+Future expansion: Add a separate protected workflow for another segment rather than turning this component into a generic browser-side state editor.
+
+Segment V update: Navigation now has a fourth option, `Jaka to melodia?`, with an independent restart endpoint and status label. `MelodiaAdminControls` is mounted only for an authenticated administrator viewing that active segment; its five-song progression, scoring, and market settlement remain isolated from existing controls.
+
+Segment VI update: Navigation now includes a fifth option, `Pojedynki`, with its own status labels and restart endpoint. `PojedynkiAdminControls` is mounted only while that segment is active, keeping its four team-duel actions separate from all prior segment controls.

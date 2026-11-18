@@ -1,13 +1,17 @@
 File: `src/app/game/page.tsx`
 
-Purpose and responsibilities: Protects and renders the basic active-game screen after the administrator starts the game.
+Purpose and responsibilities: Protects and renders the active Polish segment screen after the administrator starts the game.
 
-Important exports, inputs, and outputs: `GamePage` loads the snapshot and returns `GameScreen`; it redirects signed-in users back to the appropriate waiting surface while status is `waiting`.
+Important exports, inputs, and outputs: `GamePage` loads a personalized snapshot and returns the focused SOLENIZANT, The Floor, SPORT, Jaka to melodia?, or Pojedynki screen; it redirects signed-in users back to the appropriate waiting surface while status is `waiting`.
 
-Dependencies: `src/lib/session.ts`, `src/lib/database.ts`, and `src/components/game-screen.tsx`.
+Dependencies: Session/database services plus game, Floor, SPORT, Melodia, and Pojedynki screen components.
 
-Backend/database interactions: Reads the session and current Neon game state/players.
+Backend/database interactions: Resolves the opaque session and reads the current Neon game/segment state. Player snapshots include only that player's Floor, SPORT, Melodia, and Pojedynki bet data, never other bettors' identities.
 
-Implementation details: Both authenticated players and the administrator may view the live screen. The role is passed only to decide whether to display the command-table link.
+Implementation details: Both authenticated active players and the administrator may view the live screen. The page checks that a player session still resolves to an active player record, so a soft-removed player cannot reload a live game route. The server-resolved role is passed only to decide whether to display the administrator-dashboard link; game mutations remain protected Route Handler actions.
 
 Future expansion: Future game mode routing should still verify game membership/role on the server before rendering a round.
+
+Segment V update: The page also dispatches `activeSegment === "melodia"` to `MelodiaScreen`. The authenticated player snapshot contains only that player's own music-market bet; the screen does not receive a mutation capability.
+
+Segment VI update: The page dispatches `activeSegment === "pojedynki"` to `PojedynkiScreen` after the same server-side session and active-player validation. That screen gets only a safe snapshot and the viewer identity needed for their own betting display.

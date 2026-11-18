@@ -1,0 +1,11 @@
+File: `src/app/api/segment/floor/next/route.ts`
+
+Purpose and responsibilities: Advances a settled The Floor team duel to the next team-selection slot or final summary.
+
+Important exports, inputs, and outputs: Admin-only bodyless `POST(request)` returns `{ ok: true }` or Polish errors.
+
+Dependencies: Next Route Handler APIs, opaque sessions, and `database.ts`.
+
+Backend/database interactions: `moveToNextTheFloorDuel` requires persisted result state and changes only the current sequence/stage; it neither changes balances nor settles bets again.
+
+Implementation details: A winner must be confirmed and settlement completed before the administrator can progress.

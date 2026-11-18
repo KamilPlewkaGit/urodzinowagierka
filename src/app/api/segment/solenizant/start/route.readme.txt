@@ -1,0 +1,13 @@
+File: `src/app/api/segment/solenizant/start/route.ts`
+
+Purpose and responsibilities: Starts the SOLENIZANT segment and exposes its first persisted question to connected clients.
+
+Important exports, inputs, and outputs: `POST(request)` accepts no request body. It returns the updated game state, or a safe 403, 409, or 500 error response.
+
+Dependencies: `src/lib/session.ts` verifies the opaque admin session and `src/lib/database.ts` performs the state transition.
+
+Backend/database interactions: Calls `startSolenizantSegment`, which can move only a started game in the segment introduction stage to question zero.
+
+Implementation details: The browser cannot choose a segment, question, or score. Repeated start attempts fail once the segment has left its introduction stage.
+
+Future expansion: Add another protected handler per future segment rather than accepting a client-selected segment name.

@@ -1,0 +1,11 @@
+File: `src/app/api/segment/melodia/restart/route.ts`
+
+Purpose and responsibilities: Restarts only Segment V from the administrator dashboard.
+
+Important exports, inputs, and outputs: Admin-only bodyless `POST(request)` returns `{ ok: true }` or Polish errors.
+
+Dependencies: Next Route Handler APIs, opaque sessions, and `restartMelodiaSegment`.
+
+Backend/database interactions: The service refunds still-pending music bets, reverses this segment's recorded global score contributions, clears only Segment V songs/bids/bets/totals, and returns its stage to `intro`.
+
+Implementation details: It preserves all player identities, team memberships, chip history outside unclosed Segment V bets, and all other segment state.

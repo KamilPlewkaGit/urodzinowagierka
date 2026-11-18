@@ -1,0 +1,9 @@
+File: `src/app/api/segment/sport/start/route.ts`
+
+Purpose and responsibilities: Opens SPORT setup after seeding its fixed eight challenge slots and two bonus-round slots.
+
+Important exports, inputs, and outputs: Admin-only bodyless `POST(request)` returns `{ ok: true }` or Polish authorization, conflict, and server errors.
+
+Dependencies: Next Route Handler APIs, opaque sessions, and `database.ts`.
+
+Backend/database interactions: Calls `startSportSegment`, which seeds only missing fixed slots and changes the persisted SPORT stage from `intro` to `setup`.

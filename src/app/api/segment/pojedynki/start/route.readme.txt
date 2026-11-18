@@ -1,0 +1,11 @@
+File: `src/app/api/segment/pojedynki/start/route.ts`
+
+Purpose and responsibilities: Opens Segment VI and its first team-selection slot.
+
+Important exports, inputs, and outputs: Bodyless administrator-only `POST(request)` returns `{ ok: true }` or a Polish authorization, conflict, or server error.
+
+Dependencies: Next Route Handler APIs, opaque sessions, and `startPojedynkiSegment`.
+
+Backend/database interactions: Seeds only missing zero-through-three duel rows and changes persisted stage from `intro` to `setup`.
+
+Implementation details: Repeating the call after the transition is rejected; no browser can choose the number of slots.

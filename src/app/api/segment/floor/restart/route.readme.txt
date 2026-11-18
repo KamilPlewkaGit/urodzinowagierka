@@ -1,0 +1,11 @@
+File: `src/app/api/segment/floor/restart/route.ts`
+
+Purpose and responsibilities: Provides the explicit administrator-only The Floor restart used by the segment-management panel.
+
+Important exports, inputs, and outputs: Bodyless admin-only `POST(request)` returns `{ ok: true }` or Polish errors.
+
+Dependencies: Next Route Handler APIs, opaque sessions, and `database.ts`.
+
+Backend/database interactions: Clears only Floor team-duel and bet state, refunds pending bets, returns the stage to `intro`, and preserves player registrations, teams, scores, and settled balances.
+
+Implementation details: It is distinct from navigation and full reset; settled bets are never reversed.

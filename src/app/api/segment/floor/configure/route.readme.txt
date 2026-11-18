@@ -1,0 +1,11 @@
+File: `src/app/api/segment/floor/configure/route.ts`
+
+Purpose and responsibilities: Selects exactly two different teams for the current The Floor category and opens its betting phase.
+
+Important exports, inputs, and outputs: Admin-only `POST(request)` validates `{ teamAId, teamBId }` and returns Polish 400, 403, 409, or 500 errors as appropriate.
+
+Dependencies: Next Route Handler APIs, Floor team configuration validation, opaque sessions, and `database.ts`.
+
+Backend/database interactions: Calls `configureTheFloorDuel`, which locks setup state and persists the two team sides with reset team clocks.
+
+Implementation details: The client cannot select a player, reuse the same team on both sides, alter category data, or bypass the persisted setup stage.

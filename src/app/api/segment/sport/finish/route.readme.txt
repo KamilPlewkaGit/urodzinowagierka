@@ -1,0 +1,11 @@
+File: `src/app/api/segment/sport/finish/route.ts`
+
+Purpose and responsibilities: Confirms the winning team of a live SPORT main challenge and triggers guarded settlement.
+
+Important exports, inputs, and outputs: Admin-only `POST(request)` validates `{ winnerTeamId }` and returns `{ ok: true }` or Polish errors.
+
+Dependencies: Next Route Handler APIs, SPORT winner validation, opaque sessions, and `database.ts`.
+
+Backend/database interactions: The database verifies the winner belongs to the saved current pair, stores it, settles bets once, updates balances and transfer ledger rows, then records result state.
+
+Implementation details: A same-winner retry can resume an incomplete settlement; a different winner and a settled result are rejected.

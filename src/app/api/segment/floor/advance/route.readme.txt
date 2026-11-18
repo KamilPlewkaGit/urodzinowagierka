@@ -1,0 +1,11 @@
+File: `src/app/api/segment/floor/advance/route.ts`
+
+Purpose and responsibilities: Applies an administrator-confirmed correct answer or pass to the active The Floor team duel.
+
+Important exports, inputs, and outputs: Admin-only `POST(request)` validates `{ action: "correct" | "pass" }` and returns `{ ok: true }` or Polish errors.
+
+Dependencies: Next Route Handler APIs, Floor action validation, opaque sessions, and `database.ts`.
+
+Backend/database interactions: The database materializes server elapsed time, advances the image, switches the active team after a correct answer, or deducts 3 seconds while retaining that team after a pass. A zero clock ends the duel and opens winner selection without settlement.
+
+Implementation details: The route never accepts a client clock, item position, team, or winner.

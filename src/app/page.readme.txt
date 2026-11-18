@@ -1,6 +1,6 @@
 File: `src/app/page.tsx`
 
-Purpose and responsibilities: Renders the public casino-themed landing page and hosts the registration entry point.
+Purpose and responsibilities: Renders the Polish public casino-themed landing page and hosts the registration entry point.
 
 Important exports, inputs, and outputs: `HomePage` has no props and returns landing copy, static visual decoration, `CasinoLogo`, and `RegistrationForm`.
 

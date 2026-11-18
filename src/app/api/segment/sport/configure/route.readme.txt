@@ -1,0 +1,11 @@
+File: `src/app/api/segment/sport/configure/route.ts`
+
+Purpose and responsibilities: Saves both SPORT team pairs and, when supplied, all active-player rank assignments while setup remains editable.
+
+Important exports, inputs, and outputs: Admin-only `POST(request)` validates two distinct four-team pairs. It accepts an empty rank list to confirm only pairs, or a complete, unique rank sequence from 1 through the actual player count for every team.
+
+Dependencies: Next Route Handler APIs, SPORT setup validation, opaque sessions, and `database.ts`.
+
+Backend/database interactions: `configureSportSetup` always persists the pairs. With an empty rank list it preserves existing ranks and writes a pair-confirmation audit action; with a rank list it verifies active player/team membership, replaces the saved ranking, and writes an administrator audit action.
+
+Implementation details: Browser-supplied team membership is never trusted; the database checks each selected player against their durable team.

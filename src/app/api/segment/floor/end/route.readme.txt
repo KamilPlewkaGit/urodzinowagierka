@@ -1,0 +1,11 @@
+File: `src/app/api/segment/floor/end/route.ts`
+
+Purpose and responsibilities: Confirms one of the two competing teams as the winner of a finished The Floor duel.
+
+Important exports, inputs, and outputs: Admin-only `POST(request)` validates `{ winnerTeamId }` and returns `{ ok: true }` or Polish errors.
+
+Dependencies: Next Route Handler APIs, Floor winner validation, opaque sessions, and `database.ts`.
+
+Backend/database interactions: `endTheFloorDuel` accepts an unconfirmed result-stage duel, verifies the selected team belongs to it, stores the winner, and starts guarded one-time settlement. A retry with the same winner can safely resume an interrupted pre-settlement request.
+
+Implementation details: A retry cannot choose another team or resettle, because winner storage and `settled_at` guards are server-side.

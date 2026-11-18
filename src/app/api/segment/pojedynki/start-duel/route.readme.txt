@@ -1,0 +1,11 @@
+File: `src/app/api/segment/pojedynki/start-duel/route.ts`
+
+Purpose and responsibilities: Locks the current Pojedynki market and marks its real-world duel as live.
+
+Important exports, inputs, and outputs: Bodyless administrator-only `POST(request)` returns `{ ok: true }` or Polish errors.
+
+Dependencies: Next Route Handler APIs, opaque sessions, and `startPojedynkiDuel`.
+
+Backend/database interactions: Requires one stored wager from every active player outside the two selected teams, then atomically changes the persistent duel and segment stages to `live`.
+
+Implementation details: A stale browser cannot add or modify a bet after this transition.
