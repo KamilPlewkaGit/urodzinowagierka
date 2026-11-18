@@ -4,7 +4,7 @@ import { type CSSProperties, useEffect, useMemo, useState } from "react";
 
 import { FloorPrompt } from "@/components/floor-prompt";
 import { TEAMS, getTeam } from "@/lib/constants";
-import { THE_FLOOR_CATEGORY_COUNT, THE_FLOOR_TITLE, getTheFloorTimes } from "@/lib/floor";
+import { THE_FLOOR_TITLE, getTheFloorTimes } from "@/lib/floor";
 import type { GameSnapshot, TeamId, TeamMeta } from "@/lib/types";
 
 interface FloorAdminControlsProps {
@@ -117,41 +117,43 @@ export function FloorAdminControls({ snapshot, onRefresh }: FloorAdminControlsPr
         {floor.stage === "intro" ? <>
           <span className="panel-index">THE FLOOR / START</span><h2>{THE_FLOOR_TITLE}</h2>
           <p>W każdym pojedynku rywalizują całe drużyny. Członkowie dwóch pozostałych drużyn mogą obstawić zwycięzcę za 2 żetony.</p>
+          {floor.catalogErrors?.map((message) => <p key={message} className="form-error" role="alert">{message}</p>)}
           <button className="gold-button start-button" onClick={() => post("start", "/api/segment/floor/start")} disabled={pending !== null}>Rozpocznij segment</button>
         </> : null}
 
         {floor.stage === "setup" && duel && category ? <>
-          <span className="panel-index">POJEDYNEK {duel.sequence + 1}/{THE_FLOOR_CATEGORY_COUNT} / WYBÓR DRUŻYN</span><h2>{category.name}</h2><p>{category.instructions}</p>
+          <span className="panel-index">POJEDYNEK {duel.sequence + 1}/{floor.duels.length} / WYBÓR DRUŻYN</span><h2>{category.name}</h2><p>{category.instructions}</p>
           <fieldset className="team-fieldset"><legend>Wybierz pierwszą drużynę</legend><div className="team-grid">{TEAMS.map((team) => <TeamChoice key={team.id} team={team} selected={teamAId === team.id} onSelect={() => { setTeamAId(team.id); if (teamBId === team.id) setTeamBId(null); }} disabled={pending !== null} />)}</div></fieldset>
           <fieldset className="team-fieldset"><legend>Wybierz drugą drużynę</legend><div className="team-grid">{TEAMS.map((team) => <TeamChoice key={team.id} team={team} selected={teamBId === team.id} onSelect={() => setTeamBId(team.id)} disabled={pending !== null || teamAId === team.id} />)}</div></fieldset>
           <button className="gold-button start-button" onClick={configure} disabled={pending !== null || !teamAId || !teamBId}>Zatwierdź drużyny i rozpocznij obstawianie</button>
         </> : null}
 
         {floor.stage === "betting" && duel && category && teamA && teamB ? <>
-          <span className="panel-index">POJEDYNEK {duel.sequence + 1}/{THE_FLOOR_CATEGORY_COUNT} / OBSTAWIANIE</span><h2>{category.name}</h2><p>{category.instructions}</p>
+          <span className="panel-index">POJEDYNEK {duel.sequence + 1}/{floor.duels.length} / OBSTAWIANIE</span><h2>{category.name}</h2><p>{category.instructions}</p>
           <TeamDuelists teamA={teamA} teamB={teamB} />
           <p>Zarejestrowane zakłady: <strong>{duel.betCount}</strong>. Obstawianie jest opcjonalne.</p>
           <button className="gold-button start-button" onClick={confirmStart} disabled={pending !== null}>Rozpocznij pojedynek</button>
         </> : null}
 
         {floor.stage === "live" && duel && category && teamA && teamB && times ? <>
-          <span className="panel-index">POJEDYNEK {duel.sequence + 1}/{THE_FLOOR_CATEGORY_COUNT} / W TOKU{category.itemCount ? ` / POZYCJA ${duel.itemIndex + 1}/${category.itemCount}` : ""}</span><h2>{category.name}</h2>
+          <span className="panel-index">POJEDYNEK {duel.sequence + 1}/{floor.duels.length} / W TOKU{category.itemCount ? ` / POZYCJA ${duel.itemIndex + 1}/${category.itemCount}` : ""}</span><h2>{category.name}</h2>
           <TeamDuelists teamA={teamA} teamB={teamB} activeTeamId={duel.activeTeamId} teamATimeSeconds={times.teamA} teamBTimeSeconds={times.teamB} />
-          <p>Aktywna drużyna: <strong>{duel.activeTeamId ? getTeam(duel.activeTeamId).name : "—"}</strong>. „Poprawnie” przełącza turę między drużynami, a „Pomiń” odejmuje 3 sekundy aktywnej drużynie.</p>
+          <p>Aktywna drużyna: <strong>{duel.activeTeamId ? getTeam(duel.activeTeamId).name : "—"}</strong>. „Poprawna odpowiedź” przełącza turę między drużynami, a „Pas” odejmuje 3 sekundy aktywnej drużynie.</p>
           <FloorPrompt key={`${duel.id}:${duel.itemIndex}`} prompt={category.prompt} alt={`Grafika kategorii ${category.name}, pozycja ${duel.itemIndex + 1}`} admin />
-          <div className="floor-admin-actions"><button className="gold-button" onClick={() => post("correct", "/api/segment/floor/advance", { action: "correct" })} disabled={pending !== null}>Poprawnie</button><button className="secondary-button" onClick={() => post("pass", "/api/segment/floor/advance", { action: "pass" })} disabled={pending !== null}>Pomiń (−3 s)</button></div>
+          {category.adminAnswer ? <p className="floor-admin-answer">Poprawna odpowiedź: <strong>{category.adminAnswer}</strong></p> : <p className="form-error" role="alert">Nie można odczytać poprawnej odpowiedzi dla tej pozycji. Sprawdź plik JSON.</p>}
+          <div className="floor-admin-actions"><button className="gold-button" onClick={() => post("correct", "/api/segment/floor/advance", { action: "correct" })} disabled={pending !== null}>Poprawna odpowiedź</button><button className="secondary-button" onClick={() => post("pass", "/api/segment/floor/advance", { action: "pass" })} disabled={pending !== null}>Pas (−3 s)</button></div>
         </> : null}
 
         {floor.stage === "result" && duel && teamA && teamB && !winnerTeam ? <>
-          <span className="panel-index">POJEDYNEK {duel.sequence + 1}/{THE_FLOOR_CATEGORY_COUNT} / WYBÓR ZWYCIĘZCY</span><h2>Wybierz zwycięzcę</h2><p>Pojedynek jest zakończony, a zakłady oczekują na potwierdzenie wyniku.</p>
+          <span className="panel-index">POJEDYNEK {duel.sequence + 1}/{floor.duels.length} / WYBÓR ZWYCIĘZCY</span><h2>Wybierz zwycięzcę</h2><p>Pojedynek jest zakończony, a zakłady oczekują na potwierdzenie wyniku.</p>
           <TeamDuelists teamA={teamA} teamB={teamB} />
           <fieldset className="team-fieldset"><legend>Wybierz zwycięską drużynę</legend><div className="team-grid"><TeamChoice team={teamA} selected={winnerTeamId === teamA.id} onSelect={() => setWinnerTeamId(teamA.id)} disabled={pending !== null} /><TeamChoice team={teamB} selected={winnerTeamId === teamB.id} onSelect={() => setWinnerTeamId(teamB.id)} disabled={pending !== null} /></div></fieldset>
           <button className="gold-button start-button" onClick={confirmWinner} disabled={pending !== null || !winnerTeamId}>Zatwierdź wynik</button>
         </> : null}
 
         {floor.stage === "result" && duel && winnerTeam ? <>
-          <span className="panel-index">POJEDYNEK {duel.sequence + 1}/{THE_FLOOR_CATEGORY_COUNT} / WYNIK</span><h2>Wygrywa {winnerTeam.name}.</h2><p>Zakłady zostały rozliczone z zamkniętej puli. Możesz teraz przygotować kolejny pojedynek.</p>
-          <button className="gold-button start-button" onClick={moveToNextDuel} disabled={pending !== null}>{duel.sequence === THE_FLOOR_CATEGORY_COUNT - 1 ? "Pokaż podsumowanie segmentu" : "Następny pojedynek"}</button>
+          <span className="panel-index">POJEDYNEK {duel.sequence + 1}/{floor.duels.length} / WYNIK</span><h2>Wygrywa {winnerTeam.name}.</h2><p>Zakłady zostały rozliczone z zamkniętej puli. Możesz teraz przygotować kolejny pojedynek.</p>
+          <button className="gold-button start-button" onClick={moveToNextDuel} disabled={pending !== null}>{duel.sequence === floor.duels.length - 1 ? "Pokaż podsumowanie segmentu" : "Następny pojedynek"}</button>
         </> : null}
 
         {floor.stage === "results" ? <><span className="panel-index">THE FLOOR / WYNIKI</span><h2>Segment zakończony.</h2><p>Rozegrano wszystkie przygotowane pojedynki drużynowe.</p></> : null}

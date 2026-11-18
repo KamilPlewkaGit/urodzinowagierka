@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { FloorPrompt } from "@/components/floor-prompt";
 import { formatChips } from "@/lib/chips";
 import { getTeam } from "@/lib/constants";
-import { THE_FLOOR_BET_STAKE, THE_FLOOR_CATEGORY_COUNT, THE_FLOOR_TITLE, getTheFloorTimes } from "@/lib/floor";
+import { THE_FLOOR_BET_STAKE, THE_FLOOR_TITLE, getTheFloorTimes } from "@/lib/floor";
 import type { GameSnapshot, TeamId, TeamMeta } from "@/lib/types";
 
 interface FloorScreenProps {
@@ -88,12 +88,12 @@ export function FloorScreen({ snapshot, refresh, viewerRole, viewerPlayerId }: F
           </> : null}
 
           {floor.stage === "setup" && category ? <>
-            <span className="eyebrow">Pojedynek {duel ? duel.sequence + 1 : 1}/{THE_FLOOR_CATEGORY_COUNT} · wybór drużyn</span><h1>{category.name}</h1>
+            <span className="eyebrow">Pojedynek {duel ? duel.sequence + 1 : 1}/{floor.duels.length} · wybór drużyn</span><h1>{category.name}</h1>
             <p>{category.instructions}</p><p className="floor-waiting">Prowadzący wybiera teraz dwie rywalizujące drużyny.</p>
           </> : null}
 
           {floor.stage === "betting" && duel && category && teamA && teamB ? <>
-            <span className="eyebrow">Pojedynek {duel.sequence + 1}/{THE_FLOOR_CATEGORY_COUNT} · obstawianie trwa</span><h1>{category.name}</h1>
+            <span className="eyebrow">Pojedynek {duel.sequence + 1}/{floor.duels.length} · obstawianie trwa</span><h1>{category.name}</h1>
             <p>{category.instructions}</p>
             <TeamDuelists teamA={teamA} teamB={teamB} />
             {viewerRole === "player" && viewerTeamId && !viewerIsCompeting && !duel.viewerBetTargetTeamId ? <div className="floor-bet-panel"><p>Zakład jest opcjonalny. Poczekaj na start albo wybierz drużynę. Stawka: <strong>{formatChips(THE_FLOOR_BET_STAKE)} żetony</strong>.</p><div className="floor-bet-buttons"><button className="gold-button" disabled={betting} onClick={() => placeBet(teamA.id)}>Stawiam na {teamA.name}</button><button className="gold-button" disabled={betting} onClick={() => placeBet(teamB.id)}>Stawiam na {teamB.name}</button></div></div> : null}
@@ -102,7 +102,7 @@ export function FloorScreen({ snapshot, refresh, viewerRole, viewerPlayerId }: F
           </> : null}
 
           {floor.stage === "live" && duel && category && teamA && teamB && times ? <>
-            <span className="eyebrow">Pojedynek {duel.sequence + 1}/{THE_FLOOR_CATEGORY_COUNT} · w toku · zakłady zamknięte</span>
+            <span className="eyebrow">Pojedynek {duel.sequence + 1}/{floor.duels.length} · w toku · zakłady zamknięte</span>
             <h1 className="floor-category-title">{category.name}</h1><p>{category.instructions}</p>
             <TeamDuelists teamA={teamA} teamB={teamB} activeTeamId={duel.activeTeamId} teamATimeSeconds={times.teamA} teamBTimeSeconds={times.teamB} />
             <p className="floor-active-player">Teraz odpowiada: <strong>{duel.activeTeamId ? getTeam(duel.activeTeamId).name : "—"}</strong></p>
@@ -110,7 +110,7 @@ export function FloorScreen({ snapshot, refresh, viewerRole, viewerPlayerId }: F
           </> : null}
 
           {floor.stage === "result" && duel ? <>
-            <span className="eyebrow">Wynik pojedynku {duel.sequence + 1}/{THE_FLOOR_CATEGORY_COUNT}</span>
+            <span className="eyebrow">Wynik pojedynku {duel.sequence + 1}/{floor.duels.length}</span>
             {winnerTeam ? <><h1>Wygrywa <em>{winnerTeam.name}</em>.</h1><p>Zakłady zostały rozliczone z puli tego pojedynku. Prowadzący przygotuje kolejny pojedynek.</p></> : <><h1>Pojedynek dobiegł <em>końca.</em></h1><p>Prowadzący wybiera i zatwierdza zwycięską drużynę.</p></>}
             {viewerRole === "player" && duel.viewerBetResult ? <p className="floor-waiting">{duel.viewerBetResult === "won" ? `Twój zakład wygrał. Otrzymujesz ${formatChips(duel.viewerBetPayout ?? "0")} żetonów z puli.` : duel.viewerBetResult === "refunded" ? `Nikt nie obstawił zwycięzcy — Twoja stawka ${formatChips(duel.viewerBetPayout ?? "0")} żetonów została zwrócona.` : "Twój zakład nie wygrał."}</p> : null}
           </> : null}

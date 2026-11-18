@@ -15,3 +15,5 @@ Future expansion: Prefer adding reusable variables and component-scoped class se
 The player dashboard keeps its navigation and exact balance visible with a sticky desktop bar and fixed mobile bar. The ranking uses a responsive semantic table with team colors and a highlighted viewer row.
 
 The Melodia rules and round history use `.melodia-list` for bordered rows in the shared casino palette.
+
+The Floor shared text prompt uses a plain white surface with inline-size-based type scaling and a compact moderator presentation. The authorized answer is styled below the prompt.

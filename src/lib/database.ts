@@ -7,8 +7,8 @@ import { defaults, neon, type NeonQueryPromise } from "@neondatabase/serverless"
 import { STARTING_TOKENS } from "@/lib/constants";
 import { advanceFamiliada, FamiliadaConflict, getFamiliadaSnapshot, type FamiliadaBetSummary, type StoredFamiliada } from "@/lib/familiada";
 import type { FamiliadaAction } from "@/lib/validation";
-import { THE_FLOOR_BET_STAKE, THE_FLOOR_CATEGORY_COUNT, THE_FLOOR_CATEGORY_IDS, THE_FLOOR_DUEL_SECONDS, THE_FLOOR_PASS_PENALTY_SECONDS } from "@/lib/floor";
-import { getTheFloorContent, getTheFloorItemCounts } from "@/lib/floor-content";
+import { THE_FLOOR_BET_STAKE, THE_FLOOR_CATEGORY_IDS, THE_FLOOR_DUEL_SECONDS, THE_FLOOR_PASS_PENALTY_SECONDS } from "@/lib/floor";
+import { getTheFloorCatalogStatus, getTheFloorContent, getTheFloorItemCounts } from "@/lib/floor-content";
 import { SOLENIZANT_LAST_QUESTION_INDEX } from "@/lib/solenizant";
 import { SPORT_BET_STAKE, SPORT_BONUS_ROUND_COUNT, SPORT_CHALLENGE_COUNT, SPORT_CORRECT_BET_PROFIT, SPORT_CHALLENGES } from "@/lib/sport";
 import { MELODIA_REWARD, MELODIA_SONG_COUNT } from "@/lib/melodia";
@@ -712,6 +712,11 @@ export async function ensureDatabase() {
           winner_team_id = COALESCE(duel.winner_team_id, (SELECT team_id FROM players WHERE id = duel.winner_id))
       `;
       await sql`UPDATE the_floor_duels SET team_a_time_seconds = ${THE_FLOOR_DUEL_SECONDS} WHERE team_a_time_seconds IS NULL`;
+      // The retired deck occupied the slot now used by Rebusy. Preserve duel identity and wagers.
+      await sql`
+        UPDATE the_floor_duels SET category_id = 'rebusy', item_index = 0
+        WHERE category_id = 'znane-kobiety' AND stage <> 'result'
+      `;
       await sql`UPDATE the_floor_duels SET team_b_time_seconds = ${THE_FLOOR_DUEL_SECONDS} WHERE team_b_time_seconds IS NULL`;
       await sql`ALTER TABLE the_floor_duels ALTER COLUMN team_a_time_seconds SET DEFAULT 45`;
       await sql`ALTER TABLE the_floor_duels ALTER COLUMN team_b_time_seconds SET DEFAULT 45`;
@@ -1050,7 +1055,7 @@ export async function revokeSession(token: string | undefined) {
   await sql`DELETE FROM sessions WHERE token = ${token}`;
 }
 
-export async function getGameSnapshot(viewerPlayerId?: number, options?: { familiadaAdmin: boolean }): Promise<GameSnapshot> {
+export async function getGameSnapshot(viewerPlayerId?: number, options?: { admin: boolean }): Promise<GameSnapshot> {
   await ensureDatabase();
   const sql = database();
   const reads = [
@@ -1080,7 +1085,10 @@ export async function getGameSnapshot(viewerPlayerId?: number, options?: { famil
     ` as SnapshotQuery<TeamScoreRow>,
     sql`SELECT COALESCE(SUM(tokens), 0) AS total_tokens FROM players WHERE active = TRUE` as SnapshotQuery<TotalTokensRow>,
     sql`
-      SELECT id, sequence, category_id, stage, team_a_id, team_b_id, active_team_id, item_index,
+      SELECT id, sequence, CASE WHEN category_id IN (
+          SELECT jsonb_array_elements_text(${JSON.stringify(THE_FLOOR_CATEGORY_IDS)}::JSONB)
+        ) THEN category_id ELSE 'archiwalna' END AS category_id,
+        stage, team_a_id, team_b_id, active_team_id, item_index,
         team_a_time_seconds, team_b_time_seconds, turn_started_at, started_at, ended_at, winner_team_id
       FROM the_floor_duels
       ORDER BY sequence
@@ -1126,6 +1134,7 @@ export async function getGameSnapshot(viewerPlayerId?: number, options?: { famil
     throw new Error("Game state could not be loaded.");
   }
   const game = toGameState(gameRows[0]);
+  const isAdmin = options?.admin === true && viewerPlayerId === undefined;
   const floorDuels = floorDuelRows.map((row) => toTheFloorDuel(
     row,
     floorBetCountRows.find((count) => count.duel_id === row.id)?.bet_count ?? 0,
@@ -1133,9 +1142,11 @@ export async function getGameSnapshot(viewerPlayerId?: number, options?: { famil
   ));
   const currentFloorDuel = floorDuels.find((duel) => duel.sequence === game.currentTheFloorDuelSequence) ?? null;
   const floorContent = game.activeSegment === "the-floor" && currentFloorDuel && game.theFloorStage !== "results"
-    ? await getTheFloorContent(currentFloorDuel.categoryId, game.theFloorStage === "live" ? currentFloorDuel.itemIndex : null)
+    ? await getTheFloorContent(currentFloorDuel.categoryId, game.theFloorStage === "live" ? currentFloorDuel.itemIndex : null, isAdmin)
     : null;
-  const theFloor: TheFloorState = { stage: game.theFloorStage, currentDuel: currentFloorDuel, duels: floorDuels, content: floorContent };
+  const catalogErrors = isAdmin && game.activeSegment === "the-floor" && game.theFloorStage === "intro"
+    ? (await getTheFloorCatalogStatus()).errors : undefined;
+  const theFloor: TheFloorState = { stage: game.theFloorStage, currentDuel: currentFloorDuel, duels: floorDuels, content: floorContent, catalogErrors };
   const sportChallenges = sportChallengeRows.map((row) => toSportChallenge(
     row,
     sportBetCountRows.find((count) => count.challenge_id === row.id)?.bet_count ?? 0,
@@ -1204,7 +1215,7 @@ export async function getGameSnapshot(viewerPlayerId?: number, options?: { famil
     sport,
     melodia,
     pojedynki,
-    familiada: getFamiliadaSnapshot(gameRows[0].familiada_state, gameRows[0].familiada_revision, familiadaBets, options?.familiadaAdmin === true && viewerPlayerId === undefined),
+    familiada: getFamiliadaSnapshot(gameRows[0].familiada_state, gameRows[0].familiada_revision, familiadaBets, isAdmin),
   };
 }
 
@@ -1548,19 +1559,21 @@ export async function confirmSolenizantScore(input: { questionIndex: number; tea
 /** Seeds six durable category slots and opens The Floor participant setup. */
 export async function startTheFloorSegment() {
   await ensureDatabase();
+  const { available } = await getTheFloorCatalogStatus();
+  if (!available.length) return "no-categories";
   const sql = database();
   const rows = (await sql`
-    WITH seeded AS (
-      INSERT INTO the_floor_duels (sequence, category_id)
-      SELECT (position - 1)::SMALLINT, category_id
-      FROM jsonb_array_elements_text(${JSON.stringify(THE_FLOOR_CATEGORY_IDS)}::JSONB) WITH ORDINALITY AS category(category_id, position)
-      ON CONFLICT (sequence) DO NOTHING
-      RETURNING id
-    ),
-    opened AS (
+    WITH opened AS (
       UPDATE game_state
       SET active_segment = 'the-floor', the_floor_stage = 'setup', current_the_floor_duel_sequence = 0
       WHERE id = 1 AND status = 'started' AND the_floor_stage = 'intro'
+      RETURNING id
+    ),
+    seeded AS (
+      INSERT INTO the_floor_duels (sequence, category_id)
+      SELECT (position - 1)::SMALLINT, category_id
+      FROM opened CROSS JOIN jsonb_array_elements_text(${JSON.stringify(available)}::JSONB) WITH ORDINALITY AS category(category_id, position)
+      ON CONFLICT (sequence) DO NOTHING
       RETURNING id
     )
     INSERT INTO admin_actions (action, details)
@@ -1568,7 +1581,7 @@ export async function startTheFloorSegment() {
     FROM opened
     RETURNING id
   `) as { id: number }[];
-  return rows.length > 0;
+  return rows.length > 0 ? "started" : "conflict";
 }
 
 /** Clears only The Floor state, bets, and results while preserving players and balances. */
@@ -1919,7 +1932,9 @@ export async function moveToNextTheFloorDuel() {
   const sql = database();
   const rows = (await sql`
     WITH current_game AS (
-      SELECT current_the_floor_duel_sequence
+      SELECT current_the_floor_duel_sequence, (
+        SELECT MIN(sequence) FROM the_floor_duels WHERE sequence > game_state.current_the_floor_duel_sequence
+      ) AS next_sequence
       FROM game_state
       WHERE id = 1 AND active_segment = 'the-floor' AND the_floor_stage = 'result'
         AND EXISTS (
@@ -1933,8 +1948,8 @@ export async function moveToNextTheFloorDuel() {
     advanced AS (
       UPDATE game_state game
       SET
-        current_the_floor_duel_sequence = CASE WHEN current_game.current_the_floor_duel_sequence < ${THE_FLOOR_CATEGORY_COUNT - 1} THEN current_game.current_the_floor_duel_sequence + 1 ELSE current_game.current_the_floor_duel_sequence END,
-        the_floor_stage = CASE WHEN current_game.current_the_floor_duel_sequence < ${THE_FLOOR_CATEGORY_COUNT - 1} THEN 'setup' ELSE 'results' END
+        current_the_floor_duel_sequence = COALESCE(current_game.next_sequence, current_game.current_the_floor_duel_sequence),
+        the_floor_stage = CASE WHEN current_game.next_sequence IS NULL THEN 'results' ELSE 'setup' END
       FROM current_game
       WHERE game.id = 1
       RETURNING game.the_floor_stage

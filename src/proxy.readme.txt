@@ -1,0 +1,3 @@
+File: src/proxy.ts
+
+Blocks direct HTTP access to Floor source files under the current and legacy public directory names before Next.js serves static assets. Raster assets in the current directory remain public, so their filenames must avoid answer text. Verified administrator snapshots are authorized in the page and state Route Handler.

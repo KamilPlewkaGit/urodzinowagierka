@@ -79,10 +79,12 @@ export interface TheFloorContent {
   itemCount: number;
   categoryError: string | null;
   prompt: TheFloorPrompt | null;
+  adminAnswer?: string | null;
 }
 
 export interface TheFloorState {
   content: TheFloorContent | null;
+  catalogErrors?: string[];
   stage: TheFloorStage;
   currentDuel: TheFloorDuel | null;
   duels: TheFloorDuel[];

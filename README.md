@@ -53,7 +53,7 @@ Wszystkie widoki korzystają z jednego odczytu `/api/game/state` co cztery sekun
 ├── .gitignore
 ├── AGENTS.md                            # Mandatory instructions for coding agents
 ├── README.md                            # This system overview
-├── public/floor/                        # The Floor ordered JSON and images
+├── public/the floor/                        # The Floor ordered JSON and images
 ├── next.config.ts
 ├── next.config.readme.txt
 ├── next-env.d.ts
@@ -111,7 +111,7 @@ Segment VIII adds `src/app/api/segment/familiada/route.ts`, the server-only `src
 | `src/lib/database.ts` | Neon queries, schema bootstrap/migration, mapping, constraints, rejoining, game/segment/player-admin reads, and authoritative writes and settlement for all segments, including Familiada buzzer arbitration and match wagers. |
 | `src/lib/session.ts` | Creation/verification of database-backed opaque HttpOnly session cookies; never imported by client code. |
 | `src/lib/validation.ts` | Shared server input schemas for segments, including the Familiada command contract, navigation, exact decimal balance, and player removal. |
-| `src/lib/floor-content.ts` | Server-side loader for ordered The Floor content and images from `public/floor/`. |
+| `src/lib/floor-content.ts` | Server-side loader for ordered The Floor content and images from `public/the floor/`. |
 | `src/lib/familiada.ts` | Server-only ordered question bank, gameplay transitions and role-specific snapshot projection. |
 | `src/lib/chips.ts` / `constants.ts` / `types.ts` / `solenizant.ts` / `floor.ts` / `sport.ts` / `melodia.ts` / `pojedynki.ts` | Decimal chip display helper, stable metadata/contracts, fixed questions, The Floor category metadata and timing, SPORT schedule, music metadata, and four-duel metadata shared by UI and server code. |
 
@@ -147,7 +147,7 @@ Each row is uniquely keyed by question index. Inserting this row, incrementing s
 
 ### `the_floor_duels`
 
-The Floor has six durable category slots (`sequence` 0–5), each with a fixed category ID, stage, two competing team IDs, an active team ID, current item index, both stored team timer bases, a server turn timestamp, winning team, and one-time settlement timestamp. The client derives a smooth display countdown from the stored timer plus timestamp; it never writes elapsed time. Every control action locks the current duel and recalculates time in PostgreSQL using `NOW()`. Migration preserves legacy player-reference columns only to backfill the new team fields; new workflow writes team fields exclusively.
+The Floor has up to six durable category slots (`sequence` 0–5), each with a fixed category ID, stage, two competing team IDs, an active team ID, current item index, both stored team timer bases, a server turn timestamp, winning team, and one-time settlement timestamp. The client derives a smooth display countdown from the stored timer plus timestamp; it never writes elapsed time. Every control action locks the current duel and recalculates time in PostgreSQL using `NOW()`. Migration preserves legacy player-reference columns only to backfill the new team fields; new workflow writes team fields exclusively.
 
 ### `the_floor_bets`
 
@@ -159,11 +159,13 @@ For each category slot, the administrator sees all four teams, chooses the first
 
 ### Treści The Floor
 
-Serwer wyszukuje pliki JSON rekurencyjnie w `public/floor/`. Rozpoznaje kategorię po nazwie folderu, nazwie pliku albo polu `category`, a pozycje wyświetla w kolejności z tablicy. Migawka gry zawiera opis kategorii, liczbę pozycji i bieżącą zagadkę. Duże obrazy osadzone w JSON-ie są pobierane osobno. Ścieżki lokalne prowadzą do publicznych adresów `/floor/…`.
+Serwer odczytuje pliki JSON rekurencyjnie z katalogu `public/the floor/`. Kolejność pojedynków to **Znajome twarze**, **Lokalne miejsca**, **Loga**, **Czytanie od tyłu**, **Działania** i **Rebusy**. Nowa rozgrywka używa dostępnych zestawów, a panel prowadzącego zgłasza brakujące lub błędne pliki. Kolejność zagadek wynika z tablic w JSON-ie.
 
-Nowy segment nadal ma sześć pojedynków. Szósty to **Rebusy**. Zapisane pojedynki zachowują swoje identyfikatory kategorii, w tym dawną kategorię **Znane kobiety**. Gdy brakuje jej pliku JSON, pojawia się komunikat. Serwer przewija zagadki po rzeczywistej liczbie pozycji w kategorii, korzystając z tego samego źródła co widok gracza i prowadzącego. Czasy, zmiana drużyny, kara za pominięcie oraz rozliczenie zakładów działają według swoich dotychczasowych reguł.
+Działania i odwrócone wyrazy są wyświetlane jako duży tekst. Grafiki lokalne mają adresy pod `/the%20floor/`, a grafiki osadzone i zewnętrzne są podawane według identyfikatora kategorii i numeru pozycji. Proxy Next.js blokuje publiczny dostęp do źródłowych plików JSON. Wyłącznie zweryfikowana sesja administratora otrzymuje odpowiedź bieżącej pozycji w migawce. Pytanie i odpowiedź aktualizują się razem.
 
-Pliki w katalogu głównym i zagnieżdżone mogą zawierać tablicę pozycji lub obiekt z tablicą `items` i opcjonalnym polem `category`. Na przykład `public/floor/rebus/rebusy.json` wskazuje istniejące grafiki przez `image: "atlas.png"`. Next.js dołącza materiały do śladów plików wykorzystywanych na Vercel. Po zmianie danych zrestartuj serwer lokalny lub wdróż nową wersję. Dokładne ścieżki, pola i obsługę błędów opisuje [public/floor/README.md](public/floor/README.md).
+Niezakończony pojedynek wycofanej kategorii przechodzi na Rebusy od pierwszej pozycji, zachowując drużyny, zegary i zakłady. Zakończone pojedynki i rozliczenia pozostają w bazie.
+
+Next.js dołącza materiały do śladów plików potrzebnych na Vercel. Po zmianie danych zrestartuj serwer lokalny lub wdróż nową wersję. Formaty i pliki opisuje [dokumentacja materiałów The Floor](public/the%20floor/README.md).
 
 ### SPORT: pairs, player ranks, and challenges
 

@@ -19,3 +19,5 @@ Segment VI update: `SegmentId` additionally includes `pojedynki`. `PojedynkiStat
 Segment VIII adds `familiada` to `SegmentId` and `FamiliadaSnapshot` to the shared game snapshot. It carries an opaque revision, match score summaries, current phase, the current ranked board, representatives and the viewer's private wager. An unrevealed slot carries only its position and null. The optional current answer key is populated by authorized administrator reads.
 
 The Floor snapshot content carries the active category name, instructions, item count, a Polish category error if applicable, and the current typed text/image/error prompt during play.
+
+The optional Floor adminAnswer field is projected only for verified administrators during live play. catalogErrors reports setup material problems in the admin introduction.

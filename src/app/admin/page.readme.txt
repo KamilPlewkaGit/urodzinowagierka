@@ -13,3 +13,5 @@ Implementation details: Authorization uses the server-resolved session role, nev
 Future expansion: New administrative panels belong in protected components plus separately authorized Route Handlers; do not make this page a mutation endpoint.
 
 The verified administrator read includes the current Familiada answer key for the initial dashboard render.
+
+The verified administrator initial snapshot also includes the live Floor answer.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 
 import { CasinoLogo } from "@/components/casino-logo";
@@ -33,8 +33,11 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
   const [chipValue, setChipValue] = useState("");
   const [error, setError] = useState("");
   const [removalNotice, setRemovalNotice] = useState("");
+  const refreshSequence = useRef(0);
+  const appliedSequence = useRef(0);
 
   const refresh = useCallback(async () => {
+    const sequence = ++refreshSequence.current;
     try {
       const response = await fetch("/api/game/state", { cache: "no-store" });
       if (response.status === 401) {
@@ -43,7 +46,11 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
         return;
       }
       if (!response.ok) throw new Error("Nie udało się pobrać stanu gry.");
-      setSnapshot((await response.json()) as GameSnapshot);
+      const next = (await response.json()) as GameSnapshot;
+      if (sequence > appliedSequence.current) {
+        appliedSequence.current = sequence;
+        setSnapshot(next);
+      }
     } catch {
       // Zachowaj ostatni poprawny stan; kolejne odpytywanie podejmie próbę ponownie.
     }
@@ -198,7 +205,7 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
   const floorStatusLabel = !isStarted
     ? "Lobby oczekuje"
     : snapshot.theFloor.stage === "intro" ? "Segment gotowy"
-      : snapshot.theFloor.stage === "setup" ? `Wybór pary ${snapshot.game.currentTheFloorDuelSequence + 1}/6`
+      : snapshot.theFloor.stage === "setup" ? `Wybór pary ${snapshot.game.currentTheFloorDuelSequence + 1}/${snapshot.theFloor.duels.length}`
         : snapshot.theFloor.stage === "betting" ? "Zakłady otwarte"
           : snapshot.theFloor.stage === "live" ? "Pojedynek trwa"
             : snapshot.theFloor.stage === "result" ? "Wynik pojedynku"

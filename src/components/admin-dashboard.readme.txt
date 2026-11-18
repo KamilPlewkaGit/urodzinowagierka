@@ -19,3 +19,5 @@ Segment VI update: Navigation now includes a fifth option, `Pojedynki`, with its
 The game-start panel tells the administrator where the active segment appears in the player dashboard.
 
 Segment VIII adds Familiada after Pojedynki in navigation. The dashboard displays its current phase, mounts the focused controls, and posts the current revision with a restart command only after confirmation. The confirmation explains the refund of pending stakes.
+
+The Floor setup progress label uses the number of persisted slots. The dashboard applies snapshot responses in request order, discarding late responses that could roll back a newer Floor item or Familiada phase after an action.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { type CSSProperties, useState } from "react";
 
 import type { TheFloorPrompt } from "@/lib/types";
 
@@ -13,9 +13,11 @@ export function FloorPrompt({ prompt, alt, admin = false }: {
   if (!prompt) return null;
   if (prompt.kind === "error") return <p className="form-error" role="alert">{prompt.message}</p>;
   if (prompt.kind === "text") {
-    return <p className="floor-waiting p-4 text-center">
-      <strong className="break-words font-serif text-4xl sm:text-5xl">{prompt.text}</strong>
-    </p>;
+    return (
+      <div className={admin ? "floor-text-prompt floor-admin-text-prompt" : "floor-text-prompt"}>
+        <strong style={{ "--floor-prompt-length": Array.from(prompt.text).length } as CSSProperties}>{prompt.text}</strong>
+      </div>
+    );
   }
   if (failedUrl === prompt.url) return <p className="form-error" role="alert">Nie udało się wyświetlić obrazu. Przejdź do następnej pozycji.</p>;
 

@@ -49,6 +49,7 @@ function MatchSetup({ savedTeams, pending, send }: { savedTeams: Matchups | null
           </fieldset>
         ))}
       </div>
+      {!saved && <p>Wybierz cztery drużyny i zatwierdź skład obu meczów, aby rozpocząć Familiadę.</p>}
       <div className={styles.actions}>
         <button type="button" className="quiet-button" disabled={pending || !ready || saved} onClick={() => void send({ action: "configure", teams: teams as Matchups })}>Zatwierdź drużyny</button>
         <button type="button" className="gold-button" disabled={pending || !saved} onClick={() => void send({ action: "start" })}>Rozpocznij segment</button>
@@ -123,6 +124,7 @@ export function FamiliadaAdminControls({ snapshot, onRefresh }: { snapshot: Game
       {match && stage !== "setup" && stage !== "completed" && <FamiliadaScores match={match} />}
       {predicts && (
         <div className={styles.message}>
+          {stage === "match-ready" && <p>Mecz jest gotowy. Otwórz lub pomiń zakłady, aby przejść do wyboru przedstawicieli i uruchomić pierwsze pytanie.</p>}
           {stage === "betting" && <p>Przyjęte zakłady: <strong>{match.betCount}</strong></p>}
           <div className={styles.actions}>
             {stage === "match-ready" && <button type="button" className="gold-button" disabled={pending} onClick={() => void send({ action: "open-betting" })}>Otwórz zakłady</button>}

@@ -1,3 +1,5 @@
 File: src/components/floor-prompt.tsx
 
 Shared player and administrator prompt display for a single snapshot position. It renders a raster image, a text prompt, or a Polish error. Failed browser image loads report a Polish message. Parents key the component by duel and item index so a broken graphic cannot hide the next position.
+
+Text is centered on a white surface. Type size scales with the card width and prompt length, with wrapping for narrow displays.

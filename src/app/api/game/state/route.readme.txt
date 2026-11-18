@@ -19,3 +19,5 @@ Segment VI update: The snapshot now also includes four Pojedynki slots, their se
 Segment VIII adds match summaries and the current Familiada board. The verified session role alone controls the privileged current answer key. The player projection contains only ranked slot placeholders and already published text and points, plus that player's own bet. The same no-cache poll synchronizes all phases.
 
 For the active Floor duel, the snapshot includes category metadata, item count and the current live prompt. Embedded images use a dedicated URL, so the poll stays small.
+
+The same verified administrator projection includes the current Floor answer. Player snapshots omit the field. Prompt and answer advance together in a single response.

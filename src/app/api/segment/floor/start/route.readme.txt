@@ -1,6 +1,6 @@
 File: `src/app/api/segment/floor/start/route.ts`
 
-Purpose and responsibilities: Starts The Floor by seeding six category slots and opening the first team-selection stage.
+Purpose and responsibilities: Starts The Floor by seeding available JSON category slots and opening the first team-selection stage.
 
 Important exports, inputs, and outputs: Admin-only bodyless `POST(request)` returns `{ ok: true }` or Polish errors.
 
@@ -8,4 +8,4 @@ Dependencies: Next Route Handler APIs, opaque sessions, and `database.ts`.
 
 Backend/database interactions: Verifies the session and calls `startTheFloorSegment`, which inserts category slots idempotently and moves the persisted state from `intro` to `setup`.
 
-Implementation details: It accepts no browser-defined categories, teams, or player data.
+Implementation details: The server returns a Polish conflict when no usable decks are available. It accepts no browser-defined categories, teams, or player data.

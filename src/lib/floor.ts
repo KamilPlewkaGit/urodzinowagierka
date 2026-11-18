@@ -8,7 +8,6 @@ export const THE_FLOOR_BET_STAKE = "2.0000";
 export const THE_FLOOR_CATEGORY_IDS = [
   "znajome-twarze", "lokalne-miejsca", "loga", "od-tylu", "dzialania", "rebusy",
 ] as const;
-export const THE_FLOOR_CATEGORY_COUNT = THE_FLOOR_CATEGORY_IDS.length;
 
 export const THE_FLOOR_CATEGORY_META = {
   "znajome-twarze": {
@@ -22,10 +21,9 @@ export const THE_FLOOR_CATEGORY_META = {
     aliases: ["miejsca"],
   },
   loga: { name: "Loga", instructions: "Rozpoznajcie markę po logotypie.", aliases: ["logotypy"] },
-  "od-tylu": { name: "Od tyłu", instructions: "Odczytajcie wyraz zapisany od tyłu.", aliases: [] },
+  "od-tylu": { name: "Czytanie od tyłu", instructions: "Odczytajcie wyraz zapisany od tyłu.", aliases: ["czytanie-od-tylu"] },
   dzialania: { name: "Działania", instructions: "Policzcie działanie i podajcie wynik.", aliases: ["the-floor-dzialania"] },
   rebusy: { name: "Rebusy", instructions: "Rozwiążcie rebus widoczny na grafice.", aliases: ["rebus"] },
-  "znane-kobiety": { name: "Znane kobiety", instructions: "Rozpoznajcie kobietę na zdjęciu.", aliases: [] },
 } satisfies Record<string, { name: string; instructions: string; aliases: string[] }>;
 
 export function getTheFloorTimes(duel: TheFloorDuel, now = Date.now()) {

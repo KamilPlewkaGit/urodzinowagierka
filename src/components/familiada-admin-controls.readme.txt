@@ -7,3 +7,5 @@ Inputs and outputs: Receives the administrator's game snapshot and existing refr
 Dependencies: React, Familiada board/score components and action hook, shared types, team metadata and Familiada CSS.
 
 Implementation: Empty teams remain selectable. Representative options come from the active roster. Setup and representative drafts reset only when their persisted selection or round changes. The administrator sees the current question and its full answer key in preparation, while phase-specific controls govern when answers can be published. The server awards round points automatically and commits matches only after an explicit confirmation.
+
+Setup explains that both pairs must be saved before start. Match preparation explains the next steps through betting and representative selection to the first question.
