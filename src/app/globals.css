@@ -124,3 +124,84 @@ em { color: var(--gold-light); font-weight: inherit; }
 @media (max-width: 600px) {
   .landing-shell, .app-shell { width: min(100% - 28px, 1180px); }.landing-shell, .app-shell { padding-top: 18px; }.landing-nav > span, .sync-indicator { display: none; }.landing-intro { padding-top: 59px; }.landing-intro h1, .lobby-hero h1, .admin-intro h1, .game-stage h1 { font-size: 3rem; }.landing-figures { gap: 19px; margin-top: 33px; }.landing-figures strong { font-size: 1.33rem; }.landing-figures span { font-size: .58rem; }.join-panel { padding: 24px 18px; }.team-grid { grid-template-columns: 1fr; }.ambient-chip { display: none; }.lobby-hero, .admin-intro { align-items: flex-start; padding: 40px 0 30px; }.hero-chip { width: 86px; height: 86px; flex-basis: 86px; border-width: 5px; }.hero-chip strong { font-size: 1.38rem; }.player-summary-grid { grid-template-columns: 1fr; gap: 8px; }.summary-card { min-height: 76px; grid-template-columns: 1fr auto; align-items: center; }.roster-section, .admin-roster, .score-section { padding-top: 42px; }.roster-grid, .score-grid { grid-template-columns: 1fr; }.admin-control-grid { grid-template-columns: 1fr; }.start-panel, .admin-stat-panel { min-height: auto; padding: 22px; }.start-panel h2 { margin-top: 21px; font-size: 2rem; }.admin-team-row { grid-template-columns: 29px minmax(0,1fr) auto; gap: 10px; }.admin-team-row > span:nth-of-type(2) { display: none; }.admin-names { grid-column: 2 / -1; }.game-stage { min-height: 465px; margin-top: 29px; padding: 35px 25px; }.table-felt { right: -31px; }.table-felt span { width: 65px; height: 100px; font-size: 2rem; }.topbar-actions { gap: 7px; }.admin-badge { font-size: .57rem; }.player-management-row { grid-template-columns: 1fr; gap: 10px; }.player-management-actions { grid-column: auto; }.segment-navigation-row { align-items: stretch; }.segment-navigation-row .secondary-button { width: 100%; }
 }
+
+/* Persistent player navigation and read-only chip ranking */
+.player-navigation {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  background: #15161b;
+}
+.player-navigation nav { display: flex; gap: 4px; }
+.player-navigation button {
+  min-height: 44px;
+  padding: 6px 14px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text);
+  font-size: .86rem;
+  font-weight: 600;
+}
+.player-navigation button:hover { background: rgba(255,255,255,.06); }
+.player-navigation button[aria-current="page"] {
+  border-color: var(--line);
+  color: var(--gold-light);
+  background: rgba(214,183,111,.12);
+}
+.player-balance {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  flex-wrap: wrap;
+  column-gap: 8px;
+  margin: 0;
+  color: var(--muted);
+  font-size: .8rem;
+}
+.player-balance strong {
+  color: var(--gold-light);
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+}
+.player-dashboard .lobby-hero p + p { margin-top: 6px; }
+.player-dashboard .roster-section { padding-top: 12px; }
+.chip-leaderboard { margin-top: 35px; }
+.chip-leaderboard h1 { font-family: Georgia, serif; font-size: clamp(1.7rem, 5vw, 2.5rem); }
+.chip-leaderboard table { width: 100%; border-collapse: collapse; background: #17181e; }
+.chip-leaderboard th, .chip-leaderboard td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.chip-leaderboard thead th { color: var(--muted); font-size: .8rem; }
+.chip-leaderboard td:last-child, .chip-leaderboard th:last-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.chip-leaderboard td:last-child { color: var(--gold-light); font-weight: 600; }
+.chip-leaderboard tr.is-you { background: rgba(214,183,111,.12); }
+.chip-leaderboard small { display: inline-block; margin-left: 6px; color: var(--gold-light); }
+
+@media (max-width: 640px) {
+  .player-dashboard { padding-bottom: calc(112px + env(safe-area-inset-bottom)); }
+  .player-navigation {
+    position: fixed;
+    inset: auto 0 0;
+    flex-direction: column;
+    gap: 5px;
+    padding: 6px 10px calc(6px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+    border-bottom: 0;
+  }
+  .player-navigation nav { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; }
+  .player-navigation button { padding-inline: 4px; font-size: .76rem; }
+  .chip-leaderboard th, .chip-leaderboard td { padding: 10px 5px; font-size: .76rem; }
+}

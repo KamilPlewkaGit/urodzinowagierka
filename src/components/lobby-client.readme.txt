@@ -1,13 +1,7 @@
-File: `src/components/lobby-client.tsx`
+File: src/components/lobby-client.tsx
 
-Purpose and responsibilities: Displays the signed-in player's Polish lobby summary and roster grouped by team, then moves the player to the live screen when game status changes.
+Purpose: Renders the Polish player dashboard with Lobby, Aktualny segment, and Żetony graczy. A persistent navigation bar shows the current player's chip balance at every view.
 
-Important exports, inputs, and outputs: `LobbyClient({ player, initialSnapshot })` accepts server-loaded `Player` and `GameSnapshot`, renders their UI, and polls `/api/game/state` every `POLL_INTERVAL_MS`.
+LobbyClient takes the server-verified player ID and initial game snapshot. It uses useGameSession for a shared polling and logout flow. Lobby displays all four colored teams, active players, team counts, game status, and the selected segment. The read-only ranking compares exact numeric balances in descending order, breaks ties by ascending player ID, and marks the signed-in player.
 
-Dependencies: `casino-logo`, Next router, `src/lib/constants.ts`, `src/lib/chips.ts`, and `src/lib/types.ts`.
-
-Backend/database interactions: Indirectly reads Neon through the safe state endpoint; invokes the logout endpoint to clear the session.
-
-Implementation details: The initial server snapshot avoids an empty first paint. Decimal chip strings are formatted only for display; the component never performs balance arithmetic. A revoked session redirects to the landing screen on the next poll, and game start redirects an active player to the segment.
-
-Future expansion: Use the snapshot as the single read model for new lobby widgets. Switch the polling transport only behind this refresh boundary if a real-time service becomes necessary.
+Navigation updates the widok query parameter via browser history. Refreshing or using Back and Forward restores the chosen view. With no explicit selection, the dashboard shows the lobby while waiting and the current segment once play starts. During play, ActiveSegment stays mounted while hidden so changing views preserves drafts and in-flight bets. Polling updates every view from a single server snapshot.

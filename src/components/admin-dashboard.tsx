@@ -253,7 +253,7 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
             <>
               <span className="panel-index">01 / START GRY</span>
               <h2>Gotowi do gry?</h2>
-              <p>Po rozpoczęciu wszyscy gracze przejdą z lobby do ekranu segmentu.</p>
+              <p>Po rozpoczęciu gra pojawi się w zakładce „Aktualny segment” w panelu gracza.</p>
               <button className="gold-button start-button" onClick={startGame} disabled={pendingAction !== null}>
                 <span>{pendingAction === "game" ? "Rozpoczynanie gry…" : "Rozpocznij grę"}</span>
                 <span aria-hidden="true">→</span>

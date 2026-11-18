@@ -1,13 +1,5 @@
-File: `src/components/melodia-screen.tsx`
+File: src/components/melodia-screen.tsx
 
-Purpose and responsibilities: Renders the Polish player and administrator display surface for Segment V, Jaka to melodia?, including the introduction, pre-song betting market, five external-music song screens, segment scoreboard, confirmed results, and final standings.
+Purpose: Jaka to melodia? displays its pre-song betting market, five externally played songs, and segment scores and results. During the market the player can submit a team and decimal stake to /api/segment/melodia/bet. The component retains the draft team and stake while its parent hides the segment panel.
 
-Important exports, inputs, and outputs: `MelodiaScreen({ initialSnapshot, viewerRole, viewerPlayerId })` accepts the safe server snapshot and session-derived viewer identity. A player can select a team, enter a decimal stake, and post one bet only while the persisted music market is open. It never sends score, balance, winner, or stage mutations.
-
-Dependencies: Next router, shared casino/team/chip/polling helpers, `melodia.ts`, shared types, and `/api/game/state` plus the protected player betting route.
-
-Backend/database interactions: Polls the non-cacheable authenticated snapshot every four seconds. It sends only `{ targetTeamId, stake }` to `/api/segment/melodia/bet`; server code validates the player, phase, duplicate bet, and balance.
-
-Implementation details: The song view never reveals an artist or title and explicitly states that music is played outside the application. Rankings use `melodia.teamScores`, which are segment-specific. A final tie is visibly stated and shows refunded bets rather than inventing a winner. Local React state is restricted to an unfinished bet form and transient error/loading feedback.
-
-Future expansion: Add only safe display data to the snapshot. Keep scoring, progression, settlement, and media control out of this client component.
+ActiveSegment supplies the live GameSnapshot, viewer role and optional session-derived player ID, and a shared refresh callback. After a successful bet the screen requests a fresh snapshot through that callback. The screen receives only the viewer's own bet details and keeps transient feedback local. Game progression and settlement remain in the existing protected Route Handlers.

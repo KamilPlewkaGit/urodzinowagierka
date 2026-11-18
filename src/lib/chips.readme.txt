@@ -11,3 +11,5 @@ Backend/database interactions: None. Precision-sensitive balance arithmetic rema
 Implementation details: The function deliberately operates on strings so browser floating-point arithmetic cannot alter a chip balance.
 
 Future expansion: Keep arithmetic in server/database code; add only presentation helpers here.
+
+formatPolishChips displays dashboard balances with a decimal comma. compareChipBalances orders the non-negative NUMERIC(20,4) strings used by the ranking using exact scaled BigInt values. The existing formatChips helper retains its decimal point for the administrator input.

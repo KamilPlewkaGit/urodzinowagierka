@@ -15,3 +15,5 @@ Future expansion: Add a separate protected workflow for another segment rather t
 Segment V update: Navigation now has a fourth option, `Jaka to melodia?`, with an independent restart endpoint and status label. `MelodiaAdminControls` is mounted only for an authenticated administrator viewing that active segment; its five-song progression, scoring, and market settlement remain isolated from existing controls.
 
 Segment VI update: Navigation now includes a fifth option, `Pojedynki`, with its own status labels and restart endpoint. `PojedynkiAdminControls` is mounted only while that segment is active, keeping its four team-duel actions separate from all prior segment controls.
+
+The game-start panel tells the administrator where the active segment appears in the player dashboard.

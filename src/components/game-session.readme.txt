@@ -1,0 +1,7 @@
+File: src/components/game-session.tsx
+
+Purpose: Shares snapshot synchronization and the existing active-segment display between the player dashboard and the administrator's live preview.
+
+useGameSession takes the initial server snapshot and optional verified player ID. It polls GET /api/game/state every four seconds, retains the last good data during a recoverable error, and redirects expired or removed sessions to the landing page. The post-bet refresh replaces any older in-flight read. Unmounting clears the poll and aborts the current read. Explicit logout calls POST /api/auth/logout and reports a failed attempt.
+
+ActiveSegment selects an existing screen from snapshot.game.activeSegment and passes the live snapshot and post-bet refresh handler. AdminGamePreview keeps the administrator's preview and return to /admin, including after the game resets.

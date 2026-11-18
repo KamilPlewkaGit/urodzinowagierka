@@ -1,13 +1,5 @@
-File: `src/components/sport-screen.tsx`
+File: src/components/sport-screen.tsx
 
-Purpose and responsibilities: Renders the Polish player-facing SPORT segment: preparation, team pairings, assigned rank, main-challenge betting/live/result states, and both bonus-round states.
+Purpose: SPORT displays team pairs, assigned ranks, challenges, bets, and both bonus rounds. Persisted ranks 1–5 resolve scheduled participants. The server owns the fixed stake and eligibility. The player sends only the target team to /api/segment/sport/bet.
 
-Important exports, inputs, and outputs: `SportScreen({ initialSnapshot, viewerRole, viewerPlayerId })` polls the authoritative snapshot and lets an eligible player send only a `{ targetTeamId }` bet.
-
-Dependencies: Next router, casino logo, chips/team metadata, SPORT schedule metadata, and shared types.
-
-Backend/database interactions: Reads `/api/game/state` and posts bets to `/api/segment/sport/bet`. It never posts a balance, pairing, number assignment, winner, points, or stage.
-
-Implementation details: The screen resolves schedule pair slots from saved administrator pairings, maps persisted ranks to nicknames, shows the viewer's rank and balance, and excludes members of the two current teams from betting. Only ranks 1–5 are referenced by the fixed challenge schedule; higher ranks remain visible as assigned roster ranks.
-
-Future expansion: Keep physical-activity outcomes administrator-controlled through protected route handlers.
+ActiveSegment supplies the live GameSnapshot, viewer role and optional session-derived player ID, and a shared refresh callback. After a successful bet the screen requests a fresh snapshot through that callback. The screen receives only the viewer's own bet details and keeps transient feedback local. Game progression and settlement remain in the existing protected Route Handlers.

@@ -1,13 +1,3 @@
-File: `src/components/game-screen.tsx`
+File: src/components/game-screen.tsx
 
-Purpose and responsibilities: Renders the Polish player-facing SOLENIZANT introduction, current question, final result view, and persistent team score board.
-
-Important exports, inputs, and outputs: `GameScreen({ initialSnapshot, viewerRole })` accepts a server snapshot and safe viewer role. It polls the authenticated state endpoint and never exposes a player action that can change segment progress.
-
-Dependencies: `casino-logo`, Next router, `src/lib/constants.ts`, `src/lib/solenizant.ts`, and `src/lib/types.ts`.
-
-Backend/database interactions: Indirectly reads Neon through `/api/game/state` and calls the logout endpoint. It performs no game, question, or scoring mutation.
-
-Implementation details: Both the persisted `question` and `scoring` stages render exactly the same question for players. The component refreshes the server route when active segment changes so Next can replace it with `FloorScreen`; it does not try to interpret Floor state itself.
-
-Future expansion: Add a dedicated display component for a future segment instead of putting another segment's state machine in this component.
+Purpose: Renders the Polish SOLENIZANT introduction, current question, final result, and team scoreboard from the live GameSnapshot supplied by ActiveSegment. Both question and scoring stages show the same question. The component is display-only and receives synchronized state from its parent.

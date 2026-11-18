@@ -1667,7 +1667,7 @@ export async function startSportSegment() {
       RETURNING id
     )
     INSERT INTO admin_actions (action, details)
-    SELECT 'sport_started', jsonb_build_object('challenges', ${SPORT_CHALLENGE_COUNT}, 'bonusRounds', ${SPORT_BONUS_ROUND_COUNT})
+    SELECT 'sport_started', jsonb_build_object('challenges', ${SPORT_CHALLENGE_COUNT}::INTEGER, 'bonusRounds', ${SPORT_BONUS_ROUND_COUNT}::INTEGER)
     FROM opened
     RETURNING id
   `) as { id: number }[];
@@ -1746,7 +1746,7 @@ export async function configureSportSetup(input: {
   if (input.assignments.length === 0) {
     await sql`
       INSERT INTO admin_actions (action, details)
-      VALUES ('sport_pairs_saved', jsonb_build_object('pairA', jsonb_build_array(${input.pairA.teamAId}, ${input.pairA.teamBId}), 'pairB', jsonb_build_array(${input.pairB.teamAId}, ${input.pairB.teamBId})))
+      VALUES ('sport_pairs_saved', jsonb_build_object('pairA', jsonb_build_array(${input.pairA.teamAId}::TEXT, ${input.pairA.teamBId}::TEXT), 'pairB', jsonb_build_array(${input.pairB.teamAId}::TEXT, ${input.pairB.teamBId}::TEXT)))
     `;
     return true;
   }
@@ -1758,7 +1758,7 @@ export async function configureSportSetup(input: {
   `;
   await sql`
     INSERT INTO admin_actions (action, details)
-    VALUES ('sport_setup_saved', jsonb_build_object('pairA', jsonb_build_array(${input.pairA.teamAId}, ${input.pairA.teamBId}), 'pairB', jsonb_build_array(${input.pairB.teamAId}, ${input.pairB.teamBId})))
+    VALUES ('sport_setup_saved', jsonb_build_object('pairA', jsonb_build_array(${input.pairA.teamAId}::TEXT, ${input.pairA.teamBId}::TEXT), 'pairB', jsonb_build_array(${input.pairB.teamAId}::TEXT, ${input.pairB.teamBId}::TEXT)))
   `;
   return true;
 }
@@ -1775,7 +1775,7 @@ export async function startSportChallenges() {
       FOR UPDATE
     ),
     valid_pairings AS (
-      SELECT COUNT(*) = 2
+      SELECT COUNT(*) = 4
         AND COUNT(DISTINCT team_id) = 4 AS completed
       FROM (
         SELECT team_a_id AS team_id FROM sport_pairings

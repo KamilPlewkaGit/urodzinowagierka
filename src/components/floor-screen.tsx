@@ -1,16 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-
-import { CasinoLogo } from "@/components/casino-logo";
+import { useEffect, useMemo, useState } from "react";
 import { formatChips } from "@/lib/chips";
-import { getTeam, POLL_INTERVAL_MS } from "@/lib/constants";
+import { getTeam } from "@/lib/constants";
 import { THE_FLOOR_BET_STAKE, THE_FLOOR_TITLE, getTheFloorCategory, getTheFloorItem, getTheFloorTimes } from "@/lib/floor";
 import type { GameSnapshot, TeamId, TeamMeta } from "@/lib/types";
 
 interface FloorScreenProps {
-  initialSnapshot: GameSnapshot;
+  snapshot: GameSnapshot;
+  refresh: () => Promise<void>;
   viewerRole: "player" | "admin";
   viewerPlayerId?: number;
 }
@@ -39,31 +37,10 @@ function TeamDuelists({ teamA, teamB, activeTeamId = null, teamATimeSeconds, tea
   );
 }
 
-export function FloorScreen({ initialSnapshot, viewerRole, viewerPlayerId }: FloorScreenProps) {
-  const router = useRouter();
-  const [snapshot, setSnapshot] = useState(initialSnapshot);
+export function FloorScreen({ snapshot, refresh, viewerRole, viewerPlayerId }: FloorScreenProps) {
   const [now, setNow] = useState(Date.now());
   const [error, setError] = useState("");
   const [betting, setBetting] = useState(false);
-
-  const refresh = useCallback(async () => {
-    try {
-      const response = await fetch("/api/game/state", { cache: "no-store" });
-      if (response.status === 401) { router.replace("/"); router.refresh(); return; }
-      if (!response.ok) throw new Error();
-      const next = (await response.json()) as GameSnapshot;
-      setSnapshot(next);
-      if (next.game.activeSegment !== "the-floor") { router.refresh(); return; }
-      if (next.game.status === "waiting") { router.replace(viewerRole === "admin" ? "/admin" : "/lobby"); router.refresh(); }
-    } catch {
-      setError("Połączenie z grą jest chwilowo niedostępne.");
-    }
-  }, [router, viewerRole]);
-
-  useEffect(() => {
-    const interval = window.setInterval(refresh, POLL_INTERVAL_MS);
-    return () => window.clearInterval(interval);
-  }, [refresh]);
 
   useEffect(() => {
     const interval = window.setInterval(() => setNow(Date.now()), 250);
@@ -89,12 +66,6 @@ export function FloorScreen({ initialSnapshot, viewerRole, viewerPlayerId }: Flo
     }
   }
 
-  async function leave() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.replace("/");
-    router.refresh();
-  }
-
   const floor = snapshot.theFloor;
   const duel = floor.currentDuel;
   const category = duel ? getTheFloorCategory(duel.categoryId) : null;
@@ -107,16 +78,7 @@ export function FloorScreen({ initialSnapshot, viewerRole, viewerPlayerId }: Flo
   const times = useMemo(() => duel ? getTheFloorTimes(duel, now) : null, [duel, now]);
 
   return (
-    <main className="app-shell game-shell floor-shell">
-      <header className="topbar">
-        <CasinoLogo />
-        <div className="topbar-actions">
-          <span className="sync-indicator"><i /> Segment na żywo</span>
-          {viewerRole === "admin" ? <button className="quiet-button" onClick={() => router.push("/admin")}>Panel prowadzącego</button> : null}
-          <button className="quiet-button" onClick={leave}>Wyjdź</button>
-        </div>
-      </header>
-
+    <>
       <section className="game-stage floor-stage">
         <div className="game-stage-content">
           {floor.stage === "intro" ? <>
@@ -160,6 +122,6 @@ export function FloorScreen({ initialSnapshot, viewerRole, viewerPlayerId }: Flo
           {error ? <p className="form-error" role="alert">{error}</p> : null}
         </div>
       </section>
-    </main>
+    </>
   );
 }

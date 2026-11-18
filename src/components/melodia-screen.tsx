@@ -1,16 +1,14 @@
 "use client";
 
-import { type CSSProperties, useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-
-import { CasinoLogo } from "@/components/casino-logo";
+import { type CSSProperties, useMemo, useState } from "react";
 import { formatChips } from "@/lib/chips";
-import { POLL_INTERVAL_MS, TEAMS, getTeam } from "@/lib/constants";
+import { TEAMS, getTeam } from "@/lib/constants";
 import { MELODIA_SONG_COUNT, MELODIA_TITLE, getMelodiaSongLabel } from "@/lib/melodia";
 import type { GameSnapshot, TeamId } from "@/lib/types";
 
 interface MelodiaScreenProps {
-  initialSnapshot: GameSnapshot;
+  snapshot: GameSnapshot;
+  refresh: () => Promise<void>;
   viewerRole: "player" | "admin";
   viewerPlayerId?: number;
 }
@@ -33,32 +31,11 @@ function SegmentScoreboard({ snapshot }: { snapshot: GameSnapshot }) {
   </div>;
 }
 
-export function MelodiaScreen({ initialSnapshot, viewerRole, viewerPlayerId }: MelodiaScreenProps) {
-  const router = useRouter();
-  const [snapshot, setSnapshot] = useState(initialSnapshot);
+export function MelodiaScreen({ snapshot, refresh, viewerRole, viewerPlayerId }: MelodiaScreenProps) {
   const [selectedTeamId, setSelectedTeamId] = useState<TeamId | null>(null);
   const [stake, setStake] = useState("2");
   const [betting, setBetting] = useState(false);
   const [error, setError] = useState("");
-
-  const refresh = useCallback(async () => {
-    try {
-      const response = await fetch("/api/game/state", { cache: "no-store" });
-      if (response.status === 401) { router.replace("/"); router.refresh(); return; }
-      if (!response.ok) throw new Error();
-      const next = (await response.json()) as GameSnapshot;
-      setSnapshot(next);
-      if (next.game.activeSegment !== "melodia") { router.refresh(); return; }
-      if (next.game.status === "waiting") { router.replace(viewerRole === "admin" ? "/admin" : "/lobby"); router.refresh(); }
-    } catch {
-      setError("Połączenie z grą jest chwilowo niedostępne.");
-    }
-  }, [router, viewerRole]);
-
-  useEffect(() => {
-    const interval = window.setInterval(refresh, POLL_INTERVAL_MS);
-    return () => window.clearInterval(interval);
-  }, [refresh]);
 
   async function placeBet() {
     if (!selectedTeamId) { setError("Wybierz drużynę, na którą chcesz postawić zakład."); return; }
@@ -76,12 +53,6 @@ export function MelodiaScreen({ initialSnapshot, viewerRole, viewerPlayerId }: M
     }
   }
 
-  async function leave() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.replace("/");
-    router.refresh();
-  }
-
   const melodia = snapshot.melodia;
   const viewer = viewerPlayerId === undefined ? null : snapshot.players.find((player) => player.id === viewerPlayerId) ?? null;
   const currentSong = melodia.currentSong;
@@ -89,8 +60,7 @@ export function MelodiaScreen({ initialSnapshot, viewerRole, viewerPlayerId }: M
   const currentWinner = currentSong?.winningTeamId ? getTeam(currentSong.winningTeamId) : lastScoredSong?.winningTeamId ? getTeam(lastScoredSong.winningTeamId) : null;
   const leaders = melodia.leadingTeamIds.map(getTeam);
 
-  return <main className="app-shell game-shell floor-shell">
-    <header className="topbar"><CasinoLogo /><div className="topbar-actions"><span className="sync-indicator"><i /> Segment na żywo</span>{viewer ? <span className="sync-indicator">Żetony: {formatChips(viewer.tokens)}</span> : null}{viewerRole === "admin" ? <button className="quiet-button" onClick={() => router.push("/admin")}>Panel prowadzącego</button> : null}<button className="quiet-button" onClick={leave}>Wyjdź</button></div></header>
+  return <>
     <section className="game-stage floor-stage"><div className="game-stage-content">
       {melodia.stage === "intro" ? <><span className="eyebrow">Piąty segment</span><h1>JAKA TO <em>MELODIA?</em></h1><p>Wszystkie drużyny rywalizują jednocześnie, a muzykę odtwarza prowadzący poza aplikacją.</p><div className="floor-duelists" aria-label="Drużyny uczestniczące w segmencie">{TEAMS.map((team) => <strong key={team.id} style={{ color: team.color, borderColor: team.color }}>{team.icon} {team.name}</strong>)}</div><div className="segment-rules"><span><strong>Uczestnicy:</strong> wszystkie drużyny jednocześnie</span><span><strong>Formuła:</strong> kto pierwszy, ten lepszy</span><span><strong>Artysta:</strong> 1 punkt</span><span><strong>Tytuł piosenki:</strong> 1 punkt</span><span><strong>Śpiewanie:</strong> maks. 5 wersów / 5 punktów</span><span><strong>Pomyłka podczas śpiewania:</strong> 0 punktów za śpiewanie</span><span><strong>Licytacje:</strong> możliwe</span><span><strong>Obstawianie:</strong> najwięcej punktów po 5 piosenkach</span></div></> : null}
       {melodia.stage === "betting" ? <><span className="eyebrow">Jaka to melodia? · zakłady otwarte</span><h1>Wskaż <em>zwycięzcę.</em></h1><p>Zakład dotyczy drużyny z największą liczbą punktów po pięciu piosenkach. Remis na pierwszym miejscu oznacza zwrot stawek.</p>{viewerRole === "player" && viewer && !melodia.viewerBetTargetTeamId ? <div className="floor-bet-panel"><p>Wybierz drużynę i podaj stawkę. Dostępne żetony: <strong>{formatChips(viewer.tokens)}</strong>.</p><div className="score-choice-grid" aria-label="Wybór drużyny dla zakładu">{TEAMS.map((team) => <button key={team.id} type="button" className={`score-choice${selectedTeamId === team.id ? " is-selected" : ""}`} onClick={() => setSelectedTeamId(team.id)} disabled={betting} style={teamStyle(team.id)} aria-pressed={selectedTeamId === team.id}><span>{team.icon}</span><strong>{team.name}</strong><small>{team.tagline}</small></button>)}</div><label className="field-label" htmlFor="melodia-stake">Stawka w żetonach</label><input id="melodia-stake" className="text-input" inputMode="decimal" value={stake} onChange={(event) => setStake(event.target.value)} disabled={betting} /><div className="floor-bet-buttons"><button className="gold-button" type="button" onClick={placeBet} disabled={betting}>{betting ? "Zapisywanie zakładu…" : "Postaw zakład"}</button></div></div> : null}{viewerRole === "player" && melodia.viewerBetTargetTeamId ? <p className="floor-waiting">Twój zakład na <strong>{getTeam(melodia.viewerBetTargetTeamId).name}</strong> o stawce {formatChips(melodia.viewerBetStake ?? "0")} żetonów został przyjęty.</p> : null}<SegmentScoreboard snapshot={snapshot} /></> : null}
@@ -99,5 +69,5 @@ export function MelodiaScreen({ initialSnapshot, viewerRole, viewerPlayerId }: M
       {melodia.stage === "results" ? <><span className="eyebrow">Piąty segment · wyniki końcowe</span><h1>WYNIKI – <em>JAKA TO MELODIA?</em></h1>{currentWinner ? <p>Ostatnią piosenkę wygrała drużyna <strong>{currentWinner.name}</strong>.</p> : null}<p>{leaders.length === 1 ? <>Zwycięża <strong>{leaders[0]?.name}</strong>.</> : <>Remis na pierwszym miejscu: <strong>{leaders.map((team) => team.name).join(", ") || "brak"}</strong>. Wszystkie stawki zostały zwrócone.</>}</p><SegmentScoreboard snapshot={snapshot} />{viewerRole === "player" && melodia.viewerBetResult ? <p className="floor-waiting">{melodia.viewerBetResult === "won" ? `Twój zakład wygrał. Wypłata: ${formatChips(melodia.viewerBetPayout ?? "0")} żetonów.` : melodia.viewerBetResult === "refunded" ? `Zakład został zwrócony: ${formatChips(melodia.viewerBetPayout ?? "0")} żetonów.` : "Twój zakład nie wygrał."}</p> : null}</> : null}
       {error ? <p className="form-error" role="alert">{error}</p> : null}
     </div></section>
-  </main>;
+  </>;
 }

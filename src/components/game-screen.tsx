@@ -1,75 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
-import { useRouter } from "next/navigation";
-
-import { CasinoLogo } from "@/components/casino-logo";
-import { POLL_INTERVAL_MS, TEAMS } from "@/lib/constants";
+import { type CSSProperties } from "react";
+import { TEAMS } from "@/lib/constants";
 import { getSolenizantQuestion, SOLENIZANT_QUESTION_COUNT, SOLENIZANT_TITLE } from "@/lib/solenizant";
 import type { GameSnapshot, TeamId } from "@/lib/types";
 
 interface GameScreenProps {
-  initialSnapshot: GameSnapshot;
-  viewerRole: "player" | "admin";
+  snapshot: GameSnapshot;
 }
 
-export function GameScreen({ initialSnapshot, viewerRole }: GameScreenProps) {
-  const router = useRouter();
-  const [snapshot, setSnapshot] = useState(initialSnapshot);
-  const [syncError, setSyncError] = useState(false);
-
-  const refresh = useCallback(async () => {
-    try {
-      const response = await fetch("/api/game/state", { cache: "no-store" });
-      if (response.status === 401) {
-        router.replace("/");
-        router.refresh();
-        return;
-      }
-      if (!response.ok) throw new Error("Nie udało się pobrać stanu gry.");
-      const nextSnapshot = (await response.json()) as GameSnapshot;
-      setSnapshot(nextSnapshot);
-      setSyncError(false);
-      if (nextSnapshot.game.activeSegment !== "solenizant") {
-        router.refresh();
-        return;
-      }
-      if (nextSnapshot.game.status === "waiting") {
-        router.replace(viewerRole === "admin" ? "/admin" : "/lobby");
-        router.refresh();
-      }
-    } catch {
-      setSyncError(true);
-    }
-  }, [router, viewerRole]);
-
-  useEffect(() => {
-    const interval = window.setInterval(refresh, POLL_INTERVAL_MS);
-    return () => window.clearInterval(interval);
-  }, [refresh]);
-
-  async function leave() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.replace("/");
-    router.refresh();
-  }
-
+export function GameScreen({ snapshot }: GameScreenProps) {
   const { solenizantStage, currentQuestionIndex } = snapshot.game;
   const question = getSolenizantQuestion(currentQuestionIndex);
   const questionIsVisible = solenizantStage === "question" || solenizantStage === "scoring";
   const pointsFor = (teamId: TeamId) => snapshot.teamScores.find((score) => score.teamId === teamId)?.points ?? 0;
 
   return (
-    <main className="app-shell game-shell">
-      <header className="topbar">
-        <CasinoLogo />
-        <div className="topbar-actions">
-          <span className="sync-indicator"><i /> {syncError ? "Ponowne łączenie…" : "Segment na żywo"}</span>
-          {viewerRole === "admin" ? <button className="quiet-button" onClick={() => router.push("/admin")}>Panel prowadzącego</button> : null}
-          <button className="quiet-button" onClick={leave}>Wyjdź</button>
-        </div>
-      </header>
-
+    <>
       <section className="game-stage segment-stage">
         <div className="game-stage-glow" />
         <div className="game-stage-content">
@@ -123,6 +70,6 @@ export function GameScreen({ initialSnapshot, viewerRole }: GameScreenProps) {
           ))}
         </div>
       </section>
-    </main>
+    </>
   );
 }

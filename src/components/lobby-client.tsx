@@ -1,100 +1,51 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import type { CSSProperties } from "react";
 
 import { CasinoLogo } from "@/components/casino-logo";
-import { POLL_INTERVAL_MS, TEAMS, getTeam } from "@/lib/constants";
-import { formatChips } from "@/lib/chips";
-import type { GameSnapshot, Player } from "@/lib/types";
+import { ActiveSegment, useGameSession } from "@/components/game-session";
+import { compareChipBalances, formatPolishChips } from "@/lib/chips";
+import { TEAMS, getTeam } from "@/lib/constants";
+import { THE_FLOOR_TITLE } from "@/lib/floor";
+import { MELODIA_TITLE } from "@/lib/melodia";
+import { POJEDYNKI_TITLE } from "@/lib/pojedynki";
+import { SOLENIZANT_TITLE } from "@/lib/solenizant";
+import { SPORT_TITLE } from "@/lib/sport";
+import type { GameSnapshot, Player, SegmentId } from "@/lib/types";
 
-interface LobbyClientProps {
-  player: Player;
-  initialSnapshot: GameSnapshot;
-}
+const playerViews = [
+  { id: "lobby", label: "Lobby" },
+  { id: "segment", label: "Aktualny segment" },
+  { id: "zetony", label: "Żetony graczy" },
+] as const;
 
-export function LobbyClient({ player, initialSnapshot }: LobbyClientProps) {
-  const router = useRouter();
-  const [snapshot, setSnapshot] = useState(initialSnapshot);
-  const [syncError, setSyncError] = useState(false);
-  const currentPlayer = useMemo(
-    () => snapshot.players.find((candidate) => candidate.id === player.id) ?? player,
-    [player, snapshot.players],
-  );
-  const team = getTeam(currentPlayer.teamId);
+const segmentNames = {
+  solenizant: SOLENIZANT_TITLE,
+  "the-floor": THE_FLOOR_TITLE,
+  sport: SPORT_TITLE,
+  melodia: MELODIA_TITLE,
+  pojedynki: POJEDYNKI_TITLE,
+} satisfies Record<SegmentId, string>;
 
-  const refresh = useCallback(async () => {
-    try {
-      const response = await fetch("/api/game/state", { cache: "no-store" });
-      if (response.status === 401) {
-        router.replace("/");
-        router.refresh();
-        return;
-      }
-      if (!response.ok) throw new Error("Nie udało się pobrać stanu gry.");
-      const nextSnapshot = (await response.json()) as GameSnapshot;
-      setSnapshot(nextSnapshot);
-      setSyncError(false);
-      if (nextSnapshot.game.status === "started") router.replace("/game");
-    } catch {
-      setSyncError(true);
-    }
-  }, [router]);
-
-  useEffect(() => {
-    const interval = window.setInterval(refresh, POLL_INTERVAL_MS);
-    return () => window.clearInterval(interval);
-  }, [refresh]);
-
-  async function leaveTable() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.replace("/");
-    router.refresh();
-  }
+function Lobby({ snapshot, player }: { snapshot: GameSnapshot; player: Player }) {
+  const team = getTeam(player.teamId);
+  const started = snapshot.game.status === "started";
 
   return (
-    <main className="app-shell">
-      <header className="topbar">
-        <CasinoLogo />
-        <div className="topbar-actions">
-          <span className="sync-indicator"><i /> Lobby na żywo</span>
-          <button className="quiet-button" onClick={leaveTable}>Wyjdź</button>
-        </div>
-      </header>
-
+    <>
       <section className="lobby-hero">
         <div>
-          <span className="eyebrow">Prywatny salon gry</span>
-          <h1>Witaj, <em>{currentPlayer.nickname}</em>.</h1>
-          <p>Czekamy, aż prowadzący rozpocznie grę.</p>
-        </div>
-        <div className="hero-chip" aria-label={`${formatChips(currentPlayer.tokens)} żetonów kasynowych`}>
-          <span>♛</span><strong>{formatChips(currentPlayer.tokens)}</strong><small>ŻETONY</small>
+          <h1>Witaj, <em>{player.nickname}</em>.</h1>
+          <p>{started ? "Gra trwa" : "Oczekiwanie na administratora"}</p>
+          <p>Aktualny segment: <strong>{segmentNames[snapshot.game.activeSegment]}</strong></p>
+          <p>Twoja drużyna: <strong style={{ color: team.color }}>{team.icon} {team.name}</strong></p>
         </div>
       </section>
 
-      <section className="player-summary-grid" aria-label="Dane gracza">
-        <article className="summary-card">
-          <span className="summary-label">Twoja drużyna</span>
-          <strong className="house-value" style={{ color: team.color }}><span>{team.icon}</span>{team.name}</strong>
-        </article>
-        <article className="summary-card">
-          <span className="summary-label">Twoje żetony</span>
-          <strong>{formatChips(currentPlayer.tokens)} <small>żetonów</small></strong>
-        </article>
-        <article className="summary-card">
-          <span className="summary-label">Przy stole</span>
-          <strong>{snapshot.players.length} <small>graczy</small></strong>
-        </article>
-      </section>
-
-      <section className="roster-section">
+      <section className="roster-section" aria-labelledby="player-roster-heading">
         <div className="section-heading">
-          <div>
-            <span className="eyebrow">Skład stołu</span>
-            <h2>Drużyny przy stole</h2>
-          </div>
-          {syncError ? <span className="sync-warning">Ponowne łączenie…</span> : <span className="poll-note">Odświeżanie co 4 sekundy</span>}
+          <h2 id="player-roster-heading">Drużyny przy stole</h2>
         </div>
         <div className="roster-grid">
           {TEAMS.map((house) => {
@@ -103,22 +54,108 @@ export function LobbyClient({ player, initialSnapshot }: LobbyClientProps) {
               <article className="house-card" key={house.id} style={{ "--team-color": house.color, "--team-soft": house.softColor } as CSSProperties}>
                 <div className="house-card-header">
                   <span className="house-symbol" aria-hidden="true">{house.icon}</span>
-                  <div><h3>{house.name}</h3><p>{members.length} {members.length === 1 ? "gracz" : "graczy"}</p></div>
+                  <div><h3>{house.name}</h3><p>Liczba graczy: {members.length}</p></div>
                 </div>
                 <div className="member-list">
                   {members.length ? members.map((member) => (
-                    <div className={`member-row ${member.id === player.id ? "is-you" : ""}`} key={member.id}>
-                      <span className="member-avatar">{member.nickname.slice(0, 1).toUpperCase()}</span>
-                      <span>{member.nickname}{member.id === player.id ? <small>TY</small> : null}</span>
-                      <strong>{formatChips(member.tokens)}</strong>
+                    <div className="member-row" key={member.id}>
+                      <span className="member-avatar" aria-hidden="true">{member.nickname.slice(0, 1).toUpperCase()}</span>
+                      <span>{member.nickname}{member.id === player.id && <small>TY</small>}</span>
+                      <strong>{formatPolishChips(member.tokens)}</strong>
                     </div>
-                  )) : <p className="empty-house">Oczekiwanie na gracza…</p>}
+                  )) : <p className="empty-house">Brak graczy</p>}
                 </div>
               </article>
             );
           })}
         </div>
       </section>
+    </>
+  );
+}
+
+function ChipLeaderboard({ players, playerId }: { players: Player[]; playerId: number }) {
+  const rankedPlayers = [...players].sort((a, b) => compareChipBalances(b.tokens, a.tokens) || a.id - b.id);
+  return (
+    <section className="chip-leaderboard" aria-labelledby="chip-leaderboard-heading">
+      <div className="section-heading">
+        <h1 id="chip-leaderboard-heading">Ranking graczy</h1>
+      </div>
+      <table aria-labelledby="chip-leaderboard-heading">
+        <thead>
+          <tr>
+            <th scope="col">Miejsce</th>
+            <th scope="col">Gracz</th>
+            <th scope="col">Drużyna</th>
+            <th scope="col">Żetony</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rankedPlayers.map((player, index) => {
+            const team = getTeam(player.teamId);
+            const isYou = player.id === playerId;
+            return (
+              <tr className={isYou ? "is-you" : undefined} key={player.id}>
+                <td>{index + 1}</td>
+                <th scope="row">{player.nickname}{isYou && <small>Ty</small>}</th>
+                <td style={{ color: team.color }}><span aria-hidden="true">{team.icon} </span>{team.name}</td>
+                <td>{formatPolishChips(player.tokens)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
+export function LobbyClient({ playerId, initialSnapshot }: { playerId: number; initialSnapshot: GameSnapshot }) {
+  const searchParams = useSearchParams();
+  const { snapshot, refresh, syncError, leave, leaving, logoutError } = useGameSession(initialSnapshot, playerId);
+  const player = snapshot.players.find((candidate) => candidate.id === playerId);
+  const started = snapshot.game.status === "started";
+  const requestedView = searchParams.get("widok");
+  const currentView = playerViews.find((view) => view.id === requestedView)?.id ?? (started ? "segment" : "lobby");
+
+  if (!player) return null;
+
+  return (
+    <main className="app-shell player-dashboard">
+      <header className="topbar">
+        <CasinoLogo />
+        <button className="quiet-button" type="button" disabled={leaving} onClick={leave}>Wyjdź</button>
+      </header>
+      <div className="player-navigation">
+        <p className="player-balance">Twoje żetony <strong>{formatPolishChips(player.tokens)}</strong></p>
+        <nav aria-label="Panel gracza">
+          {playerViews.map((view) => (
+            <button
+              key={view.id}
+              type="button"
+              aria-current={view.id === currentView ? "page" : undefined}
+              onClick={() => {
+                if (view.id !== requestedView) window.history.pushState(null, "", `?widok=${view.id}`);
+              }}
+            >
+              {view.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+      {syncError && <p className="sync-warning" role="status">Połączenie z grą jest chwilowo niedostępne. Ponawiamy próbę…</p>}
+      {logoutError && <p className="form-error" role="alert">Nie udało się wylogować. Spróbuj ponownie.</p>}
+      {currentView === "lobby" && <Lobby snapshot={snapshot} player={player} />}
+      <div hidden={currentView !== "segment"}>
+        {started ? <ActiveSegment snapshot={snapshot} refresh={refresh} viewerPlayerId={playerId} /> : (
+          <section className="game-stage">
+            <div className="game-stage-content">
+              <h1>Aktualny segment</h1>
+              <p>Oczekiwanie na administratora.</p>
+            </div>
+          </section>
+        )}
+      </div>
+      {currentView === "zetony" && <ChipLeaderboard players={snapshot.players} playerId={playerId} />}
     </main>
   );
 }

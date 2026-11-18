@@ -1,16 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-
-import { CasinoLogo } from "@/components/casino-logo";
+import { useState } from "react";
 import { formatChips } from "@/lib/chips";
-import { POLL_INTERVAL_MS, TEAMS, getTeam } from "@/lib/constants";
+import { TEAMS, getTeam } from "@/lib/constants";
 import { SPORT_BET_STAKE, SPORT_TITLE, getSportChallenge } from "@/lib/sport";
 import type { GameSnapshot, SportPairing, TeamId } from "@/lib/types";
 
 interface SportScreenProps {
-  initialSnapshot: GameSnapshot;
+  snapshot: GameSnapshot;
+  refresh: () => Promise<void>;
   viewerRole: "player" | "admin";
   viewerPlayerId?: number;
 }
@@ -35,30 +33,9 @@ function SportVersus({ snapshot, pair, teamANumbers, teamBNumbers }: { snapshot:
   return <><div className="floor-duelists" aria-label={`${teamA.name} kontra ${teamB.name}`}><strong style={{ color: teamA.color, borderColor: teamA.color }}>{teamA.icon} {teamA.name}{teamANumbers ? <small>{playerNames(snapshot, teamA.id, teamANumbers)}</small> : null}</strong><span>VS</span><strong style={{ color: teamB.color, borderColor: teamB.color }}>{teamB.icon} {teamB.name}{teamBNumbers ? <small>{playerNames(snapshot, teamB.id, teamBNumbers)}</small> : null}</strong></div></>;
 }
 
-export function SportScreen({ initialSnapshot, viewerRole, viewerPlayerId }: SportScreenProps) {
-  const router = useRouter();
-  const [snapshot, setSnapshot] = useState(initialSnapshot);
+export function SportScreen({ snapshot, refresh, viewerRole, viewerPlayerId }: SportScreenProps) {
   const [error, setError] = useState("");
   const [betting, setBetting] = useState(false);
-
-  const refresh = useCallback(async () => {
-    try {
-      const response = await fetch("/api/game/state", { cache: "no-store" });
-      if (response.status === 401) { router.replace("/"); router.refresh(); return; }
-      if (!response.ok) throw new Error();
-      const next = (await response.json()) as GameSnapshot;
-      setSnapshot(next);
-      if (next.game.activeSegment !== "sport") { router.refresh(); return; }
-      if (next.game.status === "waiting") { router.replace(viewerRole === "admin" ? "/admin" : "/lobby"); router.refresh(); }
-    } catch {
-      setError("Połączenie z grą jest chwilowo niedostępne.");
-    }
-  }, [router, viewerRole]);
-
-  useEffect(() => {
-    const interval = window.setInterval(refresh, POLL_INTERVAL_MS);
-    return () => window.clearInterval(interval);
-  }, [refresh]);
 
   async function placeBet(targetTeamId: TeamId) {
     setError("");
@@ -75,12 +52,6 @@ export function SportScreen({ initialSnapshot, viewerRole, viewerPlayerId }: Spo
     }
   }
 
-  async function leave() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.replace("/");
-    router.refresh();
-  }
-
   const sport = snapshot.sport;
   const challenge = sport.currentChallenge;
   const definition = challenge ? getSportChallenge(challenge.sequence) : null;
@@ -92,8 +63,8 @@ export function SportScreen({ initialSnapshot, viewerRole, viewerPlayerId }: Spo
   const bonus = sport.currentBonus;
   const bonusWinner = bonus?.winnerTeamId ? getTeam(bonus.winnerTeamId) : null;
 
-  return <main className="app-shell game-shell floor-shell">
-    <header className="topbar"><CasinoLogo /><div className="topbar-actions"><span className="sync-indicator"><i /> Segment na żywo</span>{viewer ? <span className="sync-indicator">Żetony: {formatChips(viewer.tokens)}</span> : null}{viewerRank ? <span className="sync-indicator">Twoja ranga: #{viewerRank}</span> : null}{viewerRole === "admin" ? <button className="quiet-button" onClick={() => router.push("/admin")}>Panel prowadzącego</button> : null}<button className="quiet-button" onClick={leave}>Wyjdź</button></div></header>
+  return <>
+    {viewerRank && sport.stage !== "setup" ? <p className="floor-waiting">Twoja ranga: #{viewerRank}</p> : null}
     <section className="game-stage floor-stage"><div className="game-stage-content">
       {sport.stage === "intro" ? <><span className="eyebrow">Czwarty segment</span><h1>{SPORT_TITLE}</h1><p>Każdy gra indywidualnie, z wyjątkiem wyzwań dla dwuosobowych składów. Prowadzący ustala dwie pary drużyn i rangi zawodników.</p><div className="segment-rules"><span><strong>Wyzwania główne:</strong> 8</span><span><strong>Wyzwania bonusowe:</strong> 2</span><span><strong>Zakłady:</strong> pozostałe drużyny</span></div></> : null}
       {sport.stage === "setup" ? <><span className="eyebrow">Sport · przygotowanie</span><h1>Ustalanie <em>par i rang.</em></h1><p>Nadajcie rangi swoim zawodnikom od 1 do końca listy zawodników danej drużyny. Dany numer ma znaczenie!</p><p>Twoje przypisanie: <strong>{viewerRank ? `ranga #${viewerRank}` : "oczekuje na wybór"}</strong>.</p>{sport.pairings.length === 2 ? sport.pairings.map((configuredPair) => <SportVersus key={configuredPair.slot} snapshot={snapshot} pair={configuredPair} />) : <p className="floor-waiting">Czekamy na wybór par przez prowadzącego.</p>}</> : null}
@@ -106,5 +77,5 @@ export function SportScreen({ initialSnapshot, viewerRole, viewerPlayerId }: Spo
       {sport.stage === "results" ? <><span className="eyebrow">Sport · zakończono</span><h1>To już <em>koniec.</em></h1><p>Osiem wyzwań głównych i dwie rundy bonusowe zostały rozegrane.</p></> : null}
       {error ? <p className="form-error" role="alert">{error}</p> : null}
     </div></section>
-  </main>;
+  </>;
 }

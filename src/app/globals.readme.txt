@@ -11,3 +11,5 @@ Backend/database interactions: None.
 Implementation details: The responsive breakpoints keep grids usable on tablet and mobile. The shared casino system now also styles The Floor stage, duelists, bet controls, prompt image, live timer emphasis, pair selectors, rapid administrator actions, and Polish administrator success notices through `.form-success`. Team hues are passed inline from trusted constant metadata, rather than from user input.
 
 Future expansion: Prefer adding reusable variables and component-scoped class sections. Update this file and this note together when markup class contracts change.
+
+The player dashboard keeps its navigation and exact balance visible with a sticky desktop bar and fixed mobile bar. The ranking uses a responsive semantic table with team colors and a highlighted viewer row.

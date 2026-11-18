@@ -1,8 +1,8 @@
 # The Grand Table
 
-The Grand Table is a polished, casino-inspired multiplayer team game. A participant selects one of four teams, receives 100 virtual chips, and waits in a live lobby. A separately authenticated administrator controls SOLENIZANT, The Floor, SPORT, JAKA TO MELODIA?, and POJEDYNKI, manages available segments, resets/restarts explicit state, inspects players, sets an exact player balance, and safely deactivates a player.
+The Grand Table is a polished, casino-inspired multiplayer team game. A participant selects one of four teams, receives 100 virtual chips, and opens a live dashboard. A separately authenticated administrator controls SOLENIZANT, The Floor, SPORT, JAKA TO MELODIA?, and POJEDYNKI, manages available segments, resets/restarts explicit state, inspects players, sets an exact player balance, and safely deactivates a player.
 
-This repository is intentionally limited to team registration/rejoining, persistent chips and game state, the waiting lobby, administrator authentication, player administration, SOLENIZANT, The Floor, SPORT, JAKA TO MELODIA?, and POJEDYNKI. It contains no real-money functions or player-submitted answers.
+This repository is intentionally limited to team registration/rejoining, persistent chips and game state, the player dashboard, administrator authentication, player administration, SOLENIZANT, The Floor, SPORT, JAKA TO MELODIA?, and POJEDYNKI. It contains no real-money functions or player-submitted answers.
 
 ## Architecture
 
@@ -23,6 +23,18 @@ Browser client
 ```
 
 The lightweight four-second polling approach needs no separate WebSocket service and works reliably in a Vercel serverless deployment. The state endpoint is explicitly non-cacheable.
+
+## Panel gracza
+
+Po dołączeniu otwiera się panel pod adresem `/lobby`. Pasek u góry ekranu komputera lub u dołu telefonu pokazuje aktualne saldo **Twoje żetony** i daje dostęp do trzech widoków.
+
+- **Lobby** pokazuje wszystkie cztery drużyny, ich kolory, składy i liczebność, stan gry oraz segment wybrany przez prowadzącego. Puste drużyny pozostają widoczne.
+- **Aktualny segment** otwiera segment wybrany przez prowadzącego wraz z dotychczasowym przebiegiem, zakładami i wynikami. Przed startem pokazuje komunikat oczekiwania.
+- **Żetony graczy** pokazuje miejsce, pseudonim, drużynę i dokładne saldo każdego aktywnego gracza. Ranking zaczyna się od najwyższego salda, wyróżnia wiersz zalogowanego gracza i pokazuje ułamki z przecinkiem dziesiętnym. Przy równych saldach kolejność wynika z identyfikatorów graczy.
+
+Przełączanie widoków zachowuje formularz aktualnego segmentu i trwające operacje zakładów. Parametr `widok` w adresie przywraca wybrany panel po odświeżeniu i działa z historią przeglądarki. Bez wskazania widoku panel pokazuje lobby przed startem, a aktualny segment w trakcie gry. Dotychczasowy adres gracza `/game` otwiera zakładkę segmentu. Administrator nadal może używać `/game` jako podglądu.
+
+Wszystkie widoki korzystają z jednego odczytu `/api/game/state` co cztery sekundy. Przyjęcie własnego zakładu wywołuje także odczyt od razu. Składy, salda, wypłaty i zmiany prowadzącego pochodzą z bazy Neon i są widoczne po kolejnym udanym odczycie. Krótka przerwa w połączeniu pozostawia ostatnie dostępne dane z komunikatem o ponawianiu synchronizacji. Ponowne dołączenie z tym samym pseudonimem aktywnego gracza przywraca jego drużynę i zapisane saldo.
 
 ## Technology stack
 
@@ -68,6 +80,7 @@ The lightweight four-second polling approach needs no separate WebSocket service
     │   ├── admin-dashboard.tsx + admin-dashboard.readme.txt
     │   ├── casino-logo.tsx + casino-logo.readme.txt
     │   ├── game-screen.tsx + game-screen.readme.txt
+    │   ├── game-session.tsx + game-session.readme.txt
     │   ├── lobby-client.tsx + lobby-client.readme.txt
     │   ├── registration-form.tsx + registration-form.readme.txt
     │   └── team-selector.tsx + team-selector.readme.txt
@@ -241,14 +254,14 @@ The administrator password is intentionally `admin` for this private game. Anyon
 2. Import this Git repository in Vercel. The framework preset is Next.js; build command can remain `npm run build`.
 3. Set `DATABASE_URL` for Production (and Preview if needed).
 4. Deploy. The first request automatically creates or migrates the required tables, session table, SOLENIZANT score tables, The Floor duel/bet tables, SPORT pair/number/challenge/bet/transfer/bonus tables, JAKA TO MELODIA? song/score/bid/bet tables, POJEDYNKI duel/bet tables, player-management ledger tables, and initial `game_state` row.
-5. Verify a player can register and rejoin with the same normalized nickname, an admin can authenticate, start the game and all five segments, then select two Floor teams, place a 2-chip bet from each eligible remaining-team player, lock betting, run correct/pass team timer actions, select and confirm a winning team, and advance to the next slot. For SPORT, verify two disjoint ordered pairs, dynamic rankings from 1 through each team's player count, the required ranks 1–5, all eight scheduled challenges, only non-competing-team betting, result settlement, two no-bet limb-count bonuses, and team-score updates. For JAKA TO MELODIA?, verify one pre-song market, five manual external-music screens, 0–7 point confirmation, optional bidding, unique-winner and tied-leader settlement, refresh persistence, and the final Polish scoreboard. For POJEDYNKI, verify all four team selections, the required 2-chip bet from every remaining-team player, betting lock, only-competing-team winner confirmation, one-time settlement, and durable progression. Confirm that an undersized SPORT team gets the Polish validation message and that refreshing does not reset an unsaved, unchanged setup selection. Also verify reset returns active players to the lobby with 100 chips.
+5. Verify a player can register and rejoin with the same normalized nickname, an admin can authenticate, start the game and all five segments, then select two Floor teams, place a 2-chip bet from each eligible remaining-team player, lock betting, run correct/pass team timer actions, select and confirm a winning team, and advance to the next slot. For SPORT, verify two disjoint ordered pairs, dynamic rankings from 1 through each team's player count, the required ranks 1–5, all eight scheduled challenges, only non-competing-team betting, result settlement, two no-bet limb-count bonuses, and team-score updates. For JAKA TO MELODIA?, verify one pre-song market, five manual external-music screens, 0–7 point confirmation, optional bidding, unique-winner and tied-leader settlement, refresh persistence, and the final Polish scoreboard. For POJEDYNKI, verify all four team selections, the required 2-chip bet from every remaining-team player, betting lock, only-competing-team winner confirmation, one-time settlement, and durable progression. Confirm that an undersized SPORT team gets the Polish validation message and that refreshing does not reset an unsaved, unchanged setup selection. Also verify that reset restores active players to 100 chips and that the dashboard shows the waiting status.
 
 ## Important implementation decisions
 
 - **No separate backend:** Next Route Handlers own sensitive writes and use the same Vercel deployment as the UI.
 - **Persistent authoritative state:** Neon stores all player records, virtual chips, game/segment stage, question index, and team scores. React state is disposable.
 - **Persistent nickname rejoining:** An active case-insensitive nickname maps to its existing record, team, and exact balance rather than creating a duplicate or allocating another 100 chips. It is deliberately documented as private-party convenience, not authentication.
-- **Polling rather than WebSockets:** Four-second snapshot polling is sufficient for this lobby phase and avoids a separate real-time service.
+- **Polling rather than WebSockets:** Four-second snapshot polling updates the player dashboard and administrator views and avoids a separate real-time service.
 - **Database-backed sessions, not nicknames:** The nickname `admin` only changes the landing form; administrative authority exists solely after the server checks the fixed `admin` password and creates an opaque Neon session.
 - **Schema constraints in addition to validation:** The database itself restricts team IDs, status values, non-negative tokens, the singleton game row, and case-insensitive nicknames.
 - **Segment scoring is independent of chips:** SOLENIZANT writes only its team-score rows; player `tokens` are never accepted from the browser or spent by the segment.
