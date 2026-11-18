@@ -8,6 +8,6 @@ Dependencies: Loaded only by `src/app/layout.tsx`; class names are consumed by a
 
 Backend/database interactions: None.
 
-Implementation details: The responsive breakpoints keep grids usable on tablet and mobile. The shared casino system now also styles The Floor stage, duelists, bet controls, prompt image, live timer emphasis, pair selectors, and rapid administrator actions. Team hues are passed inline from trusted constant metadata, rather than from user input.
+Implementation details: The responsive breakpoints keep grids usable on tablet and mobile. The shared casino system now also styles The Floor stage, duelists, bet controls, prompt image, live timer emphasis, pair selectors, rapid administrator actions, and Polish administrator success notices through `.form-success`. Team hues are passed inline from trusted constant metadata, rather than from user input.
 
 Future expansion: Prefer adding reusable variables and component-scoped class sections. Update this file and this note together when markup class contracts change.

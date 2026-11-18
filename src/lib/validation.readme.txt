@@ -10,6 +10,8 @@ Backend/database interactions: None. Route Handlers pass parsed data to `databas
 
 Implementation details: SPORT validation rejects reused pair teams, duplicate ranks, duplicate player assignments, and gaps in a rank sequence before the database repeats authoritative stage, roster-membership, active-player, and full-roster checks. The bonus schema always carries all four stable teams.
 
+Player-removal correction: `playerIdSchema` accepts only a positive safe integer, plus its canonical positive-decimal string representation for an in-flight browser snapshot generated before the BIGSERIAL parsing correction. It never accepts decimal, signed, whitespace-padded, boolean, or arbitrary-string identifiers.
+
 Future expansion: Keep every sensitive endpoint on a narrow, focused schema.
 
 Segment V update: `activeSegmentSchema` includes `melodia`. `melodiaBetSchema` accepts only a stable team ID and a positive decimal stake with up to four decimal places. `melodiaScoreSchema` accepts bounded 0â€“5 singing points plus artist/title booleans and `melodiaBiddingSchema`; the latter rejects duplicate participants or a winner who did not submit a declared 0â€“5-line bid.

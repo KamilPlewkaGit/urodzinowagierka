@@ -21,6 +21,11 @@ export async function POST(request: NextRequest) {
 
   const parsed = adminPlayerRemovalSchema.safeParse(body);
   if (!parsed.success) {
+    const payload = typeof body === "object" && body !== null ? body as Record<string, unknown> : undefined;
+    console.warn("Odrzucono nieprawidłowe żądanie usunięcia gracza.", {
+      playerIdType: typeof payload?.playerId,
+      validationCode: parsed.error.issues[0]?.code,
+    });
     return NextResponse.json({ error: "Wybrano nieprawidłowego gracza." }, { status: 400 });
   }
 

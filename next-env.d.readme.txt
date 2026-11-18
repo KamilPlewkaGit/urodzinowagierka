@@ -8,6 +8,6 @@ Dependencies: Next.js type packages.
 
 Backend/database interactions: None.
 
-Implementation details: This is framework-managed boilerplate and must remain version controlled. Do not add domain types here.
+Implementation details: This is framework-managed boilerplate and must remain version controlled. Its generated route/root-parameter references use `.next/dev/types` during development and `.next/types` after a production build. Do not add domain types here.
 
 Future expansion: Put shared application contracts in `src/lib/types.ts`, not in this generated bridge file.

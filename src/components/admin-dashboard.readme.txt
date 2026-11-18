@@ -8,7 +8,7 @@ Dependencies: Casino logo, focused Floor/SPORT/Melodia/Pojedynki controls, Next 
 
 Backend/database interactions: Indirect through the safe state endpoint and protected start, SOLENIZANT, game-navigation/reset, and player-management endpoints. Each endpoint verifies the administrator session and writes through `database.ts`.
 
-Implementation details: The dashboard has five direct-navigation choices and enables previous/next when a neighboring segment exists. Segment restart selects the matching dedicated endpoint. The Floor, SPORT, Melodia, and Pojedynki workflows are isolated in child components; SOLENIZANT selection/scoring and player administration remain unchanged.
+Implementation details: The dashboard has five direct-navigation choices and enables previous/next when a neighboring segment exists. Segment restart selects the matching dedicated endpoint. Removal always asks for Polish confirmation, sends `{ playerId }` through the protected endpoint once while all actions are disabled, refreshes the snapshot on success, closes any active chip editor for that player, and displays a Polish status notice. The Floor, SPORT, Melodia, and Pojedynki workflows are isolated in child components; SOLENIZANT selection/scoring and player administration remain unchanged.
 
 Future expansion: Add a separate protected workflow for another segment rather than turning this component into a generic browser-side state editor.
 

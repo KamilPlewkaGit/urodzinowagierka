@@ -30,6 +30,7 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
   const [editingPlayerId, setEditingPlayerId] = useState<number | null>(null);
   const [chipValue, setChipValue] = useState("");
   const [error, setError] = useState("");
+  const [removalNotice, setRemovalNotice] = useState("");
 
   const refresh = useCallback(async () => {
     try {
@@ -156,10 +157,14 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
     if (!window.confirm(`Czy na pewno usunąć gracza „${nickname}”? Nie będzie mógł wrócić przy użyciu tego samego pseudonimu.`)) {
       return;
     }
+    setRemovalNotice("");
     const removed = await postAction("remove", "/api/admin/players/remove", { playerId });
-    if (removed && editingPlayerId === playerId) {
-      setEditingPlayerId(null);
-      setChipValue("");
+    if (removed) {
+      setRemovalNotice(`Gracz „${nickname}” został usunięty z aktywnej listy.`);
+      if (editingPlayerId === playerId) {
+        setEditingPlayerId(null);
+        setChipValue("");
+      }
     }
   }
 
@@ -362,6 +367,7 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
           ) : null}
 
           {error ? <p className="form-error" role="alert">{error}</p> : null}
+          {removalNotice ? <p className="form-success" role="status">{removalNotice}</p> : null}
         </article>
 
         <article className="admin-stat-panel">

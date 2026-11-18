@@ -2,12 +2,12 @@ File: `src/app/api/admin/players/remove/route.ts`
 
 Purpose and responsibilities: Provides the administrator-only player removal endpoint.
 
-Important exports, inputs, and outputs: `POST(request)` accepts `{ playerId }` and returns the removed player's safe identifier/nickname, or Polish 400, 403, 404, and 500 errors.
+Important exports, inputs, and outputs: `POST(request)` accepts `{ playerId }` as a positive safe number; the focused schema also accepts a canonical positive-decimal string only to tolerate a browser snapshot produced before the BIGSERIAL parsing correction. It returns the removed player's safe identifier/nickname, or Polish 400, 403, 404, and 500 errors.
 
 Dependencies: Next Route Handler APIs, `src/lib/session.ts`, `src/lib/validation.ts`, and `src/lib/database.ts`.
 
 Backend/database interactions: The handler verifies administrator authority and delegates to `deactivatePlayer`. The database marks the player inactive, records a removal timestamp, revokes all player sessions, and logs the action without deleting history, scores, or financial ledger rows.
 
-Important technical details: UI confirmation is required before this request, but direct calls are independently protected by the server-side admin check. An inactive record cannot be restored merely by re-entering its nickname.
+Important technical details: UI confirmation is required before this request, but direct calls are independently protected by the server-side admin check. An inactive record cannot be restored merely by re-entering its nickname. A malformed request is logged only with the submitted `playerId` value type and Zod issue code, never a cookie, nickname, database error, or other sensitive data. The original recurring 400 was caused by Neon returning `BIGSERIAL` player IDs as strings while the old schema required `z.number()`; `database.ts` now configures int8 parsing as numbers and validation safely supports a transient canonical string ID.
 
 Notes for future development: If future active duels reference players directly, extend the transactional service to resolve that assignment before deactivation while continuing to preserve historical data.

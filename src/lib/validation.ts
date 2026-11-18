@@ -21,7 +21,17 @@ export const adminLoginSchema = z.object({
   password: z.string().min(1, "Hasło jest wymagane.").max(256, "Hasło jest za długie."),
 });
 
-export const playerIdSchema = z.number().int().positive("Nieprawidłowy gracz.");
+const playerIdNumberSchema = z
+  .number({ error: "Nieprawidłowy gracz." })
+  .int("Nieprawidłowy gracz.")
+  .positive("Nieprawidłowy gracz.")
+  .refine(Number.isSafeInteger, "Nieprawidłowy gracz.");
+
+/** Accepts the canonical decimal form emitted by an older BIGSERIAL snapshot. */
+export const playerIdSchema = z.preprocess(
+  (value) => typeof value === "string" && /^[1-9]\d*$/.test(value) ? Number(value) : value,
+  playerIdNumberSchema,
+);
 
 export const chipAmountSchema = z
   .string()

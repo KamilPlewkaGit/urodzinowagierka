@@ -104,7 +104,7 @@ Every source file has a neighboring `.readme.txt` file. Read the focused file do
 
 | Column | Type | Notes |
 | --- | --- | --- |
-| `id` | `BIGSERIAL` | Primary key; stored in player session payload. |
+| `id` | `BIGSERIAL` | Primary key; stored in player session payload and normalized to a safe JavaScript number at the server persistence boundary. |
 | `nickname` | `VARCHAR(24)` | Required; unique case-insensitively via `LOWER(nickname)` index. |
 | `team_id` | `VARCHAR(16)` | Required; database CHECK restricts it to the four team IDs. |
 | `tokens` | `NUMERIC(20,4)` | Defaults to 100; non-negative CHECK. Only server-side services may update it. |
@@ -185,7 +185,8 @@ Each login creates one opaque, randomly generated token. The token is held only 
 
 - Registration normalizes a nickname server-side and first looks for an active case-insensitive match. A match creates a new opaque session for the existing player without changing team or balance; a new nickname validates a team and inserts a 100-chip player.
 - Player nickname rejoining is a convenience mechanism, not strong authentication. Anyone who enters an active player's nickname can impersonate that private-party player. Administrator authority remains separate and requires the server-side administrator-password login.
-- Soft-removed players are excluded from snapshots, have all player sessions revoked, and cannot reopen their inactive record just by entering the same nickname.
+- Soft-removed players are excluded from snapshots, have all player sessions revoked, and cannot reopen their inactive record just by entering the same nickname. The atomic deactivation retains their chip balance, bets, transactions, rankings, and completed history, so foreign keys and chip accounting remain intact while the player leaves every active roster immediately; an empty team remains selectable.
+- Player removal accepts the dashboard's `{ playerId }` payload only after server-side administrator verification and positive-safe-ID validation. Neon normally returns `BIGSERIAL`/`int8` values as text; the previous strict `z.number()` check therefore returned 400 for a valid dashboard ID. The persistence boundary now enables numeric int8 parsing and the validator safely accepts only a transient canonical positive-decimal string ID from an already-open older snapshot. Malformed requests are server-logged by ID type and validation code only.
 - The browser never sends a chip balance. It receives current balances in a read-only game snapshot.
 - The read-only game-state route requires a current opaque session. A removed or expired session receives 401 on its next polling request and the client returns to the landing page.
 - Admin login only accepts the fixed password `admin`; the comparison and session creation happen on the server.

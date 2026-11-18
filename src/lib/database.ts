@@ -2,7 +2,7 @@ import "server-only";
 
 import { randomBytes } from "node:crypto";
 
-import { neon } from "@neondatabase/serverless";
+import { defaults, neon } from "@neondatabase/serverless";
 
 import { STARTING_TOKENS } from "@/lib/constants";
 import { THE_FLOOR_BET_STAKE, THE_FLOOR_CATEGORY_COUNT, THE_FLOOR_DUEL_SECONDS, THE_FLOOR_PASS_PENALTY_SECONDS } from "@/lib/floor";
@@ -11,6 +11,11 @@ import { SPORT_BET_STAKE, SPORT_BONUS_ROUND_COUNT, SPORT_CHALLENGE_COUNT, SPORT_
 import { MELODIA_SONG_COUNT } from "@/lib/melodia";
 import { POJEDYNKI_BET_STAKE, POJEDYNKI_DUEL_COUNT } from "@/lib/pojedynki";
 import type { GameSnapshot, GameState, MelodiaBid, MelodiaSong, MelodiaSongStage, MelodiaStage, MelodiaState, MelodiaTeamScore, Player, PojedynkiDuel, PojedynkiDuelStage, PojedynkiStage, PojedynkiState, SegmentId, Session, SportBonusRound, SportBonusStage, SportChallenge, SportChallengeStage, SportPairing, SportPairSlot, SportPlayerNumber, SportStage, SportState, TeamId, TeamScore, TheFloorDuel, TheFloorDuelStage, TheFloorState, TheFloorStage } from "@/lib/types";
+
+// PostgreSQL BIGSERIAL/int8 columns are player-facing identifiers in the typed
+// snapshot. Neon otherwise returns int8 fields as text, which breaks the
+// number-only API contract after JSON serialization.
+defaults.parseInt8 = true;
 
 type PlayerRow = {
   id: number;
