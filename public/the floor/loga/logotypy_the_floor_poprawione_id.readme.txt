@@ -1,0 +1,1 @@
+Zestaw 38 logotypów z osadzonymi grafikami PNG. Pole `id` numeruje pozycje zestawu. Pole `stableId` zachowuje wcześniejszy klucz danej grafiki dla zapisanych pojedynków, a `answer` zawiera nazwę marki dla prowadzącego.

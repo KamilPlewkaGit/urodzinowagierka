@@ -133,7 +133,7 @@ export function FloorAdminControls({ snapshot, onRefresh }: FloorAdminControlsPr
         </> : null}
 
         {floor.stage === "result" && duel && teamA && teamB && !winnerTeam ? <>
-          <span className="panel-index">POJEDYNEK {duel.sequence + 1}/{floor.duels.length} / WYBÓR ZWYCIĘZCY</span><h2>Wybierz zwycięzcę</h2><p>Pojedynek jest zakończony, a zakłady oczekują na potwierdzenie wyniku.</p>
+          <span className="panel-index">POJEDYNEK {duel.sequence + 1}/{floor.duels.length} / WYBÓR ZWYCIĘZCY</span><h2>Wybierz zwycięzcę</h2><p>Zatwierdzenie wyniku przyzna zwycięskiej drużynie 1 punkt i rozliczy zakłady.</p>
           <FloorDuelists teamA={teamA} teamB={teamB} />
           <fieldset className="team-fieldset"><legend>Wybierz zwycięską drużynę</legend><div className="team-grid"><TeamChoice team={teamA} selected={selectedWinner === teamA.id} onSelect={() => setWinnerTeamId(teamA.id)} disabled={pending !== null || Boolean(duel.winnerTeamId)} /><TeamChoice team={teamB} selected={selectedWinner === teamB.id} onSelect={() => setWinnerTeamId(teamB.id)} disabled={pending !== null || Boolean(duel.winnerTeamId)} /></div></fieldset>
           <button className="gold-button start-button" onClick={confirmWinner} disabled={pending !== null || !selectedWinner}>Zatwierdź wynik</button>

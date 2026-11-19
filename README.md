@@ -148,7 +148,7 @@ There is exactly one current game row (`id = 1`). It has `status` (`waiting` or 
 
 ### `solenizant_team_scores`
 
-There is one row for each of the four stable team IDs. `points` starts at zero, is non-negative, and is entirely separate from player `tokens`; each selected team gains exactly one point when the administrator confirms a question.
+There is one row for each of the four stable team IDs. `points` starts at zero and is independent of player `tokens`. Each selected team gains exactly one point when the administrator confirms a SOLENIZANT question. The overall standings add each team's settled The Floor wins to its stored points.
 
 ### `solenizant_question_awards`
 
@@ -157,6 +157,8 @@ Each row is uniquely keyed by question index. Inserting this row, incrementing s
 ### `the_floor_duels`
 
 The Floor has up to seven durable category slots (`sequence` 0–6), each with a fixed category ID, stage, two competing team IDs, an active team ID, a shuffled list of stable item IDs, the current position, both stored team timer bases, a server turn timestamp, winning team, and one-time settlement timestamp. The client derives a smooth display countdown from the stored timer plus timestamp; it never writes elapsed time. Every control action locks the current duel and recalculates time in PostgreSQL using `NOW()`. Migration preserves legacy player-reference columns only to backfill the new team fields; new workflow writes team fields exclusively.
+
+Zatwierdzone i rozliczone zwycięstwo daje drużynie 1 punkt w klasyfikacji ogólnej. Dotyczy to także zapisanych wcześniej rozliczonych pojedynków. Restart The Floor usuwa wyniki i punkty tego segmentu oraz zwraca oczekujące stawki. Zaksięgowane wypłaty pozostają w saldach.
 
 ### `the_floor_bets`
 
@@ -170,7 +172,7 @@ Podział używa `NUMERIC(20,4)`. Reszty są rozdzielane po 0,0001 żetonu wedłu
 
 ### Treści i gotowość The Floor
 
-Kategorie to **Znajome twarze**, **Lokalne miejsca**, **Loga**, **Czytanie od tyłu**, **Działania**, **Rebusy** i **Politycy**. Serwer losuje kolejność danego zestawu przy zatwierdzaniu drużyn i zapisuje listę identyfikatorów pojedynku. Wszystkie ekrany widzą to samo pytanie, a odpowiedź pozostaje w zweryfikowanej migawce administratora. Trwające pojedynki sprzed zmiany zachowują dotychczasową kolejność. W istniejącym niezakończonym segmencie kategoria Politycy trafia na koniec dostępnych pojedynków.
+Kategorie to **Znajome twarze**, **Lokalne miejsca**, **Loga**, **Czytanie od tyłu**, **Działania**, **Rebusy** i **Politycy**. Serwer losuje kolejność danego zestawu przy zatwierdzaniu drużyn i zapisuje listę identyfikatorów pojedynku. Wszystkie ekrany widzą to samo pytanie, a odpowiedź pozostaje w zweryfikowanej migawce administratora. Zapisane pojedynki Loga i Lokalnych miejsc zachowują kolejność pozostałych kart po usunięciu pozycji z katalogu. W istniejącym niezakończonym segmencie kategoria Politycy trafia na koniec dostępnych pojedynków.
 
 `GET /api/segment/floor/preload` zwraca wersjonowaną listę unikatowych grafik. Każdy klient wczytuje i dekoduje do czterech naraz. Adresy identyczne z tymi używanymi w grze mają identyfikator skrótu treści i używają pamięci podręcznej przeglądarki. `POST /api/segment/floor/preload` zapisuje obecność karty, postęp i błędy w `floor_device_presence`. Obecność wygasa po 30 sekundach bez raportu. Serwer wpuszcza do pojedynku, gdy urządzenie prowadzącego i wszystkie obecne urządzenia graczy zgłosiły dekodowanie całego aktualnego katalogu. Dołączające urządzenia też rozpoczynają wczytywanie. Panel prowadzącego pokazuje postęp i błędy według kategorii oraz ID pozycji. Ponowienie wczytuje wyłącznie brakujące zasoby.
 
@@ -393,7 +395,7 @@ Prowadzący osobno wybiera dwie różne drużyny przed każdym z dwóch pojedynk
 
 ### Kwalifikacja
 
-Prowadzący otwiera **FINAŁ** po segmencie ALKOHOLICY przez dotychczasową nawigację segmentów. Klasyfikacja wyświetla wszystkie cztery drużyny według punktacji ogólnej z `GameSnapshot.teamScores`. To istniejąca punktacja z `solenizant_team_scores`, w której są już uwzględnione punkty SOLENIZANTA, bonusów SPORT, JAKA TO MELODIA? i Kalamburów segmentu ALKOHOLICY. Punkty meczów Familiady, wyniki segmentu POJEDYNKI i salda żetonów nie są dodawane do klasyfikacji finału.
+Prowadzący otwiera **FINAŁ** po segmencie ALKOHOLICY przez dotychczasową nawigację segmentów. Klasyfikacja wyświetla wszystkie cztery drużyny według punktacji ogólnej z `GameSnapshot.teamScores`. Obejmuje ona punkty z SOLENIZANTA, rozliczonych zwycięstw The Floor, bonusów SPORT, JAKA TO MELODIA? i Kalamburów segmentu ALKOHOLICY.
 
 Serwer proponuje dwie najlepsze drużyny. Przy remisie na granicy awansu prowadzący wybiera spośród drużyn z wynikiem dającym awans. Jeżeli remis dotyczy pierwszego miejsca, prowadzący wybiera też, która z uprawnionych drużyn zaczyna. Kolejność w tabeli przy remisie służy wyłącznie do prezentacji. **Zatwierdź finalistów** zapisuje parę, kolejność i punktację. Zmiana klasyfikacji przed startem wymaga ponownego potwierdzenia. Po **Rozpocznij finał** zapisana para i kolejność obowiązują przez wszystkie cztery pytania.
 

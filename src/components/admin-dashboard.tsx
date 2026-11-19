@@ -162,7 +162,10 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
       return;
     }
     const segmentName = AVAILABLE_SEGMENTS.find((segment) => segment.id === snapshot.game.activeSegment)?.name ?? "wybrany";
-    if (!window.confirm(`Czy na pewno uruchomić segment ${segmentName} od początku? Zostanie skasowany tylko jego postęp. Żetony graczy pozostaną bez zmian.`)) {
+    const restartMessage = snapshot.game.activeSegment === "the-floor"
+      ? "Uruchomić The Floor od początku? Wyniki i punkty tego segmentu zostaną usunięte, a oczekujące stawki zwrócone."
+      : `Czy na pewno uruchomić segment ${segmentName} od początku? Zostanie skasowany tylko jego postęp. Żetony graczy pozostaną bez zmian.`;
+    if (!window.confirm(restartMessage)) {
       return;
     }
     const endpoint = snapshot.game.activeSegment === "the-floor"
@@ -513,7 +516,7 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
 
       <section className="score-section">
         <div className="section-heading">
-          <div><span className="eyebrow">Solenizant</span><h2>Punkty drużyn</h2></div>
+          <h2>Punkty drużyn</h2>
           <span className="poll-note">Odświeżanie co 4 sekundy</span>
         </div>
         <div className="score-grid">

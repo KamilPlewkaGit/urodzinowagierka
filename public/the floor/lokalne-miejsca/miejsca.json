@@ -7,10 +7,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Market Square in Wejherowo.jpg",
     "search": "Plac Jakuba Wejhera Wejherowo",
-    "queries": [
-      "Wejherowo plac Wejhera",
-      "Rynek w Wejherowie"
-    ],
+    "queries": ["Wejherowo plac Wejhera", "Rynek w Wejherowie"],
     "image": "zdjecia/01.webp"
   },
   {
@@ -21,10 +18,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Neptune's fountain in Gdansk.jpg",
     "search": "Fontanna Neptuna Gdańsk",
-    "queries": [
-      "Fontanna Neptuna Gdańsk",
-      "Neptun Gdańsk"
-    ],
+    "queries": ["Fontanna Neptuna Gdańsk", "Neptun Gdańsk"],
     "image": "zdjecia/02.webp"
   },
   {
@@ -35,10 +29,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Sopot pier.jpg",
     "search": "Molo w Sopocie Sopot",
-    "queries": [
-      "Molo w Sopocie",
-      "Sopot pier"
-    ],
+    "queries": ["Molo w Sopocie", "Sopot pier"],
     "image": "zdjecia/03.webp"
   },
   {
@@ -49,10 +40,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Skwer Kościuszki w Gdyni.JPG",
     "search": "Skwer Kościuszki Gdynia",
-    "queries": [
-      "Skwer Kościuszki Gdynia",
-      "Gdynia Kościuszki"
-    ],
+    "queries": ["Skwer Kościuszki Gdynia", "Gdynia Kościuszki"],
     "image": "zdjecia/04.webp"
   },
   {
@@ -63,9 +51,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Ratusz i rynek w Wejherowie.jpg",
     "search": "Ratusz Miejski Wejherowo",
-    "queries": [
-      "Ratusz rynek Wejherowo"
-    ],
+    "queries": ["Ratusz rynek Wejherowo"],
     "image": "zdjecia/05.webp"
   },
   {
@@ -76,10 +62,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Ul. Długi Targ w Gdańsku..jpg",
     "search": "Ulica Długa i Długi Targ Gdańsk",
-    "queries": [
-      "Długi Targ Gdańsk",
-      "Ulica Długa Gdańsk"
-    ],
+    "queries": ["Długi Targ Gdańsk", "Ulica Długa Gdańsk"],
     "image": "zdjecia/06.webp"
   },
   {
@@ -90,9 +73,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Gdynia Dar Pomorza.jpg",
     "search": "Dar Pomorza Gdynia",
-    "queries": [
-      "Dar Pomorza Gdynia"
-    ],
+    "queries": ["Dar Pomorza Gdynia"],
     "image": "zdjecia/07.webp"
   },
   {
@@ -103,9 +84,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Sopot Krzywy Domek.jpg",
     "search": "Krzywy Domek Sopot",
-    "queries": [
-      "Krzywy Domek Sopot"
-    ],
+    "queries": ["Krzywy Domek Sopot"],
     "image": "zdjecia/08.webp"
   },
   {
@@ -116,10 +95,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Pałac Przebendowskich i Keyserlingków.JPG",
     "search": "Pałac Przebendowskich i Keyserlingków Wejherowo",
-    "queries": [
-      "Pałac Przebendowskich Wejherowo",
-      "Wejherowo pałac"
-    ],
+    "queries": ["Pałac Przebendowskich Wejherowo", "Wejherowo pałac"],
     "image": "zdjecia/09.webp"
   },
   {
@@ -130,10 +106,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Żuraw Gdańsk.jpg",
     "search": "Żuraw nad Motławą Gdańsk",
-    "queries": [
-      "Żuraw Gdańsk Motława",
-      "Gdansk crane"
-    ],
+    "queries": ["Żuraw Gdańsk Motława", "Gdansk crane"],
     "image": "zdjecia/10.webp"
   },
   {
@@ -144,10 +117,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Molo w Gdyni-Orłowo.jpg",
     "search": "Molo w Orłowie Gdynia",
-    "queries": [
-      "Molo w Orłowie Gdynia",
-      "Gdynia Orłowo pier"
-    ],
+    "queries": ["Molo w Orłowie Gdynia", "Gdynia Orłowo pier"],
     "image": "zdjecia/11.webp"
   },
   {
@@ -158,10 +128,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Wejherowo park.jpg",
     "search": "Park Miejski im. Aleksandra Majkowskiego Wejherowo",
-    "queries": [
-      "Park Majkowskiego Wejherowo",
-      "Wejherowo park miejski"
-    ],
+    "queries": ["Park Majkowskiego Wejherowo", "Wejherowo park miejski"],
     "image": "zdjecia/12.webp"
   },
   {
@@ -172,10 +139,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Bohaterów Monte Cassino Sopot 1.jpg",
     "search": "Ulica Bohaterów Monte Cassino Sopot",
-    "queries": [
-      "Bohaterów Monte Cassino Sopot",
-      "Monciak Sopot"
-    ],
+    "queries": ["Bohaterów Monte Cassino Sopot", "Monciak Sopot"],
     "image": "zdjecia/13.webp"
   },
   {
@@ -186,9 +150,7 @@
     "provider": "Wikimedia Commons",
     "photo": "ORP Błyskawica Gdynia.jpg",
     "search": "ORP Błyskawica Gdynia",
-    "queries": [
-      "ORP Błyskawica Gdynia"
-    ],
+    "queries": ["ORP Błyskawica Gdynia"],
     "image": "zdjecia/14.webp"
   },
   {
@@ -199,10 +161,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Bazylika Mariacka w Gdańsku.jpg",
     "search": "Bazylika Mariacka Gdańsk",
-    "queries": [
-      "Bazylika Mariacka Gdańsk",
-      "St Mary Gdańsk"
-    ],
+    "queries": ["Bazylika Mariacka Gdańsk", "St Mary Gdańsk"],
     "image": "zdjecia/15.webp"
   },
   {
@@ -213,9 +172,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Filharmonia Kaszubska.jpg",
     "search": "Filharmonia Kaszubska Wejherowo",
-    "queries": [
-      "Filharmonia Kaszubska Wejherowo"
-    ],
+    "queries": ["Filharmonia Kaszubska Wejherowo"],
     "image": "zdjecia/16.webp"
   },
   {
@@ -226,10 +183,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Gdynia Orlowo klif 1.jpg",
     "search": "Klif Orłowski Gdynia",
-    "queries": [
-      "Klif Orłowski",
-      "Orłowo klif Gdynia"
-    ],
+    "queries": ["Klif Orłowski", "Orłowo klif Gdynia"],
     "image": "zdjecia/17.webp"
   },
   {
@@ -240,9 +194,7 @@
     "provider": "Źródło lokalne",
     "photo": "https://static2.zawszepomorze.pl/data/articles/xga-kto-za-zycia-kalwarii-nie-obejdzie-ten-po-smierci-na-kolanach-obejsc-ja-musi-1705330547.jpg",
     "search": "Kalwaria Wejherowska Wejherowo",
-    "queries": [
-      "Kalwaria Wejherowska"
-    ],
+    "queries": ["Kalwaria Wejherowska"],
     "image": "zdjecia/18.webp"
   },
   {
@@ -267,9 +219,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Bulwar Nadmorski w Gdyni - 001.JPG",
     "search": "Bulwar Nadmorski Gdynia",
-    "queries": [
-      "Bulwar Nadmorski Gdynia"
-    ],
+    "queries": ["Bulwar Nadmorski Gdynia"],
     "image": "zdjecia/20.webp"
   },
   {
@@ -280,10 +230,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Jakub Wejher monument in Wejherowo.jpg",
     "search": "Pomnik Jakuba Wejhera Wejherowo",
-    "queries": [
-      "Pomnik Jakuba Wejhera",
-      "Jakub Wejher monument"
-    ],
+    "queries": ["Pomnik Jakuba Wejhera", "Jakub Wejher monument"],
     "image": "zdjecia/21.webp"
   },
   {
@@ -308,10 +255,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Mariacka Street, Main Town of Gdańsk.jpg",
     "search": "Ulica Mariacka Gdańsk",
-    "queries": [
-      "Ulica Mariacka Gdańsk",
-      "Mariacka Street Gdańsk"
-    ],
+    "queries": ["Ulica Mariacka Gdańsk", "Mariacka Street Gdańsk"],
     "image": "zdjecia/23.webp"
   },
   {
@@ -322,9 +266,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Widok na panoramę Gdyni z Kamiennej Góry - grudzień 2023.jpg",
     "search": "Kamienna Góra – punkt widokowy Gdynia",
-    "queries": [
-      "Kamienna Góra Gdynia panorama"
-    ],
+    "queries": ["Kamienna Góra Gdynia panorama"],
     "image": "zdjecia/24.webp"
   },
   {
@@ -335,9 +277,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Wejherowo - kościół poklasztorny ob.parafialny p.w. Św. Anny.jpg",
     "search": "Kościół św. Anny Wejherowo",
-    "queries": [
-      "Wejherowo kościół Św. Anny"
-    ],
+    "queries": ["Wejherowo kościół Św. Anny"],
     "image": "zdjecia/25.webp"
   },
   {
@@ -348,9 +288,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Główny deptak przy ul Sobieskiego prowadzący w stronę Ratusza - panoramio.jpg",
     "search": "Ulica Jana III Sobieskiego Wejherowo",
-    "queries": [
-      "Sobieskiego Wejherowo deptak"
-    ],
+    "queries": ["Sobieskiego Wejherowo deptak"],
     "image": "zdjecia/26.webp"
   },
   {
@@ -361,9 +299,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Remus (Wakacje z Wikipedią 2018).jpg",
     "search": "Pomnik Remusa Wejherowo",
-    "queries": [
-      "Pomnik Remusa Wejherowo"
-    ],
+    "queries": ["Pomnik Remusa Wejherowo"],
     "image": "zdjecia/27.webp"
   },
   {
@@ -374,9 +310,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Dworzec PKP w Wejherowie.jpg",
     "search": "Dworzec kolejowy PKP Wejherowo",
-    "queries": [
-      "Dworzec PKP Wejherowo"
-    ],
+    "queries": ["Dworzec PKP Wejherowo"],
     "image": "zdjecia/28.webp"
   },
   {
@@ -387,9 +321,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Wejherowo - kościół parafialny p.w.Trójcy Przenajświętszej.jpg",
     "search": "Kolegiata Świętej Trójcy Wejherowo",
-    "queries": [
-      "Kolegiata Trójcy Wejherowo"
-    ],
+    "queries": ["Kolegiata Trójcy Wejherowo"],
     "image": "zdjecia/29.webp"
   },
   {
@@ -400,9 +332,7 @@
     "provider": "Źródło lokalne",
     "photo": "https://www.wejherowo.pl/p/1024x564/SPjGeQp/A418Q4J5r0B0n145D632L1H3J7Z2s156_f.jpg",
     "search": "Amfiteatr w Parku Miejskim Wejherowo",
-    "queries": [
-      "Amfiteatr park Wejherowo"
-    ],
+    "queries": ["Amfiteatr park Wejherowo"],
     "image": "zdjecia/30.webp"
   },
   {
@@ -413,9 +343,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Opera Leśna.jpg",
     "search": "Opera Leśna Sopot",
-    "queries": [
-      "Opera Leśna Sopot"
-    ],
+    "queries": ["Opera Leśna Sopot"],
     "image": "zdjecia/31.webp"
   },
   {
@@ -426,9 +354,7 @@
     "provider": "Wikimedia Commons",
     "photo": "UlicaŚwiętojańska Gdynia.jpg",
     "search": "Ulica Świętojańska Gdynia",
-    "queries": [
-      "Świętojańska Gdynia ulica"
-    ],
+    "queries": ["Świętojańska Gdynia ulica"],
     "image": "zdjecia/32.webp"
   },
   {
@@ -439,10 +365,7 @@
     "provider": "Wikimedia Commons",
     "photo": "PGE Arena Gdańsk.JPG",
     "search": "Polsat Plus Arena Gdańsk",
-    "queries": [
-      "PGE Arena Gdańsk",
-      "Polsat Plus Arena"
-    ],
+    "queries": ["PGE Arena Gdańsk", "Polsat Plus Arena"],
     "image": "zdjecia/33.webp"
   },
   {
@@ -453,9 +376,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Gdansk Westerplatte pomnik.jpg",
     "search": "Pomnik na Westerplatte Gdańsk",
-    "queries": [
-      "Westerplatte pomnik Gdańsk"
-    ],
+    "queries": ["Westerplatte pomnik Gdańsk"],
     "image": "zdjecia/34.webp"
   },
   {
@@ -466,9 +387,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Park Oliwski.jpg",
     "search": "Park Oliwski Gdańsk",
-    "queries": [
-      "Park Oliwski Gdańsk"
-    ],
+    "queries": ["Park Oliwski Gdańsk"],
     "image": "zdjecia/35.webp"
   },
   {
@@ -479,9 +398,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Archikatedra Oliwska (1a).jpg",
     "search": "Archikatedra Oliwska Gdańsk",
-    "queries": [
-      "Katedra Oliwska Gdańsk"
-    ],
+    "queries": ["Katedra Oliwska Gdańsk"],
     "image": "zdjecia/36.webp"
   },
   {
@@ -492,9 +409,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Wejherowo, kościół pw. św. Stanisława Kostki i św. Leona Wielkiego (01).jpg",
     "search": "Kościół św. Stanisława Kostki Wejherowo",
-    "queries": [
-      "Wejherowo kościół Stanisława Kostki"
-    ],
+    "queries": ["Wejherowo kościół Stanisława Kostki"],
     "image": "zdjecia/37.webp"
   },
   {
@@ -505,9 +420,7 @@
     "provider": "Źródło lokalne",
     "photo": "https://www.wejherowo.pl/images/D291j8r3l0U051f6c8j6r8G1D0A2J7U0.jpg",
     "search": "Ulica Wałowa Wejherowo",
-    "queries": [
-      "Ulica Wałowa Wejherowo"
-    ],
+    "queries": ["Ulica Wałowa Wejherowo"],
     "image": "zdjecia/38.webp"
   },
   {
@@ -518,9 +431,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Kaszubskie Oko.jpg",
     "search": "Wieża Kaszubskie Oko Gniewino",
-    "queries": [
-      "Kaszubskie Oko Gniewino"
-    ],
+    "queries": ["Kaszubskie Oko Gniewino"],
     "image": "zdjecia/39.webp"
   },
   {
@@ -531,9 +442,7 @@
     "provider": "Źródło lokalne",
     "photo": "https://aquaparkreda.pl/assets/wideo/hero-aquapark-4k-poster.webp",
     "search": "Aquapark Reda Reda",
-    "queries": [
-      "Aquapark Reda"
-    ],
+    "queries": ["Aquapark Reda"],
     "image": "zdjecia/40.webp"
   },
   {
@@ -544,9 +453,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Puck rynek.jpg",
     "search": "Stary Rynek Puck",
-    "queries": [
-      "Rynek Puck"
-    ],
+    "queries": ["Rynek Puck"],
     "image": "zdjecia/41.webp"
   },
   {
@@ -557,9 +464,7 @@
     "provider": "Wikimedia Commons",
     "photo": "20240308 112026 Molo w Pucku.jpg",
     "search": "Molo i port rybacki Puck",
-    "queries": [
-      "Molo Puck"
-    ],
+    "queries": ["Molo Puck"],
     "image": "zdjecia/42.webp"
   },
   {
@@ -570,9 +475,7 @@
     "provider": "Wikimedia Commons",
     "photo": "20240306 132553 Cypel Rewski 01.jpg",
     "search": "Cypel Rewski Rewa",
-    "queries": [
-      "Cypel Rewski Rewa"
-    ],
+    "queries": ["Cypel Rewski Rewa"],
     "image": "zdjecia/43.webp"
   },
   {
@@ -583,23 +486,8 @@
     "provider": "Wikimedia Commons",
     "photo": "Mechelinki port rybacki 2.jpg",
     "search": "Przystań rybacka Mechelinki",
-    "queries": [
-      "Mechelinki port rybacki"
-    ],
+    "queries": ["Mechelinki port rybacki"],
     "image": "zdjecia/44.webp"
-  },
-  {
-    "n": 45,
-    "name": "Molo w Brzeźnie",
-    "city": "Gdańsk",
-    "source": "https://commons.wikimedia.org/wiki/File:Molo_w_Brze%C5%BAnie%2C_Gda%C5%84sk_-_Brze%C5%BAno%2C_Pomo%C5%99sk%C3%A9_vojvodstv%C3%AD%2C_Polsko_01.jpg",
-    "provider": "Wikimedia Commons",
-    "photo": "Molo w Brzeźnie, Gdańsk - Brzeźno, Pomořské vojvodství, Polsko 01.jpg",
-    "search": "Molo w Brzeźnie Gdańsk",
-    "queries": [
-      "Molo Brzeźno Gdańsk"
-    ],
-    "image": "zdjecia/45.webp"
   },
   {
     "n": 46,
@@ -609,9 +497,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Latarnia Morska Gdańsk Nowy Port.jpg",
     "search": "Latarnia morska w Nowym Porcie Gdańsk",
-    "queries": [
-      "Latarnia Nowy Port Gdańsk"
-    ],
+    "queries": ["Latarnia Nowy Port Gdańsk"],
     "image": "zdjecia/46.webp"
   },
   {
@@ -622,9 +508,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Gdynia Hala Targowa.jpg",
     "search": "Hala Targowa Gdynia",
-    "queries": [
-      "Hala Targowa Gdynia"
-    ],
+    "queries": ["Hala Targowa Gdynia"],
     "image": "zdjecia/47.webp"
   },
   {
@@ -635,9 +519,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Gdańsk - Hala targowa 01.jpg",
     "search": "Hala Targowa Gdańsk",
-    "queries": [
-      "Hala Targowa Gdańsk"
-    ],
+    "queries": ["Hala Targowa Gdańsk"],
     "image": "zdjecia/48.webp"
   },
   {
@@ -648,9 +530,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Kładka na Ołowiankę i diabelski młyn noc.jpg",
     "search": "Kładka na Ołowiankę Gdańsk",
-    "queries": [
-      "Kładka Ołowianka Gdańsk"
-    ],
+    "queries": ["Kładka Ołowianka Gdańsk"],
     "image": "zdjecia/49.webp"
   },
   {
@@ -661,9 +541,7 @@
     "provider": "Wikimedia Commons",
     "photo": "Pomnik Poległych Stoczniowców Gdańsk.jpg",
     "search": "Pomnik Poległych Stoczniowców 1970 Gdańsk",
-    "queries": [
-      "Pomnik Poległych Stoczniowców Gdańsk"
-    ],
+    "queries": ["Pomnik Poległych Stoczniowców Gdańsk"],
     "image": "zdjecia/50.webp"
   }
 ]

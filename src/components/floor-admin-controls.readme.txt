@@ -1,1 +1,3 @@
 Steruje wyborem drużyn, zakładami, zegarem, odpowiedziami i rozliczeniem The Floor. Panel gotowości pokazuje postęp dekodowania i obecne urządzenia. Start przesyła UUID karty prowadzącego, aby serwer ponownie sprawdził gotowość. Starszy zapis wyniku bez rozliczenia można ponowić dla tego samego zwycięzcy.
+
+Panel wyboru zwycięzcy informuje o przyznaniu 1 punktu w klasyfikacji ogólnej przy zatwierdzeniu wyniku.

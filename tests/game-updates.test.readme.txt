@@ -1,1 +1,3 @@
 Testy HTTP na zbudowanej aplikacji. Uruchamiają tymczasowy serwer, weryfikują autoryzację, nawigację, treści The Floor, stan zakładów i etapów, przebiegi segmentów oraz sumę sald po rozliczeniu.
+
+The Floor sprawdza wszystkie grafiki z manifestu, nowe zestawy Lokalnych miejsc i Loga oraz punkty po zatwierdzeniu wyniku, ponowieniu żądania i restarcie. Punktacja jest sprawdzana także z konta gracza i w kwalifikacji finału.

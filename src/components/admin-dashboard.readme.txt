@@ -25,3 +25,5 @@ The Floor setup progress label uses the number of persisted slots. The dashboard
 Direct and relative navigation place KTO GRA GRUBO, WYGRAĆ MUSI after Familiada, then ALKOHOLICY and FINAŁ. The dashboard mounts each focused control panel and sends the segment revision with each command. A conflict refreshes the snapshot. The shared restart control uses segment-specific confirmations and keeps the gold payout locked once settled. Completing the final uses its own command and retains the game history.
 
 Numer aktywnego segmentu pochodzi ze wspólnych metadanych. The Floor synchronizuje się co sekundę. Złoty segment po zapisanej pierwszej wypłacie wymaga kontynuacji do drugiej gry. Panele obsługują dwa pojedynki ALKOHOLIKÓW i nagrody FINAŁU.
+
+Punkty drużyn pokazują klasyfikację ogólną. Potwierdzenie restartu The Floor opisuje utratę wyników i punktów segmentu oraz zwrot oczekujących stawek.

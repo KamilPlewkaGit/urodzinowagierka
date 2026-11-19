@@ -14,6 +14,7 @@ const imageMimes = new Set(["image/avif", "image/gif", "image/jpeg", "image/png"
 const optionalText = z.string().trim().nullish();
 const itemSchema = z.object({
   id: z.union([z.string().trim().min(1).max(100), z.number().int().positive()]).optional(),
+  stableId: z.number().int().positive().optional(),
   n: z.number().int().positive().optional(),
   display: optionalText,
   expression: optionalText,
@@ -161,7 +162,7 @@ async function normalizeItem(
 ): Promise<CatalogItem> {
   const parsed = itemSchema.safeParse(value);
   const item = parsed.success ? parsed.data : null;
-  const key = item?.id ?? item?.n;
+  const key = item?.stableId ?? item?.id ?? item?.n;
   const answer = item?.answer || item?.name || null;
   const source = item ? normalizePrompt(item, id, file, files)
     : { kind: "error" as const, message: "Pozycja w pliku JSON ma nieprawidłowe dane." };

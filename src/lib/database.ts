@@ -156,6 +156,14 @@ async function runWithGameLock(sql: ReturnType<typeof database>, query: NeonQuer
   return rows;
 }
 
+function overallTeamScores(sql: ReturnType<typeof database>) {
+  return sql`
+    SELECT score.team_id, score.points + COUNT(duel.id) AS points
+    FROM solenizant_team_scores score
+    LEFT JOIN the_floor_duels duel ON duel.winner_team_id = score.team_id AND duel.settled_at IS NOT NULL
+    GROUP BY score.team_id, score.points
+  `;
+}
 
 function teamBetAllocations(sql: ReturnType<typeof database>) {
   return sql`
@@ -736,7 +744,7 @@ export async function applyFinaleAction({ revision, command }: FinaleAction) {
   const sql = database();
   const [current] = await sql`
     SELECT finale_state, finale_revision,
-      (SELECT jsonb_object_agg(team_id, points) FROM solenizant_team_scores) AS scores
+      (SELECT jsonb_object_agg(team_id, points) FROM (${overallTeamScores(sql)}) scores) AS scores
     FROM game_state
     WHERE id = 1 AND status = 'started' AND active_segment = 'finale'
   ` as (FinaleRow & { scores: Record<TeamId, number> })[];
@@ -770,7 +778,9 @@ export async function applyFinaleAction({ revision, command }: FinaleAction) {
       SET finale_state = ${next === null ? null : JSON.stringify(next)}::JSONB, finale_revision = gen_random_uuid()
       WHERE id = 1 AND status = 'started' AND active_segment = 'finale' AND finale_revision = ${revision}::UUID
         AND NOT EXISTS (SELECT 1 FROM allocations WHERE new_points NOT BETWEEN 0 AND 2147483647)
-        AND (${expectedScores}::JSONB IS NULL OR ${expectedScores}::JSONB = (SELECT jsonb_object_agg(team_id, points) FROM solenizant_team_scores))
+        AND (${expectedScores}::JSONB IS NULL OR ${expectedScores}::JSONB = (
+          SELECT jsonb_object_agg(team_id, points) FROM (${overallTeamScores(sql)}) scores
+        ))
       RETURNING id
     ), scored AS (
       UPDATE solenizant_team_scores score SET points = allocations.new_points
@@ -1309,6 +1319,27 @@ export async function ensureDatabase() {
       `;
 
       await sql`ALTER TABLE the_floor_duels ADD COLUMN IF NOT EXISTS item_order JSONB`;
+      // Keep the saved order of surviving cards, including duels from before shuffling.
+      await runWithGameLock(sql, sql`
+        WITH removed(category_id, keys) AS (
+          VALUES
+            ('lokalne-miejsca', ARRAY['45']),
+            ('loga', ARRAY['5', '16', '17', '19', '21', '22', '23', '24', '27', '31', '45', '48'])
+        ), remaining AS (
+          SELECT duel.id, jsonb_agg(card.key ORDER BY card.position) AS item_order,
+            COUNT(*) FILTER (WHERE card.position <= duel.item_index) % COUNT(*) AS item_index
+          FROM the_floor_duels duel JOIN removed USING (category_id)
+          CROSS JOIN LATERAL jsonb_array_elements_text(COALESCE(duel.item_order, (
+            SELECT jsonb_agg(old_key::TEXT ORDER BY old_key) FROM generate_series(1, 50) AS old_keys(old_key)
+          ))) WITH ORDINALITY AS card(key, position)
+          WHERE duel.stage IN ('betting', 'live')
+            AND (duel.item_order IS NULL OR duel.item_order ?| removed.keys)
+            AND card.key <> ALL(removed.keys)
+          GROUP BY duel.id
+        )
+        UPDATE the_floor_duels duel SET item_order = remaining.item_order, item_index = remaining.item_index
+        FROM remaining WHERE duel.id = remaining.id
+      `);
       await sql`
         DO $migration$
         BEGIN
@@ -1805,7 +1836,7 @@ export async function getGameSnapshot(viewerPlayerId?: number, options?: { admin
     ` as SnapshotQuery<PlayerRow>,
     sql`
       SELECT team_id, points
-      FROM solenizant_team_scores
+      FROM (${overallTeamScores(sql)}) scores
       ORDER BY CASE team_id
         WHEN 'royal' THEN 1
         WHEN 'ruby' THEN 2

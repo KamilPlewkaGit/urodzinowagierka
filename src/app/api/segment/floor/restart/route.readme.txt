@@ -6,6 +6,6 @@ Important exports, inputs, and outputs: Bodyless admin-only `POST(request)` retu
 
 Dependencies: Next Route Handler APIs, opaque sessions, and `database.ts`.
 
-Backend/database interactions: Clears only Floor team-duel and bet state, refunds pending bets, returns the stage to `intro`, and preserves player registrations, teams, scores, and settled balances.
+Backend/database interactions: Clears Floor duels and their points, refunds pending bets, returns the stage to `intro`, and preserves player registrations and settled balances.
 
 Implementation details: It is distinct from navigation and full reset; settled bets are never reversed.

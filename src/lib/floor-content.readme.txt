@@ -1,1 +1,3 @@
 Katalog serwerowy czyta siedem plików kategorii, weryfikuje unikatowe ID i mapuje odpowiedź na stabilny klucz pozycji. Adres grafiki bazuje na skrócie treści lub źródła. Manifest zawiera unikatowe adresy, etykiety diagnostyczne i wersję. Odpowiedzi są wyłącznie w migawce prowadzącego. Politycy i Lokalne miejsca mają lokalne kopie zdjęć.
+
+Pole `stableId` ma pierwszeństwo przed `id` i `n`. Pozwala zachować istniejące przypisanie obrazów Loga po zmianie numeracji w JSON-ie.

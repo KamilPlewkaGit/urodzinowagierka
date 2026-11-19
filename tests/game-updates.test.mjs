@@ -87,7 +87,8 @@ test("Scenariusze gry w odizolowanej bazie PostgreSQL", { timeout: 120_000 }, as
     assert.deepEqual(manifest.issues, []);
     assert.equal(manifest.urls.length, new Set(manifest.urls).size);
     assert.equal(Object.values(manifest.labels).filter((label) => label.startsWith("Politycy")).length, 50);
-    assert.equal(Object.values(manifest.labels).filter((label) => label.startsWith("Loga")).length, 50);
+    assert.equal(Object.values(manifest.labels).filter((label) => label.startsWith("Lokalne miejsca")).length, 49);
+    assert.equal(Object.values(manifest.labels).filter((label) => label.startsWith("Loga")).length, 38);
     for (let start = 0; start < manifest.urls.length; start += 8) {
       await Promise.all(manifest.urls.slice(start, start + 8).map(async (url) => {
         const image = await request(url);
@@ -139,11 +140,48 @@ test("Scenariusze gry w odizolowanej bazie PostgreSQL", { timeout: 120_000 }, as
     for (let pass = 0; pass < 15 && (await status()).theFloor.stage === "live"; pass++) await move("floor", "advance", { action: "pass" });
     await move("floor", "end", { winnerTeamId: "royal" });
     const after = await status();
+    assert.deepEqual(after.teamScores, before.teamScores.map((score) => ({
+      ...score, points: score.points + (score.teamId === "royal" ? 1 : 0),
+    })));
+    assert.deepEqual((await status(player.cookie)).teamScores, after.teamScores);
     assert.equal(total(after), total(before));
     assert.equal(balance(after, roster.ruby[0]) - balance(before, roster.ruby[0]), -16000n);
     assert.equal(balance(after, roster.royal[0]) - balance(before, roster.royal[0]), 8000n);
     assert.equal(balance(after, player) - balance(before, player), 20000n);
     await move("floor", "end", { winnerTeamId: "royal" }, 409);
+    assert.deepEqual((await status()).teamScores, after.teamScores);
+
+    for (const [categoryId, itemCount] of [["lokalne-miejsca", 49], ["loga", 38]]) {
+      await move("floor", "next");
+      await move("floor", "configure", { teamAId: "royal", teamBId: "ruby" });
+      await report(admin, host, manifest.urls.length);
+      await report(player.cookie, remote, manifest.urls.length);
+      await move("floor", "start-duel", { deviceId: host });
+      const duel = (await status()).theFloor;
+      assert.equal(duel.currentDuel.categoryId, categoryId);
+      assert.equal(duel.content.itemCount, itemCount);
+      assert.equal(duel.content.prompt.kind, "image");
+      assert.ok(duel.content.adminAnswer);
+      await move("floor", "advance", { action: "correct" });
+      assert.notEqual((await status()).theFloor.content.prompt.url, duel.content.prompt.url);
+      for (let pass = 0; pass < 15 && (await status()).theFloor.stage === "live"; pass++) await move("floor", "advance", { action: "pass" });
+      await move("floor", "end", { winnerTeamId: "ruby" }, 403, player.cookie);
+      await move("floor", "end", { winnerTeamId: "ruby" });
+    }
+    const settled = await status();
+    assert.equal(points(settled, "royal") - points(before, "royal"), 1);
+    assert.equal(points(settled, "ruby") - points(before, "ruby"), 2);
+    assert.equal(total(settled), total(before));
+    await setSegment("finale");
+    assert.equal((await status()).finale.ranking[0].teamId, "ruby");
+    await command("finale", "finale", "confirm-finalists", { teams: ["ruby", "royal"] });
+    await command("finale", "finale", "start");
+    await command("finale", "finale", "restart");
+    await setSegment("the-floor");
+    await move("floor", "restart");
+    const restarted = await status();
+    assert.deepEqual(restarted.teamScores, before.teamScores);
+    assert.deepEqual(restarted.players, settled.players);
   });
 
   await t.test("Pojedynki – wszystkie typy trafione, nietrafione, brak zakładów i brak salda", async () => {
