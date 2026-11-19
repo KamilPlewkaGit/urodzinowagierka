@@ -9,6 +9,7 @@ Before changing this repository:
 5. Update each edited source file's matching `.readme.txt` in the same change. Create a matching `.readme.txt` whenever creating a source file.
 6. Update `README.md` when the folder structure, architecture, data model, API contract, dependencies, or deployment steps change.
 7. Validate with `npm run typecheck` and, for meaningful behavior changes, `npm run build` before handoff.
+8. For changes to game progression, scoring, or settlement, run `npm run test:game` after the build. The suite uses a temporary database and leaves existing games alone.
 
 Security rules:
 

@@ -23,3 +23,5 @@ Segment VIII adds Familiada after Pojedynki in navigation. The dashboard display
 The Floor setup progress label uses the number of persisted slots. The dashboard applies snapshot responses in request order, discarding late responses that could roll back a newer Floor item or Familiada phase after an action.
 
 Direct and relative navigation place KTO GRA GRUBO, WYGRAĆ MUSI after Familiada, then ALKOHOLICY and FINAŁ. The dashboard mounts each focused control panel and sends the segment revision with each command. A conflict refreshes the snapshot. The shared restart control uses segment-specific confirmations and keeps the gold payout locked once settled. Completing the final uses its own command and retains the game history.
+
+Numer aktywnego segmentu pochodzi ze wspólnych metadanych. The Floor synchronizuje się co sekundę. Złoty segment po zapisanej pierwszej wypłacie wymaga kontynuacji do drugiej gry. Panele obsługują dwa pojedynki ALKOHOLIKÓW i nagrody FINAŁU.

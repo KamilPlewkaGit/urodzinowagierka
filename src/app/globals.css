@@ -137,6 +137,37 @@ em { color: var(--gold-light); font-weight: inherit; }
 .floor-admin-text-prompt strong { font-size: clamp(1.1rem, calc(135cqw / var(--floor-prompt-length)), 5rem); }
 .floor-admin-panel > .floor-admin-answer { margin: 1rem 0; color: var(--gold-light); font-size: 1.2rem; overflow-wrap: anywhere; }
 
+.floor-duelist {
+  min-width: 150px;
+  padding: 12px 15px;
+  border: 1px solid rgba(216,182,108,.32);
+  border-radius: 12px;
+  background: #111824;
+  text-align: center;
+}
+.floor-duelists-live { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.floor-duelists-live .floor-duelist { min-width: 0; }
+.floor-duelist.is-active {
+  border-color: #f4cc76;
+  background: #33291c;
+  box-shadow: 0 0 0 2px #f4cc76, 0 0 22px #d8a34265;
+}
+.floor-clock {
+  display: block;
+  color: #f8f4e9;
+  font-size: clamp(1.75rem, 5vw, 3.4rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.floor-turn { display: block; color: #ffdc90; font-size: .76rem; font-weight: 800; }
+.floor-turn[aria-hidden="true"] { visibility: hidden; }
+.floor-duelist.is-active .floor-turn { animation: floor-turn-in 180ms ease-out; }
+@keyframes floor-turn-in { from { opacity: 0; transform: translateY(3px); } }
+@media (prefers-reduced-motion: reduce) { .floor-duelist.is-active .floor-turn { animation: none; } }
+.floor-preload { margin: 14px 0; padding: 12px 15px; border: 1px solid #d8b66c50; border-radius: 9px; }
+.floor-preload .form-error { overflow-wrap: anywhere; }
+.floor-preload button { margin-top: 8px; }
+
 @media (max-width: 880px) {
   .landing-grid { grid-template-columns: 1fr; gap: 0; }.landing-intro { padding: 75px 0 30px; }.join-panel { max-width: 600px; }.roster-grid, .score-grid { grid-template-columns: 1fr 1fr; }.admin-team-row { grid-template-columns: 38px minmax(110px,1fr) auto 56px; }.admin-names { grid-column: 2 / -1; }.admin-management-grid { grid-template-columns: 1fr; }.player-management-row { grid-template-columns: minmax(140px,1fr) auto; }.player-management-actions { grid-column: 1 / -1; }
 }

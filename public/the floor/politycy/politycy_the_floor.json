@@ -1,0 +1,657 @@
+{
+  "category": "Politycy",
+  "type": "image",
+  "description": "Rozpoznaj polityka na zdjęciu. Podaj imię i nazwisko.",
+  "items": [
+    {
+      "id": 1,
+      "answer": "Karol Nawrocki",
+      "image": "zdjecia/01.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "pl",
+        "article": "Karol Nawrocki"
+      },
+      "sourceUrl": "https://pl.wikipedia.org/wiki/Karol_Nawrocki",
+      "group": "Polska",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Karol_Nawrocki_i_Roberta_Metsola_(2026)_(cropped_%26_flipped).jpg"
+    },
+    {
+      "id": 2,
+      "answer": "Donald Tusk",
+      "image": "zdjecia/02.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "pl",
+        "article": "Donald Tusk"
+      },
+      "sourceUrl": "https://pl.wikipedia.org/wiki/Donald_Tusk",
+      "group": "Polska",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Donald_Tusk_KPRM_HQ.jpg"
+    },
+    {
+      "id": 3,
+      "answer": "Andrzej Duda",
+      "image": "zdjecia/03.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "pl",
+        "article": "Andrzej Duda"
+      },
+      "sourceUrl": "https://pl.wikipedia.org/wiki/Andrzej_Duda",
+      "group": "Polska",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:President_of_Poland_Andrzej_Duda_(cropped).jpg"
+    },
+    {
+      "id": 4,
+      "answer": "Jarosław Kaczyński",
+      "image": "zdjecia/04.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "pl",
+        "article": "Jarosław Kaczyński"
+      },
+      "sourceUrl": "https://pl.wikipedia.org/wiki/Jaros%C5%82aw_Kaczy%C5%84ski",
+      "group": "Polska",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:02_Jaros%C5%82aw_Kaczy%C5%84ski_(cropped).jpg"
+    },
+    {
+      "id": 5,
+      "answer": "Rafał Trzaskowski",
+      "image": "zdjecia/05.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "pl",
+        "article": "Rafał Trzaskowski"
+      },
+      "sourceUrl": "https://pl.wikipedia.org/wiki/Rafa%C5%82_Trzaskowski",
+      "group": "Polska",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Rafal_Trzaskowski_2020_Bytom.jpg"
+    },
+    {
+      "id": 6,
+      "answer": "Szymon Hołownia",
+      "image": "zdjecia/06.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "pl",
+        "article": "Szymon Hołownia"
+      },
+      "sourceUrl": "https://pl.wikipedia.org/wiki/Szymon_Ho%C5%82ownia",
+      "group": "Polska",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Szymon_Ho%C5%82ownia_2022.jpg"
+    },
+    {
+      "id": 7,
+      "answer": "Mateusz Morawiecki",
+      "image": "zdjecia/07.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "pl",
+        "article": "Mateusz Morawiecki"
+      },
+      "sourceUrl": "https://pl.wikipedia.org/wiki/Mateusz_Morawiecki",
+      "group": "Polska",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Morawiecki_Mateusz_2.jpg"
+    },
+    {
+      "id": 8,
+      "answer": "Lech Wałęsa",
+      "image": "zdjecia/08.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "pl",
+        "article": "Lech Wałęsa"
+      },
+      "sourceUrl": "https://pl.wikipedia.org/wiki/Lech_Wa%C5%82%C4%99sa",
+      "group": "Polska",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:03.17_%E7%B8%BD%E7%B5%B1%E6%8E%A5%E8%A6%8B%E3%80%8C%E6%B3%A2%E8%98%AD%E5%89%8D%E7%B8%BD%E7%B5%B1%E8%8F%AF%E5%8B%92%E6%B2%99%E4%B9%99%E8%A1%8C%E3%80%8D_-_55151702432_(cropped).jpg"
+    },
+    {
+      "id": 9,
+      "answer": "Aleksander Kwaśniewski",
+      "image": "zdjecia/09.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "pl",
+        "article": "Aleksander Kwaśniewski"
+      },
+      "sourceUrl": "https://pl.wikipedia.org/wiki/Aleksander_Kwa%C5%9Bniewski",
+      "group": "Polska",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Aleksander_Kwa%C5%9Bniewski_2012_(cropped).jpg"
+    },
+    {
+      "id": 10,
+      "answer": "Bronisław Komorowski",
+      "image": "zdjecia/10.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "pl",
+        "article": "Bronisław Komorowski"
+      },
+      "sourceUrl": "https://pl.wikipedia.org/wiki/Bronis%C5%82aw_Komorowski",
+      "group": "Polska",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Bronis%C5%82aw_Komorowski_(2).jpg"
+    },
+    {
+      "id": 11,
+      "answer": "Lech Kaczyński",
+      "image": "zdjecia/11.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "pl",
+        "article": "Lech Kaczyński"
+      },
+      "sourceUrl": "https://pl.wikipedia.org/wiki/Lech_Kaczy%C5%84ski",
+      "group": "Polska",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Lech_Kaczy%C5%84ski.jpg"
+    },
+    {
+      "id": 12,
+      "answer": "Robert Biedroń",
+      "image": "zdjecia/12.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "pl",
+        "article": "Robert Biedroń"
+      },
+      "sourceUrl": "https://pl.wikipedia.org/wiki/Robert_Biedro%C5%84",
+      "group": "Polska",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:1718636928282_20190605_BIEDRON_Robert_PL_64.jpg"
+    },
+    {
+      "id": 13,
+      "answer": "Grzegorz Braun",
+      "image": "zdjecia/13.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "pl",
+        "article": "Grzegorz Braun"
+      },
+      "sourceUrl": "https://pl.wikipedia.org/wiki/Grzegorz_Braun",
+      "group": "Polska",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Grzegorz_Braun_MEP_(2024).jpg"
+    },
+    {
+      "id": 14,
+      "answer": "Sławomir Mentzen",
+      "image": "zdjecia/14.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "pl",
+        "article": "Sławomir Mentzen"
+      },
+      "sourceUrl": "https://pl.wikipedia.org/wiki/S%C5%82awomir_Mentzen",
+      "group": "Polska",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:S%C5%82awomir_Mentzen_2_(cropped).jpg"
+    },
+    {
+      "id": 15,
+      "answer": "Krzysztof Bosak",
+      "image": "zdjecia/15.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "pl",
+        "article": "Krzysztof Bosak"
+      },
+      "sourceUrl": "https://pl.wikipedia.org/wiki/Krzysztof_Bosak",
+      "group": "Polska",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Krzysztof_Bosak.jpg"
+    },
+    {
+      "id": 16,
+      "answer": "Radosław Sikorski",
+      "image": "zdjecia/16.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "pl",
+        "article": "Radosław Sikorski"
+      },
+      "sourceUrl": "https://pl.wikipedia.org/wiki/Rados%C5%82aw_Sikorski",
+      "group": "Polska",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Min._Rados%C5%82aw_Sikorski_2024_(cropped).jpg"
+    },
+    {
+      "id": 17,
+      "answer": "Władysław Kosiniak-Kamysz",
+      "image": "zdjecia/17.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "pl",
+        "article": "Władysław Kosiniak-Kamysz"
+      },
+      "sourceUrl": "https://pl.wikipedia.org/wiki/W%C5%82adys%C5%82aw_Kosiniak-Kamysz",
+      "group": "Polska",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:W%C5%82adys%C5%82aw_Kosiniak-Kamysz%2C_Pose%C5%82_na_Sejm_RP%2C_Prezes_Polskiego_Stronnictwa_Ludowego.jpg"
+    },
+    {
+      "id": 18,
+      "answer": "Beata Szydło",
+      "image": "zdjecia/18.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "pl",
+        "article": "Beata Szydło"
+      },
+      "sourceUrl": "https://pl.wikipedia.org/wiki/Beata_Szyd%C5%82o",
+      "group": "Polska",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Beata_Szyd%C5%82o_MEP_(2024).jpg"
+    },
+    {
+      "id": 19,
+      "answer": "Ewa Kopacz",
+      "image": "zdjecia/19.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "pl",
+        "article": "Ewa Kopacz"
+      },
+      "sourceUrl": "https://pl.wikipedia.org/wiki/Ewa_Kopacz",
+      "group": "Polska",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Official_portrait_of_Ewa_Kopacz_4_(cropped).jpg"
+    },
+    {
+      "id": 20,
+      "answer": "Barbara Nowacka",
+      "image": "zdjecia/20.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "pl",
+        "article": "Barbara Nowacka"
+      },
+      "sourceUrl": "https://pl.wikipedia.org/wiki/Barbara_Nowacka",
+      "group": "Polska",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Min._Barbara_Nowacka.jpg"
+    },
+    {
+      "id": 21,
+      "answer": "Magdalena Biejat",
+      "image": "zdjecia/21.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "pl",
+        "article": "Magdalena Biejat"
+      },
+      "sourceUrl": "https://pl.wikipedia.org/wiki/Magdalena_Biejat",
+      "group": "Polska",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Magdalena_Biejat-5_(cropped).jpg"
+    },
+    {
+      "id": 22,
+      "answer": "Adrian Zandberg",
+      "image": "zdjecia/22.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "pl",
+        "article": "Adrian Zandberg"
+      },
+      "sourceUrl": "https://pl.wikipedia.org/wiki/Adrian_Zandberg",
+      "group": "Polska",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Adrian_Zandberg_Sejm_2020.jpg"
+    },
+    {
+      "id": 23,
+      "answer": "Anna Maria Żukowska",
+      "image": "zdjecia/23.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "pl",
+        "article": "Anna Maria Żukowska"
+      },
+      "sourceUrl": "https://pl.wikipedia.org/wiki/Anna_Maria_%C5%BBukowska",
+      "group": "Polska",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Anna_Maria_%C5%BBukowska_2025.jpg"
+    },
+    {
+      "id": 24,
+      "answer": "Zbigniew Ziobro",
+      "image": "zdjecia/24.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "pl",
+        "article": "Zbigniew Ziobro"
+      },
+      "sourceUrl": "https://pl.wikipedia.org/wiki/Zbigniew_Ziobro",
+      "group": "Polska",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Min._Zbigniew_Ziobro_2022_2.jpg"
+    },
+    {
+      "id": 25,
+      "answer": "Mariusz Błaszczak",
+      "image": "zdjecia/25.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "pl",
+        "article": "Mariusz Błaszczak"
+      },
+      "sourceUrl": "https://pl.wikipedia.org/wiki/Mariusz_B%C5%82aszczak",
+      "group": "Polska",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Mariusz_B%C5%82aszczak_2015.jpg"
+    },
+    {
+      "id": 26,
+      "answer": "Donald Trump",
+      "image": "zdjecia/26.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "en",
+        "article": "Donald Trump"
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Donald_Trump",
+      "group": "Świat",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Official_Presidential_Portrait_of_President_Donald_J._Trump_(2025).jpg"
+    },
+    {
+      "id": 27,
+      "answer": "Joe Biden",
+      "image": "zdjecia/27.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "en",
+        "article": "Joe Biden"
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Joe_Biden",
+      "group": "Świat",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Joe_Biden_presidential_portrait.jpg"
+    },
+    {
+      "id": 28,
+      "answer": "Barack Obama",
+      "image": "zdjecia/28.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "en",
+        "article": "Barack Obama"
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Barack_Obama",
+      "group": "Świat",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:President_Barack_Obama.jpg"
+    },
+    {
+      "id": 29,
+      "answer": "George W. Bush",
+      "image": "zdjecia/29.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "en",
+        "article": "George W. Bush"
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/George_W._Bush",
+      "group": "Świat",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:George-W-Bush.jpeg"
+    },
+    {
+      "id": 30,
+      "answer": "Bill Clinton",
+      "image": "zdjecia/30.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "en",
+        "article": "Bill Clinton"
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Bill_Clinton",
+      "group": "Świat",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Bill_Clinton.jpg"
+    },
+    {
+      "id": 31,
+      "answer": "Kamala Harris",
+      "image": "zdjecia/31.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "en",
+        "article": "Kamala Harris"
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Kamala_Harris",
+      "group": "Świat",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Kamala_Harris_Vice_Presidential_Portrait.jpg"
+    },
+    {
+      "id": 32,
+      "answer": "Hillary Clinton",
+      "image": "zdjecia/32.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "en",
+        "article": "Hillary Clinton"
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Hillary_Clinton",
+      "group": "Świat",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:MJK_70586_Hillary_Clinton_(Hillary%2C_Berlinale_2020).jpg"
+    },
+    {
+      "id": 33,
+      "answer": "J. D. Vance",
+      "image": "zdjecia/33.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "en",
+        "article": "JD Vance"
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/JD_Vance",
+      "group": "Świat",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:March_2026_Official_Vice_Presidential_Portrait_of_JD_Vance_(cropped).jpg"
+    },
+    {
+      "id": 34,
+      "answer": "Władimir Putin",
+      "image": "zdjecia/34.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "en",
+        "article": "Vladimir Putin"
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Vladimir_Putin",
+      "group": "Świat",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Vladimir_Putin_(2026_02_23).jpg"
+    },
+    {
+      "id": 35,
+      "answer": "Wołodymyr Zełenski",
+      "image": "zdjecia/35.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "en",
+        "article": "Volodymyr Zelenskyy"
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Volodymyr_Zelenskyy",
+      "group": "Świat",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Volodymyr_Zelensky_2022_official_portrait_(cropped).jpg"
+    },
+    {
+      "id": 36,
+      "answer": "Angela Merkel",
+      "image": "zdjecia/36.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "en",
+        "article": "Angela Merkel"
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Angela_Merkel",
+      "group": "Świat",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Angela_Merkel_2023_(cropped).jpg"
+    },
+    {
+      "id": 37,
+      "answer": "Emmanuel Macron",
+      "image": "zdjecia/37.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "en",
+        "article": "Emmanuel Macron"
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Emmanuel_Macron",
+      "group": "Świat",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Emmanuel_Macron_2025_(cropped).jpg"
+    },
+    {
+      "id": 38,
+      "answer": "Ursula von der Leyen",
+      "image": "zdjecia/38.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "en",
+        "article": "Ursula von der Leyen"
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Ursula_von_der_Leyen",
+      "group": "Świat",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Ursula_von_der_Leyen_2024.jpg"
+    },
+    {
+      "id": 39,
+      "answer": "Boris Johnson",
+      "image": "zdjecia/39.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "en",
+        "article": "Boris Johnson"
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Boris_Johnson",
+      "group": "Świat",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Boris_Johnson_official_portrait_(cropped).jpg"
+    },
+    {
+      "id": 40,
+      "answer": "Keir Starmer",
+      "image": "zdjecia/40.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "en",
+        "article": "Keir Starmer"
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Keir_Starmer",
+      "group": "Świat",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Prime_Minister_Sir_Keir_Starmer_Official_Portrait_(cropped).jpg"
+    },
+    {
+      "id": 41,
+      "answer": "Giorgia Meloni",
+      "image": "zdjecia/41.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "en",
+        "article": "Giorgia Meloni"
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Giorgia_Meloni",
+      "group": "Świat",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Giorgia_Meloni_Official_2024_(cropped).jpg"
+    },
+    {
+      "id": 42,
+      "answer": "Xi Jinping",
+      "image": "zdjecia/42.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "en",
+        "article": "Xi Jinping"
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Xi_Jinping",
+      "group": "Świat",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Prime_Minister_Keir_Starmer_visits_China_(55066713683)_(cropped%2Bangle).jpg"
+    },
+    {
+      "id": 43,
+      "answer": "Narendra Modi",
+      "image": "zdjecia/43.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "en",
+        "article": "Narendra Modi"
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Narendra_Modi",
+      "group": "Świat",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Narendra_Modi_2021.jpg"
+    },
+    {
+      "id": 44,
+      "answer": "Benjamin Netanjahu",
+      "image": "zdjecia/44.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "en",
+        "article": "Benjamin Netanyahu"
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Benjamin_Netanyahu",
+      "group": "Świat",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Benjamin_Netanyahu%2C_February_2023.jpg"
+    },
+    {
+      "id": 45,
+      "answer": "Recep Tayyip Erdoğan",
+      "image": "zdjecia/45.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "en",
+        "article": "Recep Tayyip Erdoğan"
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Recep_Tayyip_Erdo%C4%9Fan",
+      "group": "Świat",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Recep_Tayyip_Erdogan_in_Ukraine.jpg"
+    },
+    {
+      "id": 46,
+      "answer": "Kim Dzong Un",
+      "image": "zdjecia/46.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "en",
+        "article": "Kim Jong Un"
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Kim_Jong_Un",
+      "group": "Świat",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Kim_Jong-un_and_Vladimir_Putin_(2023-09-13)_12_(cropped_2).jpg"
+    },
+    {
+      "id": 47,
+      "answer": "Justin Trudeau",
+      "image": "zdjecia/47.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "en",
+        "article": "Justin Trudeau"
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Justin_Trudeau",
+      "group": "Świat",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Justin_Trudeau_at_the_European_Commission_-_2025.jpg"
+    },
+    {
+      "id": 48,
+      "answer": "Javier Milei",
+      "image": "zdjecia/48.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "en",
+        "article": "Javier Milei"
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Javier_Milei",
+      "group": "Świat",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Javier_Milei_en_el_Sal%C3%B3n_Blanco_NEW_(cropped)_(2).jpg"
+    },
+    {
+      "id": 49,
+      "answer": "Viktor Orbán",
+      "image": "zdjecia/49.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "en",
+        "article": "Viktor Orbán"
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Viktor_Orb%C3%A1n",
+      "group": "Świat",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Viktor_Orban.2024_(cropped).jpg"
+    },
+    {
+      "id": 50,
+      "answer": "Margaret Thatcher",
+      "image": "zdjecia/50.webp",
+      "imageLookup": {
+        "provider": "wikipedia-pageimages",
+        "language": "en",
+        "article": "Margaret Thatcher"
+      },
+      "sourceUrl": "https://en.wikipedia.org/wiki/Margaret_Thatcher",
+      "group": "Świat",
+      "imageSourceUrl": "https://commons.wikimedia.org/wiki/File:Margaret_Thatcher.png"
+    }
+  ]
+}

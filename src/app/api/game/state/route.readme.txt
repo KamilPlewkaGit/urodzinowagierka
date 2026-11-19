@@ -25,3 +25,5 @@ The same verified administrator projection includes the current Floor answer. Pl
 The `finale` projection uses the shared poll for finalist qualification, question, estimate, direction, reveal, winner, wheel presentation and completion. Before reveal, only the verified administrator projection contains the current `adminAnswer` key.
 
 The `alkoholicy` and `goldChallenge` projections synchronize the new stages, results and balances. Wager choices and nomination selections are scoped to the viewer. Only verified administrators see the aggregate nomination counts and live gold payout previews.
+
+Migawka The Floor zawiera czas serwera, pytanie i tylko uprawniony klucz. Punktacja, zapisane nagrody finałowe oraz wyniki rozliczeń pochodzą z tej samej migawki. Złoty segment ukrywa cudze głosy i numer prowadzącego przed rozliczeniem.

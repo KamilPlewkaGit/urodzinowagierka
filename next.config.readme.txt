@@ -13,3 +13,5 @@ Implementation details: Keep this conservative because the deployment target is 
 Future expansion: Add narrowly justified Next configuration (for example image domains) here and describe it in the root README.
 
 Output file tracing includes public/the floor for the three game pages, the snapshot API, Floor start and advancement, and the embedded-image handler so their server runtimes can read the same material on Vercel.
+
+Ślad plików wdrożenia obejmuje katalog The Floor także w trasach konfiguracji pojedynku, kontroli gotowości i listy grafik. Czytnik ma dostęp do tych samych plików na każdej ścieżce.

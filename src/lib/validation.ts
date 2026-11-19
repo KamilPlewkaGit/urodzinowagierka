@@ -3,6 +3,8 @@ import { z } from "zod";
 import { TEAM_IDS } from "@/lib/constants";
 import { SOLENIZANT_LAST_QUESTION_INDEX } from "@/lib/solenizant";
 
+z.config(z.locales.pl());
+
 export const nicknameSchema = z
   .string()
   .trim()
@@ -53,9 +55,9 @@ export const alkoholicyActionSchema = z.object({
     z.object({ action: z.literal("order"), teams: z.tuple([teamIdSchema, teamIdSchema, teamIdSchema, teamIdSchema]).refine((teams) => new Set(teams).size === 4) }),
     z.object({ action: z.literal("duel-teams"), teams: z.tuple([teamIdSchema, teamIdSchema]).refine(([first, second]) => first !== second) }),
     z.object({ action: z.enum(["score-charades", "correct-charades"]), teamId: teamIdSchema, points: z.number().int().min(0).max(6) }),
-    z.object({ action: z.literal("finish-duel"), teamId: teamIdSchema, points: z.number().int().min(0).max(2_147_483_647) }),
-    z.object({ action: z.literal("bet"), game: z.union([z.literal(1), z.literal(2)]), teamId: teamIdSchema }),
-    z.object({ action: z.enum(["start", "open-charades", "start-charades", "next-team", "settle-charades", "next-game", "open-duel", "start-duel", "complete", "restart"]) }),
+    z.object({ action: z.literal("finish-duel"), teamId: teamIdSchema }),
+    z.object({ action: z.literal("bet"), game: z.union([z.literal(1), z.literal(2), z.literal(3)]), teamId: teamIdSchema }),
+    z.object({ action: z.enum(["start", "open-charades", "start-charades", "next-team", "settle-charades", "next-game", "open-duel", "start-duel", "next-duel", "complete", "restart"]) }),
   ]),
 });
 
@@ -66,7 +68,8 @@ export const goldActionSchema = z.object({
   command: z.discriminatedUnion("action", [
     z.object({ action: z.literal("teams"), teams: z.array(teamIdSchema).min(2).max(4).refine((teams) => new Set(teams).size === teams.length) }),
     z.object({ action: z.enum(["nominate", "representative", "winner"]), playerId: playerIdSchema }),
-    z.object({ action: z.enum(["start", "complete", "restart"]) }),
+    z.object({ action: z.enum(["number-vote", "number-confirm"]), number: z.number().int().min(1).max(6) }),
+    z.object({ action: z.enum(["prepare", "start", "next-game", "number-open", "number-close", "number-settle", "number-restart", "complete", "restart"]) }),
   ]),
 });
 
@@ -78,7 +81,8 @@ export const finaleActionSchema = z.object({
     z.object({ action: z.literal("confirm-finalists"), teams: z.tuple([teamIdSchema, teamIdSchema]).refine(([first, second]) => first !== second) }),
     z.object({ action: z.literal("estimate"), value: z.string().trim().regex(/^\d{1,12}(?:[,.]\d{1,2})?$/).transform((value) => Number(value.replace(",", "."))) }),
     z.object({ action: z.literal("direction"), value: z.enum(["more", "less"]) }),
-    z.object({ action: z.literal("confirm-winner"), teamId: teamIdSchema }),
+    z.object({ action: z.enum(["confirm-winner", "overall-winner"]), teamId: teamIdSchema }),
+    z.object({ action: z.literal("award"), round: z.number().int().min(1).max(4), points: z.number().int().min(0).max(2_147_483_647) }),
     z.object({ action: z.enum(["start", "reveal", "show-wheel", "next", "complete", "restart"]) }),
   ]),
 });
@@ -157,29 +161,16 @@ export const melodiaSongSchema = z.object({
 
 export const melodiaWinnerSchema = melodiaSongSchema.extend({ winnerTeamId: teamIdSchema });
 
-const melodiaBidSchema = z.object({ teamId: teamIdSchema, declaredLines: z.number().int().min(0).max(5) });
-
-export const melodiaBiddingSchema = z.object({
-  enabled: z.boolean(),
-  bids: z.array(melodiaBidSchema),
-  winningBidderTeamId: teamIdSchema.nullable(),
-  completed: z.boolean(),
-}).superRefine((value, context) => {
-  if (!value.enabled) {
-    if (value.bids.length || value.winningBidderTeamId !== null) context.addIssue({ code: "custom", message: "Przy wyłączonej licytacji nie wybieraj drużyn." });
-    return;
-  }
-  if (!value.bids.length || new Set(value.bids.map((bid) => bid.teamId)).size !== value.bids.length || !value.winningBidderTeamId || !value.bids.some((bid) => bid.teamId === value.winningBidderTeamId)) {
-    context.addIssue({ code: "custom", message: "W licytacji wybierz uczestników i zwycięskiego licytanta." });
-  }
-});
-
 export const melodiaScoreSchema = melodiaWinnerSchema.extend({
   artistCorrect: z.boolean(),
   titleCorrect: z.boolean(),
-  singingPoints: z.number().int().min(0).max(5),
-  singingMistake: z.boolean(),
-  bidding: melodiaBiddingSchema,
+});
+
+export const melodiaSettlementSchema = melodiaWinnerSchema.extend({
+  rosterIds: z.array(playerIdSchema).max(10_000).refine(
+    (ids) => ids.every((id, index) => index === 0 || ids[index - 1] < id),
+    "Skład rozliczenia powinien zawierać unikalne identyfikatory.",
+  ),
 });
 
 const solenizantQuestionIndexSchema = z

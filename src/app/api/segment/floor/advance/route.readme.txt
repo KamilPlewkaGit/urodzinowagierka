@@ -11,3 +11,5 @@ Backend/database interactions: The database materializes server elapsed time, ad
 Implementation details: The route never accepts a client clock, item position, team, or winner.
 
 The persistence service uses the actual category item count from the content loader to wrap progression in JSON order.
+
+Zwiększa pozycję w zapisanej kolejności pojedynku. Starsze niezakończone rozgrywki używają indeksu pozycji w JSON-ie.

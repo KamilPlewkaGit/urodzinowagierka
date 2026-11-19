@@ -11,3 +11,5 @@ FamiliadaScreen uses the same selection and refresh path for the player view and
 FinaleScreen displays the active FINAŁ through the same four-second snapshot and shares the view with the administrator preview. The presentation renders only the published answer, even when the snapshot also carries the administrator's key.
 
 AlkoholicyScreen and GoldChallengeScreen also use the same active segment selector and polling. Bets and nominations request an immediate refresh of the existing snapshot. The administrator preview mounts the presentation with player actions hidden.
+
+Odczyt migawki przyspiesza podczas The Floor do jednej sekundy i pozostaje czterosekundowy w innych segmentach. Podgląd prowadzącego także dekoduje materiały The Floor.

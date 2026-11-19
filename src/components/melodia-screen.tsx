@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 
 import { formatPolishChips } from "@/lib/chips";
 import { TEAMS, getTeam } from "@/lib/constants";
-import { MELODIA_REWARD, MELODIA_SONG_COUNT, MELODIA_TITLE, getMelodiaSongLabel } from "@/lib/melodia";
+import { MELODIA_LOSER_CONTRIBUTION, MELODIA_SONG_COUNT, MELODIA_TITLE, getMelodiaSongLabel } from "@/lib/melodia";
 import type { GameSnapshot, MelodiaSong, MelodiaState, TeamId } from "@/lib/types";
 
 export function melodiaTeamStyle(teamId: TeamId) {
@@ -11,13 +11,17 @@ export function melodiaTeamStyle(teamId: TeamId) {
 }
 
 export function MelodiaRules() {
-  return <ul className="melodia-list">
-    <li>Cztery drużyny grają naraz przez pięć piosenek. Kto pierwszy, ten lepszy.</li>
-    <li>Za poprawne podanie artysty i tytułu można zdobyć po 1 punkcie.</li>
-    <li>Każdy poprawnie zaśpiewany wers daje 1 punkt, maksymalnie 5. Pomyłka zeruje punkty za śpiewanie.</li>
-    <li>W licytacji drużyny deklarują liczbę wersów do zaśpiewania.</li>
-    <li>Każdy zawodnik zwycięskiej drużyny otrzymuje {MELODIA_REWARD} żetony od zawodników pozostałych drużyn.</li>
-  </ul>;
+  return <>
+    <p>Przed Wami 5 utworów muzycznych. Drużyny rywalizują o jak najszybsze rozpoznanie wykonawcy i tytułu piosenki.</p>
+    <ul className="melodia-list" aria-label="Punktacja">
+      <li>Poprawny wykonawca – 1 punkt.</li>
+      <li>Poprawny tytuł – 1 punkt.</li>
+      <li>Maksymalnie 2 punkty za utwór.</li>
+    </ul>
+    <p><strong>Rozliczenie żetonów</strong></p>
+    <p>Po zakończeniu wszystkich pięciu utworów każdy zawodnik przegranych drużyn oddaje 5 żetonów. Cała zebrana pula zostaje podzielona po równo pomiędzy zawodników zwycięskiej drużyny.</p>
+  </>;
+
 }
 
 export function MelodiaScoreboard({ melodia }: { melodia: MelodiaState }) {
@@ -46,10 +50,7 @@ export function MelodiaRoundResults({ songs }: { songs: MelodiaSong[] }) {
     <ul className="melodia-list">
       {finished.map((song) => <li key={song.id}>
         <strong>{getMelodiaSongLabel(song.sequence)} · {song.winningTeamId && getTeam(song.winningTeamId).name}</strong>
-        <div>Artysta {song.artistPoints ?? 0} pkt · tytuł {song.titlePoints ?? 0} pkt · śpiewanie {song.singingPoints ?? 0} pkt
-          {song.singingMistake ? " (pomyłka)" : ""}
-          {song.bidWinnerTeamId && song.bidWinnerTeamId !== song.winningTeamId ? ` dla drużyny ${getTeam(song.bidWinnerTeamId).name}` : ""}
-        </div>
+        <div>Wykonawca {song.artistPoints ?? 0} pkt · tytuł {song.titlePoints ?? 0} pkt</div>
       </li>)}
     </ul>
   </section>;
@@ -61,21 +62,27 @@ export function MelodiaRewardSummary({ melodia }: { melodia: MelodiaState }) {
     : "Remis na pierwszym miejscu."}</p>;
 
   if (!melodia.winningTeamId) {
-    return <p>Remis na pierwszym miejscu: <strong>{melodia.leadingTeamIds.map((teamId) => getTeam(teamId).name).join(", ")}</strong>.
-      {" "}Rozstrzyga prowadzący.</p>;
+    const leaders = melodia.leadingTeamIds.map((teamId) => getTeam(teamId).name).join(", ");
+    return melodia.leadingTeamIds.length === 1
+      ? <p>Prowadzi <strong>{leaders}</strong>. Prowadzący potwierdzi zwycięzcę.</p>
+      : <p>Remis na pierwszym miejscu: <strong>{leaders}</strong>. Rozstrzyga prowadzący.</p>;
   }
 
-  const { charge, settledAt, viewerDelta } = melodia;
-  const debit = charge && (charge.min === charge.max ? formatPolishChips(charge.min) : `${formatPolishChips(charge.min)}–${formatPolishChips(charge.max)}`);
+  const { reward, settledAt, viewerDelta } = melodia;
+  const share = reward && (reward.min === reward.max ? formatPolishChips(reward.min)
+    : formatPolishChips(reward.min) + "–" + formatPolishChips(reward.max));
   return <>
     <p>Zwycięża <strong>{getTeam(melodia.winningTeamId).name}</strong>.</p>
-    <p><strong>{MELODIA_REWARD} żetony</strong> dla każdego aktywnego zawodnika zwycięskiej drużyny.</p>
-    {debit ? <p>{settledAt ? "Pobrano" : "Do pobrania"} od każdego aktywnego zawodnika przegranych drużyn: <strong>{debit} żetonów</strong>.
-      {charge && charge.min !== charge.max ? " Kwoty różnią się o 0,0001 żetonu ze względu na podział reszty." : ""}</p>
-      : <p>Rozliczenie wymaga aktywnych zawodników po obu stronach.</p>}
-    {settledAt ? <p>Rozliczenie zatwierdzone.{viewerDelta !== null ? ` Zmiana Twojego salda: ${formatPolishChips(viewerDelta)} żetonów.` : ""}</p>
+    {reward ? <>
+      <p>{settledAt ? "Pobrano" : "Do pobrania"} od każdego aktywnego zawodnika przegranych drużyn: <strong>{MELODIA_LOSER_CONTRIBUTION} żetonów</strong>.</p>
+      <p>{settledAt ? "Zebrana pula" : "Pula do zebrania"}: <strong>{formatPolishChips(reward.pool)} żetonów</strong>.</p>
+      <p>Wypłata dla każdego aktywnego zawodnika zwycięskiej drużyny: <strong>{share} żetonów</strong>.</p>
+      {reward.min !== reward.max && <p>Reszta z podziału zwiększa część wypłat o 0,0001 żetonu.</p>}
+    </> : <p>Rozliczenie wymaga aktywnych zawodników po obu stronach.</p>}
+    {settledAt ? <p>Rozliczenie zatwierdzone.{viewerDelta !== null ? " Zmiana Twojego salda: " + formatPolishChips(viewerDelta) + " żetonów." : ""}</p>
       : <p>Rozliczenie czeka na zatwierdzenie.</p>}
   </>;
+
 }
 
 export function MelodiaScreen({ snapshot }: { snapshot: GameSnapshot }) {
@@ -98,6 +105,10 @@ export function MelodiaScreen({ snapshot }: { snapshot: GameSnapshot }) {
         </>}
       </>}
       <MelodiaScoreboard melodia={melodia} />
+      {isFinal && melodia.settledAt && <section className="score-section" aria-label="Salda po rozliczeniu">
+        <h2>Żetony po rozliczeniu</h2>
+        <ul className="melodia-list">{snapshot.players.map((player) => <li key={player.id}>{player.nickname} · {getTeam(player.teamId).name}: <strong>{formatPolishChips(player.tokens)} żetonów</strong></li>)}</ul>
+      </section>}
       {(playing || isFinal) ? <MelodiaRoundResults songs={melodia.songs} /> : null}
     </div>
   </section>;

@@ -1,5 +1,1 @@
-File: src/app/api/segment/alkoholicy/route.ts
-
-Purpose: Receives { revision, command } via POST. A verified player session may place a wager. All other commands require a verified administrator. The bettor ID comes from the session.
-
-Dependencies: Next.js Route Handlers, session verification, validation, AlkoholicyConflict and database.ts. Returns Polish validation, permission and conflict errors. The shared state poll delivers typed results and balances.
+POST według rewizji. Tylko gracz składa zakład na jednym z trzech rynków. Prowadzący zatwierdza Kalambury, ustawia dowolną parę i wybiera zwycięzcę osobno w każdym z dwóch pojedynków.

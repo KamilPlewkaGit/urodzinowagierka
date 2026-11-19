@@ -1,7 +1,1 @@
-File: src/app/api/segment/melodia/settle/route.ts
-
-POST verifies the administrator's database-backed session and returns { ok: true } or a Polish error.
-
-Validates { songId, winnerTeamId } as the current final and selected or unique leader. The database locks state and balances, credits each active winner exactly 4 chips, distributes debits among active opponents, and records the ledger and one-time marker. Returns Polish conflict messages for stale results, empty rosters, insufficient funds, or a balance limit.
-
-Persistence goes through src/lib/database.ts.
+POST wymaga admina, potwierdzonego lidera oraz uporządkowanych identyfikatorów składu z podglądu. Zapis pobiera po 5 żetonów od przegranych zawodników i dzieli całość między zwycięzców. Chroni przed zmianą składu i ponowieniem wypłaty.

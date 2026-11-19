@@ -1,0 +1,1 @@
+Zestaw 50 zdjęć miejsc. Pole image wskazuje lokalny plik WebP z neutralną nazwą. Pola photo i source zachowują odwołania do materiału źródłowego.

@@ -1,13 +1,1 @@
-File: src/components/lobby-client.tsx
-
-Purpose: Renders the Polish player dashboard with Lobby, Aktualny segment, and Żetony graczy. A persistent navigation bar shows the current player's chip balance at every view.
-
-LobbyClient takes the server-verified player ID and initial game snapshot. It uses useGameSession for a shared polling and logout flow. Lobby displays all four colored teams, active players, team counts, game status, and the selected segment. The read-only ranking compares exact numeric balances in descending order, breaks ties by ascending player ID, and marks the signed-in player.
-
-Navigation updates the widok query parameter via browser history. Refreshing or using Back and Forward restores the chosen view. With no explicit selection, the dashboard shows the lobby while waiting and the current segment once play starts. During play, ActiveSegment stays mounted while hidden so changing views preserves drafts and in-flight bets. Polling updates every view from a single server snapshot.
-
-The Polish segment label map includes Familiada. Its screen is opened through Aktualny segment while the lobby and balances remain available.
-
-The player dashboard labels the finale FINAŁ and shows Gra zakończona in the lobby after the administrator completes it. The active segment and both balance views remain available.
-
-The segment label map also includes ALKOHOLICY and KTO GRA GRUBO, WYGRAĆ MUSI. Their screens inherit the dashboard's sticky balance and navigation tabs.
+Stała nawigacja gracza. Po starcie aktywna zakładka używa numeru segmentu. Punktacja w dotychczasowym widoku `widok=zetony` podaje ranking czterech drużyn i osobną tabelę żetonów graczy. Zmiana zakładki zachowuje aktywny komponent, stan formularza, bieżące zakłady i dekodowanie The Floor.

@@ -1,0 +1,1 @@
+Zestaw 50 portretów. Pole image wskazuje lokalne zdjęcie z neutralną nazwą. imageLookup i imageSourceUrl zachowują metadane wyszukania i link do oryginału. Pole answer jest dostępne tylko w migawce zweryfikowanego prowadzącego.

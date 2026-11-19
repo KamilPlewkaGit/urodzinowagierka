@@ -1,5 +1,1 @@
-File: src/lib/floor.ts
-
-Client-safe The Floor metadata defines the preferred order and Polish display metadata of the six supported JSON categories. Category aliases support finding root and nested JSON sources. The module also exports the fixed 45-second starting time, 3-second pass penalty, 2-chip stake, and display-only clock calculation.
-
-The server-only floor-content.ts reads the actual deck data. PostgreSQL owns the clocks and current position.
+Wspólne siedem kategorii, tekst indywidualnej stawki, progi obecności i częstotliwość synchronizacji. Czas pozostaje pochodną 45-sekundowych baz, serwerowego znacznika oraz 3-sekundowej kary za Pas.

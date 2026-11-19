@@ -1,0 +1,3 @@
+GET wymaga sesji i zwraca wersjonowaną listę zasobów graficznych oraz diagnostykę katalogu. Lista zawiera neutralne adresy, bez klucza odpowiedzi.
+
+POST weryfikuje sesję i przyjmuje UUID urządzenia, wersję listy i liczbę zdekodowanych grafik. Raport zerowy bez wersji oznacza samą obecność. Baza sprawdza aktualność raportu, zapisuje go pod sesją i urządzeniem i zwraca prowadzącemu liczbę obecnych i gotowych graczy oraz urządzeń.

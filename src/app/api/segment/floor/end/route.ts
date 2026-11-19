@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { endTheFloorDuel } from "@/lib/database";
+import { endTheFloorDuel, getTeamBetSettlementError } from "@/lib/database";
 import { getRequestSession } from "@/lib/session";
 import { theFloorWinnerSchema } from "@/lib/validation";
 
@@ -14,7 +14,8 @@ export async function POST(request: NextRequest) {
   const parsed = theFloorWinnerSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Wybrano nieprawidłową zwycięską drużynę." }, { status: 400 });
   try {
-    if (!(await endTheFloorDuel(parsed.data.winnerTeamId))) return NextResponse.json({ error: "Nie można teraz zatwierdzić wyniku pojedynku." }, { status: 409 });
+    const status = await endTheFloorDuel(parsed.data.winnerTeamId);
+    if (status !== "settled") return NextResponse.json({ error: getTeamBetSettlementError(status) }, { status: 409 });
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Nie udało się ręcznie zakończyć The Floor", error);

@@ -1,5 +1,1 @@
-File: src/app/api/segment/gold-challenge/route.ts
-
-Purpose: Receives { revision, command } via POST. Only a verified player can nominate, and the voter ID comes from the session. Participant setup, representative confirmation, start, payout, completion and restart require a verified administrator.
-
-Dependencies: Next.js Route Handlers, session verification, validation, GoldConflict and database.ts. Returns Polish errors for invalid input, permissions, stale actions or failed settlement. The shared state poll delivers the result.
+POST przyjmuje rewizję i polecenie. Gracz może nominować lub raz głosować na numer. Pozostałe działania wymagają admina. Kwoty, wybór rundy, opłaty i wypłaty rozstrzyga baza. Aktualna migawka ujawnia wynik po wypłacie.

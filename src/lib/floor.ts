@@ -3,10 +3,13 @@ import type { TheFloorDuel } from "@/lib/types";
 export const THE_FLOOR_TITLE = "The Floor";
 export const THE_FLOOR_DUEL_SECONDS = 45;
 export const THE_FLOOR_PASS_PENALTY_SECONDS = 3;
+export const THE_FLOOR_POLL_INTERVAL_MS = 1_000;
+export const THE_FLOOR_PRESENCE_SECONDS = 30;
+export const THE_FLOOR_BET_DESCRIPTION = "Każdy gracz, którego drużyna nie uczestniczy w danym pojedynku, obstawia zwycięzcę. Jeden zakład = 2 żetony.";
 export const THE_FLOOR_BET_STAKE = "2.0000";
 
 export const THE_FLOOR_CATEGORY_IDS = [
-  "znajome-twarze", "lokalne-miejsca", "loga", "od-tylu", "dzialania", "rebusy",
+  "znajome-twarze", "lokalne-miejsca", "loga", "od-tylu", "dzialania", "rebusy", "politycy",
 ] as const;
 
 export const THE_FLOOR_CATEGORY_META = {
@@ -23,6 +26,7 @@ export const THE_FLOOR_CATEGORY_META = {
   loga: { name: "Loga", instructions: "Rozpoznajcie markę po logotypie.", aliases: ["logotypy"] },
   "od-tylu": { name: "Czytanie od tyłu", instructions: "Odczytajcie wyraz zapisany od tyłu.", aliases: ["czytanie-od-tylu"] },
   dzialania: { name: "Działania", instructions: "Policzcie działanie i podajcie wynik.", aliases: ["the-floor-dzialania"] },
+  politycy: { name: "Politycy", instructions: "Rozpoznajcie osobę na zdjęciu.", aliases: [] },
   rebusy: { name: "Rebusy", instructions: "Rozwiążcie rebus widoczny na grafice.", aliases: ["rebus"] },
 } satisfies Record<string, { name: string; instructions: string; aliases: string[] }>;
 

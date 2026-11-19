@@ -10,7 +10,8 @@
     "queries": [
       "Wejherowo plac Wejhera",
       "Rynek w Wejherowie"
-    ]
+    ],
+    "image": "zdjecia/01.webp"
   },
   {
     "n": 2,
@@ -23,7 +24,8 @@
     "queries": [
       "Fontanna Neptuna Gdańsk",
       "Neptun Gdańsk"
-    ]
+    ],
+    "image": "zdjecia/02.webp"
   },
   {
     "n": 3,
@@ -36,7 +38,8 @@
     "queries": [
       "Molo w Sopocie",
       "Sopot pier"
-    ]
+    ],
+    "image": "zdjecia/03.webp"
   },
   {
     "n": 4,
@@ -49,7 +52,8 @@
     "queries": [
       "Skwer Kościuszki Gdynia",
       "Gdynia Kościuszki"
-    ]
+    ],
+    "image": "zdjecia/04.webp"
   },
   {
     "n": 5,
@@ -61,7 +65,8 @@
     "search": "Ratusz Miejski Wejherowo",
     "queries": [
       "Ratusz rynek Wejherowo"
-    ]
+    ],
+    "image": "zdjecia/05.webp"
   },
   {
     "n": 6,
@@ -74,7 +79,8 @@
     "queries": [
       "Długi Targ Gdańsk",
       "Ulica Długa Gdańsk"
-    ]
+    ],
+    "image": "zdjecia/06.webp"
   },
   {
     "n": 7,
@@ -86,7 +92,8 @@
     "search": "Dar Pomorza Gdynia",
     "queries": [
       "Dar Pomorza Gdynia"
-    ]
+    ],
+    "image": "zdjecia/07.webp"
   },
   {
     "n": 8,
@@ -98,7 +105,8 @@
     "search": "Krzywy Domek Sopot",
     "queries": [
       "Krzywy Domek Sopot"
-    ]
+    ],
+    "image": "zdjecia/08.webp"
   },
   {
     "n": 9,
@@ -111,7 +119,8 @@
     "queries": [
       "Pałac Przebendowskich Wejherowo",
       "Wejherowo pałac"
-    ]
+    ],
+    "image": "zdjecia/09.webp"
   },
   {
     "n": 10,
@@ -124,7 +133,8 @@
     "queries": [
       "Żuraw Gdańsk Motława",
       "Gdansk crane"
-    ]
+    ],
+    "image": "zdjecia/10.webp"
   },
   {
     "n": 11,
@@ -137,7 +147,8 @@
     "queries": [
       "Molo w Orłowie Gdynia",
       "Gdynia Orłowo pier"
-    ]
+    ],
+    "image": "zdjecia/11.webp"
   },
   {
     "n": 12,
@@ -150,7 +161,8 @@
     "queries": [
       "Park Majkowskiego Wejherowo",
       "Wejherowo park miejski"
-    ]
+    ],
+    "image": "zdjecia/12.webp"
   },
   {
     "n": 13,
@@ -163,7 +175,8 @@
     "queries": [
       "Bohaterów Monte Cassino Sopot",
       "Monciak Sopot"
-    ]
+    ],
+    "image": "zdjecia/13.webp"
   },
   {
     "n": 14,
@@ -175,7 +188,8 @@
     "search": "ORP Błyskawica Gdynia",
     "queries": [
       "ORP Błyskawica Gdynia"
-    ]
+    ],
+    "image": "zdjecia/14.webp"
   },
   {
     "n": 15,
@@ -188,7 +202,8 @@
     "queries": [
       "Bazylika Mariacka Gdańsk",
       "St Mary Gdańsk"
-    ]
+    ],
+    "image": "zdjecia/15.webp"
   },
   {
     "n": 16,
@@ -200,7 +215,8 @@
     "search": "Filharmonia Kaszubska Wejherowo",
     "queries": [
       "Filharmonia Kaszubska Wejherowo"
-    ]
+    ],
+    "image": "zdjecia/16.webp"
   },
   {
     "n": 17,
@@ -213,7 +229,8 @@
     "queries": [
       "Klif Orłowski",
       "Orłowo klif Gdynia"
-    ]
+    ],
+    "image": "zdjecia/17.webp"
   },
   {
     "n": 18,
@@ -225,7 +242,8 @@
     "search": "Kalwaria Wejherowska Wejherowo",
     "queries": [
       "Kalwaria Wejherowska"
-    ]
+    ],
+    "image": "zdjecia/18.webp"
   },
   {
     "n": 19,
@@ -238,7 +256,8 @@
     "queries": [
       "Europejskie Centrum Solidarności Gdańsk",
       "European Solidarity Centre Gdańsk"
-    ]
+    ],
+    "image": "zdjecia/19.webp"
   },
   {
     "n": 20,
@@ -250,7 +269,8 @@
     "search": "Bulwar Nadmorski Gdynia",
     "queries": [
       "Bulwar Nadmorski Gdynia"
-    ]
+    ],
+    "image": "zdjecia/20.webp"
   },
   {
     "n": 21,
@@ -263,7 +283,8 @@
     "queries": [
       "Pomnik Jakuba Wejhera",
       "Jakub Wejher monument"
-    ]
+    ],
+    "image": "zdjecia/21.webp"
   },
   {
     "n": 22,
@@ -276,7 +297,8 @@
     "queries": [
       "Muzeum II Wojny Światowej Gdańsk",
       "Museum Second World War Gdansk"
-    ]
+    ],
+    "image": "zdjecia/22.webp"
   },
   {
     "n": 23,
@@ -289,7 +311,8 @@
     "queries": [
       "Ulica Mariacka Gdańsk",
       "Mariacka Street Gdańsk"
-    ]
+    ],
+    "image": "zdjecia/23.webp"
   },
   {
     "n": 24,
@@ -301,7 +324,8 @@
     "search": "Kamienna Góra – punkt widokowy Gdynia",
     "queries": [
       "Kamienna Góra Gdynia panorama"
-    ]
+    ],
+    "image": "zdjecia/24.webp"
   },
   {
     "n": 25,
@@ -313,7 +337,8 @@
     "search": "Kościół św. Anny Wejherowo",
     "queries": [
       "Wejherowo kościół Św. Anny"
-    ]
+    ],
+    "image": "zdjecia/25.webp"
   },
   {
     "n": 26,
@@ -325,7 +350,8 @@
     "search": "Ulica Jana III Sobieskiego Wejherowo",
     "queries": [
       "Sobieskiego Wejherowo deptak"
-    ]
+    ],
+    "image": "zdjecia/26.webp"
   },
   {
     "n": 27,
@@ -337,7 +363,8 @@
     "search": "Pomnik Remusa Wejherowo",
     "queries": [
       "Pomnik Remusa Wejherowo"
-    ]
+    ],
+    "image": "zdjecia/27.webp"
   },
   {
     "n": 28,
@@ -349,7 +376,8 @@
     "search": "Dworzec kolejowy PKP Wejherowo",
     "queries": [
       "Dworzec PKP Wejherowo"
-    ]
+    ],
+    "image": "zdjecia/28.webp"
   },
   {
     "n": 29,
@@ -361,7 +389,8 @@
     "search": "Kolegiata Świętej Trójcy Wejherowo",
     "queries": [
       "Kolegiata Trójcy Wejherowo"
-    ]
+    ],
+    "image": "zdjecia/29.webp"
   },
   {
     "n": 30,
@@ -373,7 +402,8 @@
     "search": "Amfiteatr w Parku Miejskim Wejherowo",
     "queries": [
       "Amfiteatr park Wejherowo"
-    ]
+    ],
+    "image": "zdjecia/30.webp"
   },
   {
     "n": 31,
@@ -385,7 +415,8 @@
     "search": "Opera Leśna Sopot",
     "queries": [
       "Opera Leśna Sopot"
-    ]
+    ],
+    "image": "zdjecia/31.webp"
   },
   {
     "n": 32,
@@ -397,7 +428,8 @@
     "search": "Ulica Świętojańska Gdynia",
     "queries": [
       "Świętojańska Gdynia ulica"
-    ]
+    ],
+    "image": "zdjecia/32.webp"
   },
   {
     "n": 33,
@@ -410,7 +442,8 @@
     "queries": [
       "PGE Arena Gdańsk",
       "Polsat Plus Arena"
-    ]
+    ],
+    "image": "zdjecia/33.webp"
   },
   {
     "n": 34,
@@ -422,7 +455,8 @@
     "search": "Pomnik na Westerplatte Gdańsk",
     "queries": [
       "Westerplatte pomnik Gdańsk"
-    ]
+    ],
+    "image": "zdjecia/34.webp"
   },
   {
     "n": 35,
@@ -434,7 +468,8 @@
     "search": "Park Oliwski Gdańsk",
     "queries": [
       "Park Oliwski Gdańsk"
-    ]
+    ],
+    "image": "zdjecia/35.webp"
   },
   {
     "n": 36,
@@ -446,7 +481,8 @@
     "search": "Archikatedra Oliwska Gdańsk",
     "queries": [
       "Katedra Oliwska Gdańsk"
-    ]
+    ],
+    "image": "zdjecia/36.webp"
   },
   {
     "n": 37,
@@ -458,7 +494,8 @@
     "search": "Kościół św. Stanisława Kostki Wejherowo",
     "queries": [
       "Wejherowo kościół Stanisława Kostki"
-    ]
+    ],
+    "image": "zdjecia/37.webp"
   },
   {
     "n": 38,
@@ -470,7 +507,8 @@
     "search": "Ulica Wałowa Wejherowo",
     "queries": [
       "Ulica Wałowa Wejherowo"
-    ]
+    ],
+    "image": "zdjecia/38.webp"
   },
   {
     "n": 39,
@@ -482,19 +520,21 @@
     "search": "Wieża Kaszubskie Oko Gniewino",
     "queries": [
       "Kaszubskie Oko Gniewino"
-    ]
+    ],
+    "image": "zdjecia/39.webp"
   },
   {
     "n": 40,
     "name": "Aquapark Reda",
     "city": "Reda",
-    "source": "https://www.aquaparkreda.pl/en/restaurants-and-shops",
+    "source": "https://aquaparkreda.pl/",
     "provider": "Źródło lokalne",
-    "photo": "https://www.aquaparkreda.pl/img/1920x/aaeb30/S8F3T5v920p051B5k7z301Q1g1P3f4X2.jpg",
+    "photo": "https://aquaparkreda.pl/assets/wideo/hero-aquapark-4k-poster.webp",
     "search": "Aquapark Reda Reda",
     "queries": [
       "Aquapark Reda"
-    ]
+    ],
+    "image": "zdjecia/40.webp"
   },
   {
     "n": 41,
@@ -506,7 +546,8 @@
     "search": "Stary Rynek Puck",
     "queries": [
       "Rynek Puck"
-    ]
+    ],
+    "image": "zdjecia/41.webp"
   },
   {
     "n": 42,
@@ -518,7 +559,8 @@
     "search": "Molo i port rybacki Puck",
     "queries": [
       "Molo Puck"
-    ]
+    ],
+    "image": "zdjecia/42.webp"
   },
   {
     "n": 43,
@@ -530,7 +572,8 @@
     "search": "Cypel Rewski Rewa",
     "queries": [
       "Cypel Rewski Rewa"
-    ]
+    ],
+    "image": "zdjecia/43.webp"
   },
   {
     "n": 44,
@@ -542,7 +585,8 @@
     "search": "Przystań rybacka Mechelinki",
     "queries": [
       "Mechelinki port rybacki"
-    ]
+    ],
+    "image": "zdjecia/44.webp"
   },
   {
     "n": 45,
@@ -554,7 +598,8 @@
     "search": "Molo w Brzeźnie Gdańsk",
     "queries": [
       "Molo Brzeźno Gdańsk"
-    ]
+    ],
+    "image": "zdjecia/45.webp"
   },
   {
     "n": 46,
@@ -566,7 +611,8 @@
     "search": "Latarnia morska w Nowym Porcie Gdańsk",
     "queries": [
       "Latarnia Nowy Port Gdańsk"
-    ]
+    ],
+    "image": "zdjecia/46.webp"
   },
   {
     "n": 47,
@@ -578,7 +624,8 @@
     "search": "Hala Targowa Gdynia",
     "queries": [
       "Hala Targowa Gdynia"
-    ]
+    ],
+    "image": "zdjecia/47.webp"
   },
   {
     "n": 48,
@@ -590,7 +637,8 @@
     "search": "Hala Targowa Gdańsk",
     "queries": [
       "Hala Targowa Gdańsk"
-    ]
+    ],
+    "image": "zdjecia/48.webp"
   },
   {
     "n": 49,
@@ -602,7 +650,8 @@
     "search": "Kładka na Ołowiankę Gdańsk",
     "queries": [
       "Kładka Ołowianka Gdańsk"
-    ]
+    ],
+    "image": "zdjecia/49.webp"
   },
   {
     "n": 50,
@@ -614,6 +663,7 @@
     "search": "Pomnik Poległych Stoczniowców 1970 Gdańsk",
     "queries": [
       "Pomnik Poległych Stoczniowców Gdańsk"
-    ]
+    ],
+    "image": "zdjecia/50.webp"
   }
 ]

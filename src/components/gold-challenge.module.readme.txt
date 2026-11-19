@@ -1,3 +1,1 @@
-File: src/components/gold-challenge.module.css
-
-Purpose: Styles all gold challenge presentation and controls, including gold gradients, casino chip decoration, opponent cards, winner celebration and floating particles. The layout is responsive and disables motion for reduced-motion preferences.
+Złote gradienty, ramki, żetony, siatka sześciu przycisków i duża liczba ujawnianego wyniku. Obie gry korzystają z tego samego motywu i obsługują ograniczony ruch.

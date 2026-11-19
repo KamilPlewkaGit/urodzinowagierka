@@ -4,10 +4,7 @@ import { getTheFloorImage } from "@/lib/floor-content";
 
 export const runtime = "nodejs";
 
-const imageQuery = z.object({
-  category: z.string().regex(/^[a-z-]+$/).max(32),
-  item: z.string().regex(/^\d{1,5}$/).transform(Number).pipe(z.number().max(32_767)),
-});
+const assetId = z.string().regex(/^[a-f0-9]{64}$/);
 const imageHosts = new Set(["upload.wikimedia.org", "static2.zawszepomorze.pl", "www.zawszepomorze.pl", "www.wejherowo.pl", "www.aquaparkreda.pl", "aquaparkreda.pl"]);
 const imageTypes = new Set(["image/avif", "image/gif", "image/jpeg", "image/png", "image/webp"]);
 const redirectStatuses = new Set([301, 302, 303, 307, 308]);
@@ -16,7 +13,7 @@ function raster(body: BodyInit, mime: string) {
   return new Response(body, {
     headers: {
       "Content-Type": mime,
-      "Cache-Control": "public, max-age=0",
+      "Cache-Control": "public, max-age=31536000, immutable",
       "X-Content-Type-Options": "nosniff",
     },
   });
@@ -39,17 +36,14 @@ async function fetchRaster(url: URL) {
 
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
-  const query = imageQuery.safeParse({ category: params.get("category"), item: params.get("item") });
-  if (!query.success) return Response.json({ error: "Nieprawidłowa kategoria lub numer grafiki." }, { status: 400 });
-
-  const image = await getTheFloorImage(query.data.category, query.data.item);
-  if (!image) return Response.json({ error: "Nie znaleziono grafiki kategorii." }, { status: 404 });
-
-  if (image.kind === "embedded") {
-    return raster(new Uint8Array(Buffer.from(image.image.base64, "base64")), image.image.mime);
-  }
+  const asset = assetId.safeParse(params.get("asset"));
+  if (!asset.success) return Response.json({ error: "Nieprawidłowy identyfikator grafiki." }, { status: 400 });
 
   try {
+    const image = await getTheFloorImage(asset.data);
+    if (!image) return Response.json({ error: "Nie znaleziono grafiki kategorii." }, { status: 404 });
+    if (image.kind === "bytes") return raster(new Uint8Array(image.bytes), image.mime);
+
     const upstream = await fetchRaster(new URL(image.url));
     const mime = upstream.headers.get("content-type")?.split(";")[0].trim().toLowerCase() ?? "";
     if (!upstream.ok || !upstream.body || !imageTypes.has(mime)) {
@@ -58,7 +52,7 @@ export async function GET(request: Request) {
     }
     return raster(upstream.body, mime);
   } catch (error) {
-    console.warn("[The Floor] Nie udało się pobrać obrazu", query.data, error);
+    console.warn("[The Floor] Nie udało się pobrać obrazu", asset.data, error);
     return Response.json({ error: "Nie udało się pobrać obrazu kategorii." }, { status: 502 });
   }
 }

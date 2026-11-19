@@ -15,6 +15,7 @@ type Round = {
   estimate: number | null;
   direction: FinaleDirection | null;
   winner: TeamId | null;
+  points?: number;
 };
 
 export type StoredFinale = {
@@ -23,6 +24,8 @@ export type StoredFinale = {
   finalists: [TeamScore, TeamScore];
   questionIndex: number;
   rounds: Round[];
+  overallWinner?: TeamId;
+  finalRanking?: TeamScore[];
 };
 
 export class FinaleConflict extends Error {}
@@ -49,11 +52,13 @@ function needsConfirmation(state: StoredFinale | null, ranking: TeamScore[]) {
 export function getFinaleSnapshot(state: StoredFinale | null, revision: string, scores: TeamScore[], isAdmin: boolean): FinaleSnapshot {
   const stage = state?.stage ?? "intro";
   const preparing = stage === "intro" || stage === "ready";
-  const ranking = preparing || !state ? rankFinaleTeams(scores) : state.ranking;
+  const ranking = stage === "completed" && state?.finalRanking ? state.finalRanking : rankFinaleTeams(scores);
   const current = state && !preparing && stage !== "summary" && stage !== "completed" ? state.questionIndex : null;
   const question = current === null ? null : questions[current];
   const round = current === null ? null : state?.rounds[current];
   const confirm = needsConfirmation(state, ranking);
+  const leaders = stage === "summary" || stage === "completed" ? ranking.filter((team) => team.points === ranking[0].points).map((team) => team.teamId) : [];
+  const overallWinner = state?.overallWinner && leaders.includes(state.overallWinner) ? state.overallWinner : leaders.length === 1 ? leaders[0] : null;
   return {
     revision,
     stage,
@@ -70,8 +75,12 @@ export function getFinaleSnapshot(state: StoredFinale | null, revision: string, 
       answer: stage === "question" ? null : question.answer,
       ...(isAdmin ? { adminAnswer: question.answer } : {}),
       winner: round.winner,
+      points: round.points ?? null,
     } : null,
     winners: state?.rounds.map((round) => round.winner) ?? [],
+    roundPoints: state?.rounds.map((round) => round.points ?? null) ?? [],
+    overallLeaders: leaders,
+    overallWinner,
   };
 }
 
@@ -122,13 +131,30 @@ export function advanceFinale(state: StoredFinale | null, command: FinaleAction[
     case "show-wheel":
       if (stage === "winner") return { ...state, stage: "wheel" };
       break;
+    case "award": {
+      const index = command.round - 1;
+      const target = rounds[index];
+      if ((stage !== "summary" && (stage !== "wheel" || index !== questionIndex)) || !target?.winner || target.points === command.points) break;
+      return { ...state, rounds: rounds.map((item, position) => index === position ? { ...item, points: command.points } : item), overallWinner: undefined };
+    }
     case "next":
-      if (stage !== "wheel") break;
+      if (stage !== "wheel" || round.points === undefined) break;
       return questionIndex + 1 < questions.length
         ? { ...state, stage: "question", questionIndex: questionIndex + 1 }
         : { ...state, stage: "summary" };
-    case "complete":
-      if (stage === "summary") return { ...state, stage: "completed" };
+    case "overall-winner":
+      if (stage !== "summary" || rounds.some((item) => item.points === undefined)) break;
+      if (!ranking.some((team) => team.teamId === command.teamId && team.points === ranking[0].points)) {
+        throw new FinaleConflict("Wybierz jedną z drużyn na pierwszym miejscu.");
+      }
+      return { ...state, overallWinner: command.teamId };
+    case "complete": {
+      if (stage !== "summary" || rounds.some((item) => item.points === undefined)) break;
+      const leaders = ranking.filter((team) => team.points === ranking[0].points);
+      const winner = leaders.length === 1 ? leaders[0].teamId : state.overallWinner;
+      if (!winner || !leaders.some((team) => team.teamId === winner)) throw new FinaleConflict("Rozstrzygnij remis w punktacji ogólnej.");
+      return { ...state, stage: "completed", finalRanking: ranking, overallWinner: winner };
+    }
       break;
   }
   throw new FinaleConflict("Ta akcja jest niedostępna na tym etapie finału.");

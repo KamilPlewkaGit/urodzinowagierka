@@ -1,5 +1,1 @@
-File: src/components/melodia-screen.tsx
-
-MelodiaScreen reads the shared GameSnapshot and displays rules, numbered songs and progress, the four-team classification and recorded rounds, and the approved or pending reward details. The player dashboard supplies navigation and the current balance.
-
-Named display helpers are shared by the admin controls. The final view uses the server-provided winner and the exact debit range, and shows the viewer's own posted delta when available. Previously settled legacy results display as archival. Rendering depends on team metadata, shared Melodia rules, and the Polish decimal string formatter.
+Ekran pokazuje pięć piosenek, punktację za wykonawcę i tytuł oraz ranking. Po zatwierdzeniu zwycięzcy widoczna jest pula ze składek po 5 żetonów, wypłata na osobę i po rozliczeniu aktualne salda. Historyczne zakończone wyniki pozostają archiwalne.

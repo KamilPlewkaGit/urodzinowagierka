@@ -1,3 +1,1 @@
-File: src/app/api/segment/floor/image/route.ts
-
-Read-only Node.js GET serves embedded raster images and proxies external raster references from the catalog by validated category slug and zero-based item index. It sends image bytes without the source URL, permits only approved HTTPS hosts at each redirect, checks raster response types, and returns Polish errors on failure. The browser provides no filesystem path or URL. Local neutral raster files are served directly from the encoded public path.
+GET zwraca grafikę z serwerowego katalogu pod neutralnym skrótem. Klient nie podaje nazwy pliku ani zewnętrznego adresu. Obrazy mają długą pamięć podręczną. Serwer dopuszcza tylko skonfigurowane źródła HTTPS dla dawnych odwołań i sprawdza typ obrazu.

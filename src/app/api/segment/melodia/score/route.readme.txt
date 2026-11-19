@@ -1,7 +1,1 @@
-File: src/app/api/segment/melodia/score/route.ts
-
-POST verifies the administrator's database-backed session and returns { ok: true } or a Polish error.
-
-Validates the current song ID, first responding team, recognition and singing points, and optional lyric-auction declarations. Saves the result once, updates team totals, and opens final classification after song five.
-
-Persistence goes through src/lib/database.ts.
+POST wymaga admina, aktualnego ID piosenki, odpowiadającej drużyny oraz pól poprawności wykonawcy i tytułu. Zapis aktualizuje punkty raz.

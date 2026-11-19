@@ -1,0 +1,1 @@
+Dwa zegary zespołowe i wspólna plansza dla prowadzącego i graczy. Zegar liczy czas od ostatniej migawki serwera i korzysta z monotonicznego zegara przeglądarki między odczytami. Aktualna drużyna odpowiadająca ma złotą obwódkę i etykietę. Odświeżenie przywraca znaczniki czasu z bazy.

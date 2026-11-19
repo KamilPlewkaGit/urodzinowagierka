@@ -18,6 +18,7 @@ export const alkoholicyStageLabel: Record<AlkoholicyStage, string> = {
   "duel-setup": "Wybór drużyn do pojedynku",
   "duel-betting": "Zakłady na pojedynek",
   "duel-live": "Pojedynek trwa",
+  "duel-result": "Wynik pierwszego pojedynku",
   results: "Wyniki segmentu",
   completed: "Segment zakończony",
 };
@@ -56,12 +57,11 @@ function BalanceList({ players }: { players: Player[] }) {
 
 export function AlkoholicyBoard({ snapshot }: { snapshot: GameSnapshot }) {
   const state = snapshot.alkoholicy;
-  const { stage, order, scores, performance, duelTeams, charadesLeaders, duelResult } = state;
+  const { stage, order, scores, performance, duelTeams, charadesLeaders, duelHistory, duelIndex } = state;
   const segmentResult = stage === "results" || stage === "completed";
   const duel = stage.startsWith("duel-");
   const charadesResult = stage === "charades-review" || stage === "charades-results" || segmentResult;
   const ranked = [...TEAM_IDS].sort((a, b) => (scores[b] ?? 0) - (scores[a] ?? 0));
-  const segmentTotal = (team: TeamId) => (scores[team] ?? 0) + (duelResult?.winner === team ? duelResult.points : 0);
 
   return (
     <section className={styles.stage} aria-label="Alkoholicy">
@@ -69,9 +69,9 @@ export function AlkoholicyBoard({ snapshot }: { snapshot: GameSnapshot }) {
         <h1>ALKOHOLICY</h1>
         <p>Baw się dobrze!</p>
       </header>
-      {stage === "intro" && <ul className={styles.gameList}><li>Gra 1 <strong>Kalambury</strong></li><li>Gra 2 <strong>Pojedynek drużynowy</strong></li></ul>}
+      {stage === "intro" && <ul className={styles.gameList}><li>Gra 1 <strong>Kalambury</strong></li><li>Gra 2 <strong>Pojedynki</strong></li></ul>}
       {!segmentResult && stage !== "intro" && <p className={styles.kicker}>GRA {duel ? "2" : "1"} Z 2</p>}
-      {segmentResult ? <h2>WYNIKI – ALKOHOLICY</h2> : charadesResult ? <h2>WYNIKI – KALAMBURY</h2> : stage !== "intro" && <h2>{duel ? "POJEDYNEK DRUŻYNOWY" : "KALAMBURY"}</h2>}
+      {segmentResult ? <h2>WYNIKI – ALKOHOLICY</h2> : charadesResult ? <h2>WYNIKI – KALAMBURY</h2> : stage !== "intro" && <h2>{duel ? "Gra 2 – Pojedynki" : "KALAMBURY"}</h2>}
       {stage === "order" && <p>Prowadzący ustala kolejność drużyn.</p>}
       {["order", "charades-ready", "charades-betting", "charades-play"].includes(stage) && (
         <ul className={styles.rules}>{charadesRules.map((rule) => <li key={rule}>{rule}</li>)}</ul>
@@ -95,26 +95,28 @@ export function AlkoholicyBoard({ snapshot }: { snapshot: GameSnapshot }) {
           {stage !== "charades-review" && <BetSummary market={state.charadesMarket} />}
         </div>
       )}
-      {(duel || segmentResult) && (
+      {duel && (
         <div className={styles.result}>
-          {segmentResult && <h3>Pojedynek drużynowy</h3>}
+          <h3>Pojedynek {duelIndex + 1}/2</h3>
           {duelTeams ? <p className={styles.match}><TeamName id={duelTeams[0]} /> <span>kontra</span> <TeamName id={duelTeams[1]} /></p> : <p>Prowadzący wybiera dwie drużyny.</p>}
           {stage === "duel-betting" && <p>Zakłady otwarte dla graczy z pozostałych drużyn.</p>}
           {stage === "duel-live" && <p className={styles.highlight}>POJEDYNEK TRWA</p>}
-          {duelResult && <><p>Zwycięzca: <TeamName id={duelResult.winner} /> · <strong>+{duelResult.points} pkt</strong></p><BetSummary market={state.duelMarket} /></>}
-          {duel && <ul className={styles.standings} aria-label="Punkty z Kalamburów">{ranked.map((team) => <li key={team}><TeamName id={team} /><span>{scores[team]} pkt</span></li>)}</ul>}
+          {stage === "duel-result" && duelHistory[duelIndex] && <><p>Zwycięzca: <TeamName id={duelHistory[duelIndex].winner} /></p><BetSummary market={state.duelMarket} /></>}
         </div>
       )}
       {segmentResult && (
         <div className={styles.result}>
-          <h3>Punkty zdobyte w segmencie</h3>
-          <ol className={styles.standings}>
-            {[...TEAM_IDS].sort((a, b) => segmentTotal(b) - segmentTotal(a)).map((team) => <li key={team}><TeamName id={team} /><strong>{segmentTotal(team)} pkt</strong></li>)}
-          </ol>
+          <h3>Gra 2 – Pojedynki</h3>
+          {duelHistory.map(({ teams, winner }, index) => <div key={index}>
+            <h4>Pojedynek {index + 1}/2</h4>
+            <p><TeamName id={teams[0]} /> kontra <TeamName id={teams[1]} /></p>
+            <p>Zwycięzca: <TeamName id={winner} /></p>
+            <BetSummary market={state.duelMarkets[index]} />
+          </div>)}
           {stage === "completed" && <p>Segment zakończony.</p>}
         </div>
       )}
-      {(stage === "charades-results" || segmentResult) && <BalanceList players={snapshot.players} />}
+      {(stage === "charades-results" || stage === "duel-result" || segmentResult) && <BalanceList players={snapshot.players} />}
     </section>
   );
 }
@@ -135,20 +137,20 @@ export function AlkoholicyScreen({ snapshot, viewerPlayerId, refresh }: { snapsh
   const state = snapshot.alkoholicy;
   const viewer = snapshot.players.find((player) => player.id === viewerPlayerId);
   const { send, pending, error } = useSegmentCommand<AlkoholicyAction["command"]>("/api/segment/alkoholicy", state.revision, refresh);
-  const market = state.stage === "charades-betting" ? 1 : state.stage === "duel-betting" ? 2 : null;
+  const market = state.stage === "charades-betting" ? 1 : state.stage === "duel-betting" ? (state.duelIndex === 0 ? 2 : 3) : null;
   const ownBet = market === 1 ? state.charadesMarket.viewerBet : state.duelMarket.viewerBet;
   const options = !viewer ? [] : market === 1 ? TEAM_IDS.filter((team) => team !== viewer.teamId)
-    : market === 2 && !state.duelTeams?.includes(viewer.teamId) ? state.duelTeams ?? [] : [];
+    : market !== null && !state.duelTeams?.includes(viewer.teamId) ? state.duelTeams ?? [] : [];
   const canAfford = viewer && compareChipBalances(viewer.tokens, "2") >= 0;
 
   return (
     <div className={styles.wrapper}>
       <AlkoholicyBoard snapshot={snapshot} />
-      {viewer && (market !== null || state.charadesMarket.viewerBet || state.duelMarket.viewerBet) && (
+      {viewer && (market !== null || state.charadesMarket.viewerBet || state.duelMarkets.some((duelMarket) => duelMarket.viewerBet)) && (
         <section className={styles.controls} aria-label="Twoje zakłady">
           <h2>Twoje zakłady</h2>
           <OwnBet market={state.charadesMarket} label="Kalambury" />
-          <OwnBet market={state.duelMarket} label="Pojedynek" />
+          {state.duelMarkets.map((duelMarket, index) => <OwnBet key={index} market={duelMarket} label={"Pojedynek nr " + (index + 1)} />)}
           {market && !ownBet && (options.length > 0 ? (
             <>
               <p>{canAfford ? "Wybierz drużynę. Stawka wynosi 2 żetony." : "Do postawienia zakładu potrzebujesz 2 żetonów."}</p>

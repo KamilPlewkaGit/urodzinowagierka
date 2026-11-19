@@ -1,0 +1,1 @@
+Zachowuje 100 pozycji z jednoznacznym ID i polem odpowiedzi. Jedno działanie na pozycję. Mnożenie obejmuje tylko tabliczkę 1–10, a odejmowanie ma nieujemne wyniki. Pole image jest puste, ponieważ aplikacja pokazuje treść z expression.

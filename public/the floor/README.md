@@ -1,35 +1,19 @@
 # Materiały The Floor
 
-| Kategoria | Obecny plik pod `public/the floor/` | Zawartość |
+| Kategoria | Plik | Zestaw |
 | --- | --- | --- |
-| Znajome twarze | `znajome-twarze/znane_twarze_z_obrazami.json` | 29 osadzonych obrazów PNG |
-| Lokalne miejsca | `lokalne-miejsca/miejsca.json` | 50 wpisów z odwołaniami do zdjęć |
-| Loga | `loga/The_Floor_LOGOTYPY_BEZ_NAZWY_DO_WYSWIETLANIA.json` | 50 osadzonych obrazów PNG |
+| Znajome twarze | `znajome-twarze/znane_twarze_z_obrazami.json` | 29 obrazów osadzonych |
+| Lokalne miejsca | `lokalne-miejsca/miejsca.json` | 50 lokalnych zdjęć WebP i odwołania do źródeł |
+| Loga | `loga/The_Floor_LOGOTYPY_BEZ_NAZWY_DO_WYSWIETLANIA.json` | 50 osadzonych grafik powiązanych ze sprawdzonymi identyfikatorami |
 | Czytanie od tyłu | `od_tylu/od_tylu.json` | 48 zagadek tekstowych |
-| Działania | `działania/The_Floor_DZIALANIA_100_z_obrazami.json` | 100 działań z tekstem i osadzonymi obrazami PNG |
-| Rebusy | `rebus/rebusy.json` | 28 grafik PNG z tego samego folderu |
+| Działania | `działania/The_Floor_DZIALANIA_100_z_obrazami.json` | 100 prostych działań |
+| Rebusy | `rebus/rebusy.json` | 28 lokalnych grafik |
+| Politycy | `politycy/politycy_the_floor.json` | 50 przygotowanych portretów WebP |
 
-Grafiki Rebusów mają neutralne nazwy plików. Kolejność w tablicy JSON wyznacza przebieg pojedynku.
+Plik może zawierać tablicę pozycji lub obiekt z polem `items` i opcjonalnym polem `category`. Nazwa folderu, nazwa pliku i pole kategorii pomagają rozpoznać zestaw. W pozycji `id` albo `n` jest kluczem utrwalanym w kolejności pojedynku. Pozycje Loga zachowują ID z pliku i powiązanie z osadzoną grafiką oraz odpowiedzią. Kolejność w tablicy jest używana przez aktywne zapisy sprzed losowania.
 
-## Format
+Pole `image` lub `photo` przyjmuje lokalną ścieżkę, osadzone dane obrazu albo dozwolone źródło HTTPS. Portrety pobrano z PageImages Wikipedii. `imageLookup` zachowuje tytuły artykułów, a `imageSourceUrl` wskazuje oryginał na Wikimedia Commons. Zdjęcia miejsc zachowują własne pola źródła. Grafiki są podawane pod neutralnym skrótem. Źródłowe JSON-y oraz odpowiedzi są odczytywane po stronie serwera.
 
-Plik może zawierać samą tablicę pozycji albo obiekt z polem `items` i opcjonalnym polem `category`. Serwer szuka rekurencyjnie i rozpoznaje kategorię po folderze, nazwie pliku lub polu `category`. Dla jednej kategorii użyj jednego pliku. Przykład dla JSON-u zapisanego obok `01.png`:
+`expression` i `display` określają planszę tekstową. Działania mają jedno dodawanie, odejmowanie albo mnożenie do 10 × 10. `answer` lub `name` pozostaje odpowiedzią prowadzącego.
 
-```json
-{
-  "category": "Rebusy",
-  "items": [
-    { "id": 1, "answer": "atlas", "image": "01.png" }
-  ]
-}
-```
-
-- `image` przyjmuje ścieżkę względną wobec JSON-u, publiczną ścieżkę `/the%20floor/…`, adres HTTPS z obsługiwanych źródeł zdjęć lub osadzone dane obrazu. Obsługiwane formaty to PNG, JPG/JPEG, WebP, AVIF i GIF.
-- `photo` stosuje ten sam format. W zestawie **Lokalne miejsca** lokalna kopia zdjęcia obok pliku JSON ma pierwszeństwo. Dla wpisu z Wikimedia Commons pole `source` wskazuje stronę pliku, z której ładowarka wyznacza adres obrazu. Pozostałe istniejące wpisy wskazują bezpośredni adres HTTPS w polu `photo`.
-- `display` i `expression` określają treść zagadek tekstowych. `answer` ma pierwszeństwo przed `name` w widoku prowadzącego. Indeks w tablicy wyznacza kolejność. Proxy Next.js blokuje bezpośrednie pobranie źródłowych JSON-ów. Pliki graficzne dostępne publicznie powinny mieć neutralne nazwy.
-
-## Błędy i wdrożenie
-
-Brak pliku, pusty zestaw, zły format JSON i duplikaty są zgłaszane po polsku. Błąd jednego obrazu zachowuje jego miejsce w kolejności. Prowadzący może użyć **Pas**, a zegar i pozostałe kontrolki pozostają dostępne. Zewnętrzne zdjęcia zależą od dostępności źródła. Gdy chcesz zastąpić niedostępne zdjęcie jego lokalną kopią, użyj wpisu `image` z poprawną ścieżką.
-
-Po zmianie plików zrestartuj serwer lokalny lub wykonaj nowe wdrożenie Vercel. W trakcie rozgrywki zachowaj kolejność tablicy, ponieważ baza przechowuje indeks bieżącej zagadki.
+Serwer tworzy wersjonowaną listę unikatowych grafik. Prowadzący widzi brakujące pozycje po nazwie kategorii i ID. Klienci dekodują grafiki przed rozpoczęciem pojedynku i używają tych samych adresów w trakcie gry. Po edycji materiałów zrestartuj lokalny serwer albo wdróż nową wersję.

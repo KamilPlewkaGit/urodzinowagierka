@@ -1,11 +1,1 @@
-File: `src/app/api/segment/pojedynki/finish/route.ts`
-
-Purpose and responsibilities: Records the administrator-selected winning team for a live Pojedynki duel and starts protected settlement.
-
-Important exports, inputs, and outputs: Administrator-only `POST(request)` validates `{ winnerTeamId }` and returns `{ ok: true }` or Polish errors.
-
-Dependencies: Next Route Handler APIs, opaque sessions, `pojedynkiWinnerSchema`, and `finishPojedynkiDuel`.
-
-Backend/database interactions: The service accepts only one of the two persisted teams, records the result, and settles the closed pool once using a durable `settled_at` guard. The same persisted winner may safely retry an interrupted settlement request, but another winner cannot replace it.
-
-Implementation details: No team score is changed by this route; it changes player balances only through the server-side closed-pool settlement.
+POST zatwierdza zwycięzcę i standardowe transfery drużynowe jednym zapisem. Wymaga admina. Konflikt zwraca informację o braku składu, salda lub ważnego etapu.

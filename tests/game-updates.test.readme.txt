@@ -1,0 +1,1 @@
+Testy HTTP na zbudowanej aplikacji. Uruchamiają tymczasowy serwer, weryfikują autoryzację, nawigację, treści The Floor, stan zakładów i etapów, przebiegi segmentów oraz sumę sald po rozliczeniu.

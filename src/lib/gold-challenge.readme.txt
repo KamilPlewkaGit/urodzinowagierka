@@ -1,5 +1,1 @@
-File: src/lib/gold-challenge.ts
-
-Purpose: Defines the 10-chip contribution, initial gold challenge state, and role-specific snapshot. Player snapshots expose only their own nomination. Admin snapshots expose aggregate counts during nominations and previews during the challenge.
-
-Implementation: The preview uses exact scaled BigInt arithmetic and the snapshot's active roster in registration date and ID order. The settlement in database.ts repeats the split in PostgreSQL on locked rows and stores the actual payout separately.
+Zwraca bezpieczne widoki dwóch złotych gier. Wykorzystuje składy i stawki z momentu wpłaty. W trakcie głosowania pokazuje prowadzącemu statusy, graczowi wyłącznie jego numer. Agregaty i poprawny numer są ograniczone według stanu oraz roli.

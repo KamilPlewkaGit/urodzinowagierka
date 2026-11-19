@@ -3,12 +3,12 @@
 import { useState } from "react";
 
 import { MelodiaRewardSummary, MelodiaRoundResults, MelodiaRules, MelodiaScoreboard, melodiaTeamStyle } from "@/components/melodia-screen";
+import { formatPolishChips } from "@/lib/chips";
 import { TEAMS, getTeam } from "@/lib/constants";
-import { MELODIA_MAX_SINGING_POINTS, MELODIA_MAX_SONG_POINTS, getMelodiaSongLabel } from "@/lib/melodia";
+import { MELODIA_MAX_SONG_POINTS, getMelodiaSongLabel } from "@/lib/melodia";
 import type { GameSnapshot, MelodiaSong, TeamId } from "@/lib/types";
 
 type PostAction = (action: string, body?: object) => Promise<void>;
-const lineCounts = Array.from({ length: MELODIA_MAX_SINGING_POINTS + 1 }, (_, count) => count);
 
 function TeamChoice({ teamId, checked, onClick, disabled }: {
   teamId: TeamId;
@@ -27,18 +27,7 @@ function MelodiaScoringForm({ song, busy, post }: { song: MelodiaSong; busy: boo
   const [winnerTeamId, setWinnerTeamId] = useState<TeamId | null>(null);
   const [artistCorrect, setArtistCorrect] = useState(false);
   const [titleCorrect, setTitleCorrect] = useState(false);
-  const [singingPoints, setSingingPoints] = useState(0);
-  const [singingMistake, setSingingMistake] = useState(false);
-  const [biddingEnabled, setBiddingEnabled] = useState(false);
-  const [bids, setBids] = useState<Partial<Record<TeamId, number>>>({});
-  const [bidWinnerId, setBidWinnerId] = useState<TeamId | null>(null);
-  const [bidCompleted, setBidCompleted] = useState(false);
-
-  const activeBids = TEAMS.flatMap(({ id }) => bids[id] === undefined ? [] : [{ teamId: id, declaredLines: bids[id] }]);
-  const winningBid = activeBids.find((bid) => bid.teamId === bidWinnerId);
-  const singing = biddingEnabled ? (bidCompleted ? winningBid?.declaredLines ?? 0 : 0) : (singingMistake ? 0 : singingPoints);
-  const previewPoints = Number(artistCorrect) + Number(titleCorrect) + singing;
-  const canScore = winnerTeamId && (!biddingEnabled || winningBid);
+  const previewPoints = Number(artistCorrect) + Number(titleCorrect);
 
   return <>
     <h2>Punktacja · {getMelodiaSongLabel(song.sequence)}</h2>
@@ -50,58 +39,10 @@ function MelodiaScoringForm({ song, busy, post }: { song: MelodiaSong; busy: boo
     <div className="floor-pair-selectors">
       <label className="field-label"><input type="checkbox" checked={artistCorrect} onChange={(event) => setArtistCorrect(event.target.checked)} disabled={busy} /> Poprawny artysta (+1)</label>
       <label className="field-label"><input type="checkbox" checked={titleCorrect} onChange={(event) => setTitleCorrect(event.target.checked)} disabled={busy} /> Poprawny tytuł (+1)</label>
-      <label className="field-label">Poprawnie zaśpiewane wersy
-        <select className="text-input" value={singingPoints} onChange={(event) => setSingingPoints(Number(event.target.value))} disabled={busy || biddingEnabled || singingMistake}>
-          {lineCounts.map((count) => <option key={count}>{count}</option>)}
-        </select>
-      </label>
-      <label className="field-label"><input type="checkbox" checked={singingMistake} onChange={(event) => setSingingMistake(event.target.checked)} disabled={busy || biddingEnabled} /> Pomyłka podczas śpiewania</label>
     </div>
-    <div className="floor-bet-panel">
-      <label className="field-label"><input type="checkbox" checked={biddingEnabled} onChange={(event) => setBiddingEnabled(event.target.checked)} disabled={busy} /> Włącz licytację</label>
-      {biddingEnabled ? <>
-        <p>Wskaż uczestników i liczbę deklarowanych wersów.</p>
-        <div className="floor-pair-selectors">
-          {TEAMS.map((team) => <label className="field-label" key={team.id}>{team.icon} {team.name}
-            <select className="text-input" value={bids[team.id] ?? ""} disabled={busy} onChange={(event) => {
-              const value = event.target.value;
-              setBids((current) => ({ ...current, [team.id]: value === "" ? undefined : Number(value) }));
-              if (team.id === bidWinnerId && value === "") {
-                setBidWinnerId(null);
-                setBidCompleted(false);
-              }
-            }}>
-              <option value="">Poza licytacją</option>
-              {lineCounts.map((count) => <option key={count} value={count}>{count}</option>)}
-            </select>
-          </label>)}
-          <label className="field-label">Zwycięzca licytacji
-            <select className="text-input" value={bidWinnerId ?? ""} disabled={busy || activeBids.length === 0} onChange={(event) => {
-              setBidWinnerId(activeBids.find((bid) => bid.teamId === event.target.value)?.teamId ?? null);
-              setBidCompleted(false);
-            }}>
-              <option value="">Wybierz drużynę</option>
-              {activeBids.map(({ teamId, declaredLines }) => <option key={teamId} value={teamId}>{getTeam(teamId).name} · {declaredLines}</option>)}
-            </select>
-          </label>
-          <label className="field-label"><input type="checkbox" checked={bidCompleted} onChange={(event) => setBidCompleted(event.target.checked)} disabled={busy || !winningBid} /> Wykonano bez pomyłki</label>
-        </div>
-      </> : null}
-    </div>
-    <p>Razem <strong>{previewPoints}/{MELODIA_MAX_SONG_POINTS} pkt</strong> · za śpiewanie {singing} pkt</p>
-    <button className="gold-button start-button" type="button" disabled={busy || !canScore} onClick={() => post("score", {
-      songId: song.id,
-      winnerTeamId,
-      artistCorrect,
-      titleCorrect,
-      singingPoints,
-      singingMistake,
-      bidding: {
-        enabled: biddingEnabled,
-        bids: biddingEnabled ? activeBids : [],
-        winningBidderTeamId: biddingEnabled ? bidWinnerId : null,
-        completed: biddingEnabled && bidCompleted,
-      },
+    <p>Razem <strong>{previewPoints}/{MELODIA_MAX_SONG_POINTS} pkt</strong></p>
+    <button className="gold-button start-button" type="button" disabled={busy || !winnerTeamId} onClick={() => post("score", {
+      songId: song.id, winnerTeamId, artistCorrect, titleCorrect,
     })}>Zatwierdź punkty</button>
   </>;
 }
@@ -135,7 +76,11 @@ export function MelodiaAdminControls({ snapshot, onRefresh }: { snapshot: GameSn
   }
 
   const isFinal = stage === "results" || stage === "completed";
-  const chosenTieTeam = tieChoice && tieChoice.songId === song?.id ? tieChoice.teamId : winningTeamId;
+  const chosenTeam = tieChoice?.songId === song?.id ? tieChoice?.teamId
+    : winningTeamId ?? (melodia.leadingTeamIds.length === 1 ? melodia.leadingTeamIds[0] : null);
+  const preview = melodia.transferPreview ?? [];
+  const insufficient = new Set(melodia.insufficientPlayers ?? []);
+  const players = new Map(snapshot.players.map((player) => [player.id, player]));
 
   return <section className="floor-admin-section" aria-label="Sterowanie segmentem Jaka to melodia">
     <article className="floor-admin-panel" aria-busy={busy}>
@@ -168,16 +113,38 @@ export function MelodiaAdminControls({ snapshot, onRefresh }: { snapshot: GameSn
         <MelodiaScoreboard melodia={melodia} />
         <MelodiaRewardSummary melodia={melodia} />
         {stage === "results" && song && !settledAt ? <>
-          {melodia.leadingTeamIds.length > 1 ? <>
+          {melodia.leadingTeamIds.length > 1 && (
             <div className="score-choice-grid" role="group" aria-label="Rozstrzygnięcie remisu">
-              {melodia.leadingTeamIds.map((id) => <TeamChoice key={id} teamId={id} checked={chosenTieTeam === id} disabled={busy}
+              {melodia.leadingTeamIds.map((id) => <TeamChoice key={id} teamId={id} checked={chosenTeam === id} disabled={busy}
                 onClick={() => setTieChoice({ songId: song.id, teamId: id })} />)}
             </div>
-            <button className="secondary-button" type="button" disabled={busy || !chosenTieTeam || chosenTieTeam === winningTeamId}
-              onClick={() => post("winner", { songId: song.id, winnerTeamId: chosenTieTeam })}>Rozstrzygnij remis</button>
-          </> : null}
-          <button className="gold-button start-button" type="button" disabled={busy || !winningTeamId || !melodia.charge || chosenTieTeam !== winningTeamId}
-            onClick={() => post("settle", { songId: song.id, winnerTeamId: winningTeamId })}>Zatwierdź rozliczenie żetonów</button>
+          )}
+          {chosenTeam !== winningTeamId && (
+            <button className="secondary-button" type="button" disabled={busy || !chosenTeam}
+              onClick={() => post("winner", { songId: song.id, winnerTeamId: chosenTeam })}>Potwierdź zwycięską drużynę</button>
+          )}
+          {winningTeamId && preview.length > 0 && (
+            <section className="chip-leaderboard" aria-labelledby="melodia-preview-title">
+              <h3 id="melodia-preview-title">Podgląd transferów</h3>
+              <table>
+                <thead><tr><th scope="col">Gracz</th><th scope="col">Drużyna</th><th scope="col">Zmiana salda</th></tr></thead>
+                <tbody>{preview.map(({ playerId, delta }) => {
+                  const player = players.get(playerId);
+                  return player && (
+                    <tr key={playerId}>
+                      <th scope="row">{player.nickname}{insufficient.has(playerId) && <small>Za mało żetonów</small>}</th>
+                      <td>{getTeam(player.teamId).name}</td>
+                      <td>{delta.startsWith("-") ? "" : "+"}{formatPolishChips(delta)}</td>
+                    </tr>
+                  );
+                })}</tbody>
+              </table>
+              {insufficient.size > 0 && <p className="form-error" role="alert">Wskazani gracze mają mniej niż 5 żetonów. Skoryguj ich salda w panelu przed zatwierdzeniem.</p>}
+            </section>
+          )}
+          <button className="gold-button start-button" type="button"
+            disabled={busy || !winningTeamId || chosenTeam !== winningTeamId || !preview.length || insufficient.size > 0}
+            onClick={() => post("settle", { songId: song.id, winnerTeamId: winningTeamId, rosterIds: preview.map((entry) => entry.playerId).sort((a, b) => a - b) })}>Zatwierdź rozliczenie żetonów</button>
         </> : null}
         {stage === "results" && song && settledAt ? <button className="gold-button start-button" type="button"
           onClick={() => post("complete", { songId: song.id })} disabled={busy}>Zakończ segment</button> : null}

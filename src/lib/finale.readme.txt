@@ -1,7 +1,1 @@
-File: src/lib/finale.ts
-
-Purpose: Owns the server-only ordered set of four organizer-supplied estimation questions, finalist qualifications, gameplay transitions, and the role-specific public projection.
-
-Inputs and outputs: rankFinaleTeams orders all four fixed teams by the existing overall team points. The highest score goes first. Eligible orders restrict the other place to the highest remaining score. When more than one order is eligible the administrator explicitly selects among the tied teams. advanceFinale accepts a validated command and the server's live ranking. It freezes scores and order at the start, requires estimate then direction before reveal, and records a manual finalist winner before the separate presentation of the physical wheel. The summary follows the fourth wheel screen.
-
-Persistence: StoredFinale contains the confirmed scores and finalists, presentation stage, current question index, and four estimate/direction/winner records. database.ts owns writes and conflict checks. getFinaleSnapshot exposes the current correct answer before reveal only via the adminAnswer field in the verified administrator projection. The regular projection has a null answer until reveal. No point, chip, or prize math runs here.
+Utrzymuje cztery pytania i stałą parę finalistów. Zapisuje w rundach całkowite punkty z fizycznego koła. Przejście wymaga zapisanej nagrody. Wylicza z bieżącego rankingu liderów gry i w przypadku remisu wymaga wyboru prowadzącego.

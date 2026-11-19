@@ -61,7 +61,7 @@ function Finalists({ teams, question, showOpener }: {
 }
 
 export function FinalePresentation({ finale }: { finale: FinaleSnapshot }) {
-  const { stage, question, ranking, finalists, eligibleOrders, winners } = finale;
+  const { stage, question, ranking, finalists, eligibleOrders, winners, overallWinner, roundPoints } = finale;
   const proposedOrder = eligibleOrders.length === 1 ? eligibleOrders[0] : null;
   const proposed: [TeamScore, TeamScore] | null = proposedOrder ? [ranking[0], ranking[1]] : null;
   const matchup = finalists ?? proposed;
@@ -115,16 +115,21 @@ export function FinalePresentation({ finale }: { finale: FinaleSnapshot }) {
             <p className={styles.kicker}>FINAŁ · PYTANIE NR {question.number}</p>
             <h1 className={styles.title}>KOŁO FORTUNY</h1>
             <p className={styles.celebration}>{winner.name}</p>
-            <p className={styles.message}>Czas zakręcić kołem fortuny!</p>
+            {question?.points === null ? <p className={styles.message}>Czas zakręcić kołem fortuny!</p> : <>
+              <p className={styles.message}>{winner.name} zdobywa punkty: <strong>{question?.points} pkt</strong>.</p>
+              <FinaleRanking ranking={ranking} />
+            </>}
           </>
         )}
         {done && finalists && (
           <>
-            <h1 className={styles.title}>KONIEC FINAŁU</h1>
+            <h1 className={styles.title}>{overallWinner ? "ZWYCIĘZCA GRY" : "KONIEC FINAŁU"}</h1>
+            {overallWinner ? <p className={styles.celebration}>{getTeam(overallWinner).name}</p> : <p className={styles.message}>Prowadzący potwierdzi końcowy wynik.</p>}
+            <FinaleRanking ranking={ranking} winnerId={overallWinner} />
             <p className={styles.message}>Gratulacje dla obu drużyn! Za nami wszystkie cztery pytania.</p>
             <Finalists teams={finalists} showOpener={false} />
             <ol className={styles.history} aria-label="Zwycięzcy pytań">
-              {winners.map((teamId, index) => teamId && <li key={index}>Pytanie {index + 1} <strong>{getTeam(teamId).name}</strong></li>)}
+              {winners.map((teamId, index) => teamId && <li key={index}>Pytanie {index + 1} <strong>{getTeam(teamId).name}{roundPoints[index] !== null ? " · " + roundPoints[index] + " pkt" : ""}</strong></li>)}
             </ol>
             {stage === "completed" && <p className={styles.message}>Gra została zakończona.</p>}
           </>
@@ -132,6 +137,15 @@ export function FinalePresentation({ finale }: { finale: FinaleSnapshot }) {
       </div>
     </section>
   );
+}
+
+function FinaleRanking({ ranking, winnerId }: { ranking: TeamScore[]; winnerId?: TeamScore["teamId"] | null }) {
+  const ordered = [...ranking].sort((a, b) => b.points - a.points || Number(b.teamId === winnerId) - Number(a.teamId === winnerId));
+  return <ol className={styles.ranking} aria-label="Klasyfikacja ogólna">
+    {ordered.map((team) => <li key={team.teamId} className={team.teamId === winnerId || (!winnerId && team.points === ordered[0].points) ? styles.leader : undefined}>
+      <span>{ordered.findIndex((entry) => entry.points === team.points) + 1}. {getTeam(team.teamId).name}</span><strong>{team.points} pkt</strong>
+    </li>)}
+  </ol>;
 }
 
 export function FinaleScreen({ snapshot }: { snapshot: GameSnapshot }) {

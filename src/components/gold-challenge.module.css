@@ -92,6 +92,9 @@
 .panel legend { color: #ffe4a0; padding-inline: 0.5rem; font-weight: 750; }
 .panel h2, .panel h3 { margin: 0; color: #ffe1a0; font-family: Georgia, serif; }
 .actions { display: flex; flex-wrap: wrap; gap: 0.55rem; }
+.numberGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .65rem; inline-size: min(100%, 22rem); }
+.numberGrid .button { min-block-size: clamp(3.2rem, 12vw, 5.5rem); font: 700 clamp(1.65rem, 7vw, 3rem)/1 Georgia, serif; }
+.revealNumber { color: #fff0b4; font: 700 clamp(6rem, 24vw, 14rem)/1 Georgia, serif; text-shadow: 0 0 .24em #ffcf67a0; }
 .button, .primary, .select { min-block-size: 2.55rem; border: 1px solid #dba74b; border-radius: 0.5rem; color: #fff1c1; background: linear-gradient(130deg, #644214, #3a250f); }
 .button, .primary { padding: 0.45rem 0.8rem; font-weight: 700; }
 .primary, .button[aria-pressed="true"] { background: linear-gradient(125deg, #c18a32, #ffe2a1 54%, #e2ac4d); color: #311b05; }

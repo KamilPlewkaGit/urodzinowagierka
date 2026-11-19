@@ -16,7 +16,8 @@ import { alkoholicyStageLabel } from "@/components/alkoholicy-screen";
 import { GoldChallengeAdminControls } from "@/components/gold-challenge-admin-controls";
 import { GOLD_TITLE, goldStageLabel } from "@/components/gold-challenge-screen";
 import { SportAdminControls } from "@/components/sport-admin-controls";
-import { POLL_INTERVAL_MS, TEAMS, getTeam } from "@/lib/constants";
+import { POLL_INTERVAL_MS, TEAMS, getSegmentNumber, getTeam } from "@/lib/constants";
+import { THE_FLOOR_POLL_INTERVAL_MS } from "@/lib/floor";
 import { formatChips } from "@/lib/chips";
 import { getSolenizantQuestion, SOLENIZANT_LAST_QUESTION_INDEX, SOLENIZANT_QUESTION_COUNT, SOLENIZANT_TITLE } from "@/lib/solenizant";
 import type { GameSnapshot, TeamId } from "@/lib/types";
@@ -63,10 +64,16 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
     }
   }, [router]);
 
+  const intervalMs = snapshot.game.activeSegment === "the-floor" ? THE_FLOOR_POLL_INTERVAL_MS : POLL_INTERVAL_MS;
   useEffect(() => {
-    const interval = window.setInterval(refresh, POLL_INTERVAL_MS);
+    let reading = false;
+    const interval = window.setInterval(async () => {
+      if (reading) return;
+      reading = true;
+      try { await refresh(); } finally { reading = false; }
+    }, intervalMs);
     return () => window.clearInterval(interval);
-  }, [refresh]);
+  }, [refresh, intervalMs]);
 
   async function postAction(action: string, endpoint: string, body?: object) {
     setError("");
@@ -278,7 +285,7 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
   const statusLabel = finaleActive ? finaleStageLabel[snapshot.finale.stage] : alkoholicyActive ? alkoholicyStageLabel[snapshot.alkoholicy.stage] : goldActive ? goldStageLabel[snapshot.goldChallenge.stage] : activeSegment === "the-floor" ? floorStatusLabel : activeSegment === "sport" ? sportStatusLabel : activeSegment === "melodia" ? melodiaStatusLabel : activeSegment === "pojedynki" ? pojedynkiStatusLabel : activeSegment === "familiada" && isStarted ? familiadaPhaseLabel[snapshot.familiada.stage] : solenizantStatusLabel;
   const restartUnavailable = (activeSegment === "finale" && snapshot.finale.stage === "intro")
     || (activeSegment === "alkoholicy" && snapshot.alkoholicy.stage === "intro")
-    || (activeSegment === "gold-challenge" && ["intro", "result", "completed"].includes(snapshot.goldChallenge.stage));
+    || (activeSegment === "gold-challenge" && (snapshot.goldChallenge.stage === "intro" || Boolean(snapshot.goldChallenge.reward)));
   const activeSegmentIndex = AVAILABLE_SEGMENTS.findIndex((segment) => segment.id === activeSegment);
 
   return (
@@ -492,7 +499,7 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
           <span className="panel-index">04 / MONITORING</span>
           <h2>Stan stołu</h2>
           <dl className="monitoring-list">
-            <div><dt>Aktywny segment</dt><dd>{AVAILABLE_SEGMENTS.find((segment) => segment.id === activeSegment)?.name}</dd></div>
+            <div><dt>Aktywny segment</dt><dd>{getSegmentNumber(activeSegment)} · {AVAILABLE_SEGMENTS.find((segment) => segment.id === activeSegment)?.name}</dd></div>
             <div><dt>Faza segmentu</dt><dd>{statusLabel}</dd></div>
             <div><dt>Aktywni gracze</dt><dd>{snapshot.players.length}</dd></div>
             {activeSegment === "melodia" ? (

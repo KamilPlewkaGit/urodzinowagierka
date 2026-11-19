@@ -1,17 +1,1 @@
-File: `src/components/floor-admin-controls.tsx`
-
-Purpose and responsibilities: Provides Polish administrator controls for The Floor's team workflow: segment start, first/second team selection, team confirmation, betting lock, team turns, winner selection, result confirmation, and next-duel progression.
-
-Important exports, inputs, and outputs: `FloorAdminControls({ snapshot, onRefresh })` renders all four teams for both side selectors and posts small team/action payloads to protected Floor routes.
-
-Dependencies: React hooks, team metadata, Floor helpers, shared types, and existing casino CSS classes.
-
-Backend/database interactions: Indirect only through `/api/segment/floor/*`. The timeout effect only asks the server to finish a zero-clock duel; server time remains decisive.
-
-Implementation details: The UI never selects individual players. It disables the second-side copy of the first selected team, shows received bets, and asks the administrator to confirm closing betting and starting the duel with any number of bets. A completed duel first requires selection and confirmation of one of its two teams before settlement and progression are offered.
-
-Future expansion: Keep administrator choices advisory until a protected server transition confirms them.
-
-Category metadata, prompt, and total item count come from the shared snapshot. A Polish content error leaves the live turn and pass controls available.
-
-The live admin panel pairs the current prompt and position with the authorized answer from the same snapshot, including a Polish warning for a missing key. The introduction lists catalog errors and duel totals use the persisted slots.
+Steruje wyborem drużyn, zakładami, zegarem, odpowiedziami i rozliczeniem The Floor. Panel gotowości pokazuje postęp dekodowania i obecne urządzenia. Start przesyła UUID karty prowadzącego, aby serwer ponownie sprawdził gotowość. Starszy zapis wyniku bez rozliczenia można ponowić dla tego samego zwycięzcy.

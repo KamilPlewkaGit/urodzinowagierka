@@ -1,5 +1,1 @@
-File: src/lib/alkoholicy.ts
-
-Purpose: Governs the two games and exposes their initial state, four-team ranking and contributions to overall team points. Charades stores one score per performance and allows replacing a saved score before settlement. The duel allows a manual non-negative integer award independent of the charades limit.
-
-Inputs and outputs: Receives validated commands and progress. Advances only through the current phase and rejects skipped performances, locked scores and ineligible duel winners. Database writes and chip settlement remain in database.ts.
+Przejścia Kalamburów zachowują ranking, punktację oraz zwrot w remisie. Gra 2 ma dwa kolejne pojedynki obsługiwane przez osobne rynki. Zapis zwycięzcy nie przyznaje punktów. Starsze zakończone pojedynki są odczytywane jako pierwszy wynik bez powtarzania rozliczenia.

@@ -17,3 +17,5 @@ The player dashboard keeps its navigation and exact balance visible with a stick
 The Melodia rules and round history use `.melodia-list` for bordered rows in the shared casino palette.
 
 The Floor shared text prompt uses a plain white surface with inline-size-based type scaling and a compact moderator presentation. The authorized answer is styled below the prompt.
+
+Karty The Floor współdzielą dwa liczniki i wyróżniają aktywną drużynę złotem. Animacja respektuje ustawienie ograniczonego ruchu. Styl raportu gotowości pasuje do paneli gracza i prowadzącego.

@@ -1,0 +1,1 @@
+Blokada wersji zależności npm. PGlite jest zależnością wyłącznie deweloperską i służy izolowanym testom rozliczeń.

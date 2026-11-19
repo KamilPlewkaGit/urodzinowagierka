@@ -1,5 +1,1 @@
-File: src/components/melodia-admin-controls.tsx
-
-MelodiaAdminControls renders the Polish team confirmation, five-song progression, scoring form, optional lyric auction, tie resolution, reward approval, and segment completion. It shares the scoreboard, result history, reward summary, and rules with the player view.
-
-It accepts a server snapshot and refresh callback. All actions use authenticated Segment V routes and song-bound actions send the current durable song ID. Scoring form drafts survive equivalent polling snapshots and reset when a different song opens. The server owns scores, leader validation, and chip settlement.
+Prowadzący zaznacza poprawność wykonawcy i tytułu oraz odpowiadającą drużynę. Po piątej piosence osobno potwierdza lidera, przegląda imienny podgląd transferów i zatwierdza rozliczenie. Podgląd wskazuje przegranych z saldem poniżej 5 żetonów.

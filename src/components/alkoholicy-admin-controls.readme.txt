@@ -1,5 +1,1 @@
-File: src/components/alkoholicy-admin-controls.tsx
-
-Purpose: Renders the Polish controls for team order, both markets, score entry and correction, duel team setup, winner and points, settlement and completion. Empty teams remain selectable.
-
-Implementation: Form drafts use the saved order or matchup as their starting value. Charades scores use exactly seven options, from zero to six. The scoreboard immediately shows confirmed results. Corrections are available until charades settlement. The dashboard supplies the revision-aware command callback, shared pending state and errors.
+Kalambury zachowują zapisywanie i korekty 0–6 punktów. Dla każdego z dwóch pojedynków prowadzący wybiera drużyny, zamyka zakłady startem i potwierdza zwycięzcę. Po pierwszym przechodzi do drugiego. Po drugim może zakończyć segment.

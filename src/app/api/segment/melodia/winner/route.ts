@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { resolveMelodiaTie } from "@/lib/database";
+import { confirmMelodiaWinner } from "@/lib/database";
 import { getRequestSession } from "@/lib/session";
 import { melodiaWinnerSchema } from "@/lib/validation";
 
@@ -18,12 +18,12 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    if (!(await resolveMelodiaTie(parsed.data))) {
-      return NextResponse.json({ error: "Wybierz jedną z drużyn remisujących na pierwszym miejscu." }, { status: 409 });
+    if (!(await confirmMelodiaWinner(parsed.data))) {
+      return NextResponse.json({ error: "Wybierz drużynę z najwyższą liczbą punktów." }, { status: 409 });
     }
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error("Nie udało się rozstrzygnąć remisu", error);
-    return NextResponse.json({ error: "Nie udało się rozstrzygnąć remisu." }, { status: 500 });
+    console.error("Nie udało się potwierdzić zwycięzcy", error);
+    return NextResponse.json({ error: "Nie udało się potwierdzić zwycięzcy." }, { status: 500 });
   }
 }

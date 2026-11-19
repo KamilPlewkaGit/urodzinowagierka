@@ -3,11 +3,12 @@
 import { useSearchParams } from "next/navigation";
 import type { CSSProperties } from "react";
 
+import { FloorPreloadProgress, useFloorPreload } from "@/components/floor-preload";
 import { CasinoLogo } from "@/components/casino-logo";
 import { ActiveSegment, useGameSession } from "@/components/game-session";
 import { GOLD_TITLE } from "@/components/gold-challenge-screen";
 import { compareChipBalances, formatPolishChips } from "@/lib/chips";
-import { TEAMS, getTeam } from "@/lib/constants";
+import { TEAMS, getSegmentNumber, getTeam } from "@/lib/constants";
 import { THE_FLOOR_TITLE } from "@/lib/floor";
 import { MELODIA_TITLE } from "@/lib/melodia";
 import { POJEDYNKI_TITLE } from "@/lib/pojedynki";
@@ -18,7 +19,7 @@ import type { GameSnapshot, Player, SegmentId } from "@/lib/types";
 const playerViews = [
   { id: "lobby", label: "Lobby" },
   { id: "segment", label: "Aktualny segment" },
-  { id: "zetony", label: "Żetony graczy" },
+  { id: "zetony", label: "Punktacja" },
 ] as const;
 
 const segmentNames = {
@@ -43,7 +44,7 @@ function Lobby({ snapshot, player }: { snapshot: GameSnapshot; player: Player })
         <div>
           <h1>Witaj, <em>{player.nickname}</em>.</h1>
           <p>{snapshot.finale.stage === "completed" ? "Gra zakończona" : started ? "Gra trwa" : "Oczekiwanie na administratora"}</p>
-          <p>Aktualny segment: <strong>{segmentNames[snapshot.game.activeSegment]}</strong></p>
+          <p>Aktualny segment: <strong>{getSegmentNumber(snapshot.game.activeSegment)} · {segmentNames[snapshot.game.activeSegment]}</strong></p>
           <p>Twoja drużyna: <strong style={{ color: team.color }}>{team.icon} {team.name}</strong></p>
         </div>
       </section>
@@ -84,7 +85,7 @@ function ChipLeaderboard({ players, playerId }: { players: Player[]; playerId: n
   return (
     <section className="chip-leaderboard" aria-labelledby="chip-leaderboard-heading">
       <div className="section-heading">
-        <h1 id="chip-leaderboard-heading">Ranking graczy</h1>
+        <h1 id="chip-leaderboard-heading">Żetony graczy</h1>
       </div>
       <table aria-labelledby="chip-leaderboard-heading">
         <thead>
@@ -114,11 +115,33 @@ function ChipLeaderboard({ players, playerId }: { players: Player[]; playerId: n
   );
 }
 
+function TeamLeaderboard({ scores }: { scores: GameSnapshot["teamScores"] }) {
+  const ranked = TEAMS.map((team) => ({ team, points: scores.find((score) => score.teamId === team.id)?.points ?? 0 }))
+    .sort((a, b) => b.points - a.points);
+  return (
+    <section className="chip-leaderboard" aria-labelledby="team-leaderboard-heading">
+      <div className="section-heading"><h1 id="team-leaderboard-heading">Punktacja drużyn</h1></div>
+      <table aria-labelledby="team-leaderboard-heading">
+        <thead><tr><th scope="col">Miejsce</th><th scope="col">Drużyna</th><th scope="col">Punkty</th></tr></thead>
+        <tbody>{ranked.map(({ team, points }) => (
+          <tr key={team.id}>
+            <td>{ranked.findIndex((row) => row.points === points) + 1}</td>
+            <th scope="row" style={{ color: team.color }}><span aria-hidden="true">{team.icon} </span>{team.name}</th>
+            <td>{points}</td>
+          </tr>
+        ))}</tbody>
+      </table>
+    </section>
+  );
+}
+
 export function LobbyClient({ playerId, initialSnapshot }: { playerId: number; initialSnapshot: GameSnapshot }) {
   const searchParams = useSearchParams();
   const { snapshot, refresh, syncError, leave, leaving, logoutError } = useGameSession(initialSnapshot, playerId);
   const player = snapshot.players.find((candidate) => candidate.id === playerId);
   const started = snapshot.game.status === "started";
+  const floorActive = started && snapshot.game.activeSegment === "the-floor" && snapshot.theFloor.stage !== "results";
+  const preload = useFloorPreload(floorActive);
   const requestedView = searchParams.get("widok");
   const currentView = playerViews.find((view) => view.id === requestedView)?.id ?? (started ? "segment" : "lobby");
 
@@ -142,13 +165,14 @@ export function LobbyClient({ playerId, initialSnapshot }: { playerId: number; i
                 if (view.id !== requestedView) window.history.pushState(null, "", `?widok=${view.id}`);
               }}
             >
-              {view.label}
+              {view.id === "segment" && started ? getSegmentNumber(snapshot.game.activeSegment) : view.label}
             </button>
           ))}
         </nav>
       </div>
       {syncError && <p className="sync-warning" role="status">Połączenie z grą jest chwilowo niedostępne. Ponawiamy próbę…</p>}
       {logoutError && <p className="form-error" role="alert">Nie udało się wylogować. Spróbuj ponownie.</p>}
+      {floorActive && <FloorPreloadProgress preload={preload} />}
       {currentView === "lobby" && <Lobby snapshot={snapshot} player={player} />}
       <div hidden={currentView !== "segment"}>
         {started ? <ActiveSegment snapshot={snapshot} refresh={refresh} viewerPlayerId={playerId} /> : (
@@ -160,7 +184,10 @@ export function LobbyClient({ playerId, initialSnapshot }: { playerId: number; i
           </section>
         )}
       </div>
-      {currentView === "zetony" && <ChipLeaderboard players={snapshot.players} playerId={playerId} />}
+      {currentView === "zetony" && <>
+        <TeamLeaderboard scores={snapshot.teamScores} />
+        <ChipLeaderboard players={snapshot.players} playerId={playerId} />
+      </>}
     </main>
   );
 }

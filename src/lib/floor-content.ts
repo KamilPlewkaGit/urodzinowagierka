@@ -6,19 +6,22 @@ import { join, posix } from "node:path";
 import { z } from "zod";
 
 import { THE_FLOOR_CATEGORY_IDS, THE_FLOOR_CATEGORY_META } from "@/lib/floor";
-import type { TheFloorContent, TheFloorPrompt } from "@/lib/types";
+import type { TheFloorContent, TheFloorPreloadManifest, TheFloorPrompt } from "@/lib/types";
 
 const floorDirectory = join(process.cwd(), "public", "the floor");
 const imageExtensions = new Set([".avif", ".gif", ".jpeg", ".jpg", ".png", ".webp"]);
 const imageMimes = new Set(["image/avif", "image/gif", "image/jpeg", "image/png", "image/webp"]);
 const optionalText = z.string().trim().nullish();
 const itemSchema = z.object({
+  id: z.union([z.string().trim().min(1).max(100), z.number().int().positive()]).optional(),
+  n: z.number().int().positive().optional(),
   display: optionalText,
   expression: optionalText,
   image: optionalText,
   photo: optionalText,
   source: optionalText,
   provider: optionalText,
+  imageLookup: z.object({ article: z.string() }).optional(),
   answer: z.union([optionalText, z.number().transform(String)]),
   name: optionalText,
 });
@@ -27,13 +30,18 @@ const categorySchema = z.union([orderedItems, z.object({ items: orderedItems }).
 
 type CategoryId = keyof typeof THE_FLOOR_CATEGORY_META;
 type FloorItem = z.infer<typeof itemSchema>;
-type EmbeddedImage = { mime: string; base64: string };
-type ItemPrompt = TheFloorPrompt | { kind: "embedded"; image: EmbeddedImage } | { kind: "remote"; url: string };
-type Deck = { items: { prompt: ItemPrompt; answer: string | null }[]; error: string | null };
-type Catalog = Map<CategoryId, Deck>;
+type RasterSource = { kind: "embedded"; mime: string; base64: string } | { kind: "remote"; url: string } | { kind: "local"; path: string; mime: string };
+type ItemPrompt = Exclude<TheFloorPrompt, { kind: "image" }> | RasterSource;
+type CatalogItem = { key: string; prompt: TheFloorPrompt; answer: string | null };
+type Deck = { items: CatalogItem[]; error: string | null };
+type Catalog = { decks: Map<CategoryId, Deck>; assets: Map<string, RasterSource>; manifest: TheFloorPreloadManifest };
 
 const categoryIds = THE_FLOOR_CATEGORY_IDS;
 const imageNotFound = "Nie znaleziono obrazu. Sprawdź nazwę pliku i ścieżkę w JSON-ie.";
+const rasterMimes = new Map([
+  [".avif", "image/avif"], [".gif", "image/gif"], [".jpeg", "image/jpeg"], [".jpg", "image/jpeg"],
+  [".png", "image/png"], [".webp", "image/webp"],
+]);
 let catalogPromise: Promise<Catalog> | undefined;
 
 async function listFiles(directory = ""): Promise<string[]> {
@@ -71,10 +79,6 @@ function categoryFromData(data: unknown) {
   return undefined;
 }
 
-function encodePath(path: string) {
-  return path.split("/").map(encodeURIComponent).join("/");
-}
-
 function locateImage(reference: string, jsonFile: string, files: Set<string>) {
   let decoded = reference;
   try { decoded = decodeURIComponent(reference); } catch { /* A filename can contain a literal percent sign. */ }
@@ -84,7 +88,7 @@ function locateImage(reference: string, jsonFile: string, files: Set<string>) {
   if (!rooted && normalized.startsWith("/")) return null;
   const path = posix.normalize(rooted ? rooted[1] : posix.join(posix.dirname(jsonFile), normalized));
   if (path.startsWith("../") || !files.has(path)) return null;
-  return "/the%20floor/" + encodePath(path);
+  return path;
 }
 
 function commonsImage(item: FloorItem) {
@@ -107,13 +111,17 @@ function imageItem(reference: string, item: FloorItem, jsonFile: string, files: 
     const mime = match?.[1].toLowerCase();
     const base64 = match?.[2];
     if (mime && imageMimes.has(mime) && base64 && base64.length % 4 === 0) {
-      return { kind: "embedded", image: { mime, base64 } };
+      return { kind: "embedded", mime, base64 };
     }
     return { kind: "error", message: "Osadzony obraz jest uszkodzony lub ma nieobsługiwany format." };
   }
 
-  const localUrl = locateImage(reference, jsonFile, files);
-  let url = localUrl;
+  const localPath = locateImage(reference, jsonFile, files);
+  if (localPath) {
+    const mime = rasterMimes.get(posix.extname(localPath).toLowerCase());
+    if (mime) return { kind: "local", path: localPath, mime };
+  }
+  let url: string | null = null;
   if (!url) {
     if (/^https:\/\//i.test(reference)) {
       try {
@@ -132,7 +140,7 @@ function imageItem(reference: string, item: FloorItem, jsonFile: string, files: 
   if (!imageExtensions.has(posix.extname(path).toLowerCase())) {
     return { kind: "error", message: "Nieobsługiwany format obrazu. Użyj PNG, JPG, WebP, AVIF lub GIF." };
   }
-  return { kind: localUrl ? "image" : "remote", url };
+  return { kind: "remote", url };
 }
 
 function normalizePrompt(item: FloorItem, id: CategoryId, jsonFile: string, files: Set<string>): ItemPrompt {
@@ -142,29 +150,49 @@ function normalizePrompt(item: FloorItem, id: CategoryId, jsonFile: string, file
   if (id === "od-tylu" && item.display) return { kind: "text", text: item.display.toLocaleUpperCase("pl-PL") };
   const reference = item.image || item.photo;
   if (reference) return imageItem(reference, item, jsonFile, files);
+  if (item.imageLookup) return { kind: "error", message: "Brakuje przygotowanego zdjęcia z Wikipedii. Uzupełnij pole obrazu w pliku kategorii." };
   const text = item.display || item.expression;
   if (text) return { kind: "text", text };
   return { kind: "error", message: "W tej pozycji brakuje obrazu lub tekstu do wyświetlenia." };
 }
 
-function normalizeItem(value: unknown, id: CategoryId, file: string, files: Set<string>, index: number) {
+async function normalizeItem(
+  value: unknown, id: CategoryId, file: string, files: Set<string>, assets: Map<string, RasterSource>, index: number,
+): Promise<CatalogItem> {
   const parsed = itemSchema.safeParse(value);
-  const prompt = parsed.success ? normalizePrompt(parsed.data, id, file, files)
+  const item = parsed.success ? parsed.data : null;
+  const key = item?.id ?? item?.n;
+  const answer = item?.answer || item?.name || null;
+  const source = item ? normalizePrompt(item, id, file, files)
     : { kind: "error" as const, message: "Pozycja w pliku JSON ma nieprawidłowe dane." };
-  const answer = parsed.success ? parsed.data.answer || parsed.data.name || null : null;
-  if (prompt.kind === "error" || !answer) {
-    console.warn("[The Floor] Problem z pozycją", { file, item: index + 1, error: prompt.kind === "error" ? prompt.message : undefined, missingAnswer: !answer });
+  let prompt: TheFloorPrompt;
+  if (source.kind === "error" || source.kind === "text") {
+    prompt = source;
+  } else {
+    try {
+      const hash = createHash("sha256");
+      if (source.kind === "local") hash.update(await readFile(join(floorDirectory, source.path)));
+      else hash.update(source.kind === "remote" ? source.url : source.base64);
+      const asset = hash.digest("hex");
+      assets.set(asset, source);
+      prompt = { kind: "image", url: "/api/segment/floor/image?asset=" + asset };
+    } catch {
+      prompt = { kind: "error", message: imageNotFound };
+    }
   }
-  return { prompt, answer };
+  return { key: key === undefined ? "pozycja-" + (index + 1) : String(key), prompt, answer };
 }
 
 async function loadCatalog(): Promise<Catalog> {
+  const assets = new Map<string, RasterSource>();
+  const decks = new Map<CategoryId, Deck>();
   let paths: string[];
   try {
     paths = await listFiles();
   } catch (error) {
     console.error("[The Floor] Nie można odczytać katalogu", error);
-    return new Map(categoryIds.map((id) => [id, { items: [], error: "Nie można odczytać folderu z materiałami The Floor." }]));
+    for (const id of categoryIds) decks.set(id, { items: [], error: "Nie można odczytać folderu z materiałami The Floor." });
+    return { decks, assets, manifest: makeManifest(decks) };
   }
   const files = new Set(paths);
   const jsonFiles = paths.filter((path) => posix.extname(path).toLowerCase() === ".json").sort();
@@ -179,22 +207,48 @@ async function loadCatalog(): Promise<Catalog> {
       if (!parsed.success) return { id, items: [], error: "Plik JSON kategorii ma nieprawidłową strukturę." };
       if (!parsed.data.length) return { id, items: [], error: "Kategoria jest pusta. Dodaj pozycje do pliku JSON." };
       const categoryId = id;
-      return { id, items: parsed.data.map((item, index) => normalizeItem(item, categoryId, file, files, index)), error: null };
+      const items = await Promise.all(parsed.data.map((item, index) => normalizeItem(item, categoryId, file, files, assets, index)));
+      if (new Set(items.map(({ key }) => key)).size !== items.length) return { id, items: [], error: "Powtarzające się identyfikatory pozycji w pliku JSON." };
+      return { id, items, error: null };
     } catch (error) {
       console.error("[The Floor] Nie można odczytać JSON-u", { file, error: error instanceof Error ? error.name : "Nieznany błąd" });
       return id ? { id, items: [], error: "Nie można odczytać pliku JSON kategorii. Sprawdź składnię i dostępność pliku." } : null;
     }
   }));
 
-  const catalog: Catalog = new Map();
   for (const source of sources) {
     if (!source) continue;
     const { id, items, error } = source;
-    const deck = catalog.has(id) ? { items: [], error: "Znaleziono kilka plików JSON dla tej kategorii. Pozostaw jeden." } : { items, error };
+    const deck = decks.has(id) ? { items: [], error: "Znaleziono kilka plików JSON dla tej kategorii. Pozostaw jeden." } : { items, error };
     if (deck.error) console.warn("[The Floor] Problem z kategorią", { id, error: deck.error });
-    catalog.set(id, deck);
+    decks.set(id, deck);
   }
-  return catalog;
+  return { decks, assets, manifest: makeManifest(decks) };
+}
+
+function makeManifest(decks: Catalog["decks"]): TheFloorPreloadManifest {
+  const urls = new Set<string>();
+  const labels: Record<string, string> = {};
+  const issues: string[] = [];
+  for (const id of categoryIds) {
+    const name = THE_FLOOR_CATEGORY_META[id].name;
+    const deck = decks.get(id);
+    if (!deck || deck.error) {
+      issues.push(name + " – " + (deck?.error ?? "Brak pliku JSON dla tej kategorii."));
+      continue;
+    }
+    for (const item of deck.items) {
+      if (item.prompt.kind === "image") {
+        urls.add(item.prompt.url);
+        labels[item.prompt.url] ??= name + ", ID " + item.key;
+      }
+      if (item.prompt.kind === "error") issues.push(name + ", ID " + item.key + " – " + item.prompt.message);
+      if (!item.answer) issues.push(name + ", ID " + item.key + " – Brak odpowiedzi w pliku JSON.");
+    }
+  }
+  const uniqueUrls = [...urls].sort();
+  const version = createHash("sha256").update(JSON.stringify([uniqueUrls, issues])).digest("hex");
+  return { version, urls: uniqueUrls, labels, issues };
 }
 
 function getCatalog() {
@@ -205,40 +259,43 @@ function getCategoryId(id: string): CategoryId | undefined {
   return categoryIds.find((candidate) => candidate === id);
 }
 
-export async function getTheFloorContent(categoryId: string, itemIndex: number | null, isAdmin: boolean): Promise<TheFloorContent> {
+export async function getTheFloorContent(
+  categoryId: string, itemIndex: number | null, isAdmin: boolean, itemKey?: string,
+): Promise<TheFloorContent> {
   const id = getCategoryId(categoryId);
   const meta = id ? THE_FLOOR_CATEGORY_META[id] : { name: "Nieznana kategoria", instructions: "" };
-  const deck = id ? (await getCatalog()).get(id) : undefined;
+  const deck = id ? (await getCatalog()).decks.get(id) : undefined;
   const itemCount = deck?.items.length ?? 0;
   const categoryError = deck?.error ?? (deck ? null : "Brak pliku JSON dla tej kategorii.");
-  const item = itemIndex === null ? null : deck?.items[itemIndex];
-  let prompt: TheFloorPrompt | null = null;
-  if (itemIndex !== null && !categoryError) {
-    prompt = item?.prompt.kind === "embedded" || item?.prompt.kind === "remote"
-      ? { kind: "image", url: `/api/segment/floor/image?category=${categoryId}&item=${itemIndex}` }
-      : item?.prompt ?? { kind: "error", message: "Ta pozycja jest niedostępna. Przejdź do następnej." };
-  }
+  const item = itemIndex === null ? null : itemKey === undefined
+    ? deck?.items[itemIndex] : deck?.items.find(({ key }) => key === itemKey);
+  const prompt = itemIndex === null || categoryError ? null
+    : item?.prompt ?? { kind: "error" as const, message: "Ta pozycja jest niedostępna. Przejdź do następnej." };
   return { name: meta.name, instructions: meta.instructions, itemCount, categoryError, prompt, ...(isAdmin && itemIndex !== null ? { adminAnswer: item?.answer ?? null } : {}) };
 }
 
 export async function getTheFloorCatalogStatus() {
-  const catalog = await getCatalog();
-  const available = categoryIds.filter((id) => Boolean(catalog.get(id)?.items.length));
-  const errors = categoryIds.flatMap((id) => {
-    const deck = catalog.get(id);
-    const message = deck ? deck.error : "Brak pliku JSON dla tej kategorii.";
-    return message ? [`${THE_FLOOR_CATEGORY_META[id].name} – ${message}`] : [];
-  });
-  return { available, errors };
+  const { decks, manifest } = await getCatalog();
+  return { available: categoryIds.filter((id) => Boolean(decks.get(id)?.items.length)), errors: manifest.issues };
+}
+
+export async function getTheFloorPreloadManifest() {
+  return (await getCatalog()).manifest;
 }
 
 export async function getTheFloorItemCounts() {
-  const catalog = await getCatalog();
-  return Object.fromEntries([...catalog].map(([id, deck]) => [id, deck.items.length]));
+  const { decks } = await getCatalog();
+  return Object.fromEntries([...decks].map(([id, deck]) => [id, deck.items.length]));
 }
 
-export async function getTheFloorImage(categoryId: string, itemIndex: number) {
-  const id = getCategoryId(categoryId);
-  const prompt = id ? (await getCatalog()).get(id)?.items[itemIndex]?.prompt : undefined;
-  return prompt?.kind === "embedded" || prompt?.kind === "remote" ? prompt : null;
+export async function getTheFloorDeckKeys() {
+  const { decks } = await getCatalog();
+  return Object.fromEntries([...decks].map(([id, deck]) => [id, deck.items.map(({ key }) => key)]));
+}
+
+export async function getTheFloorImage(asset: string) {
+  const source = (await getCatalog()).assets.get(asset);
+  if (source?.kind === "local") return { kind: "bytes" as const, mime: source.mime, bytes: await readFile(join(floorDirectory, source.path)) };
+  if (source?.kind === "embedded") return { kind: "bytes" as const, mime: source.mime, bytes: Buffer.from(source.base64, "base64") };
+  return source ?? null;
 }

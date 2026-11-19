@@ -1,0 +1,1 @@
+Skrypt `test:game` uruchamia testy integracyjne z lokalnym buildem Next i tymczasowym PostgreSQL w PGlite. PGlite jest zależnością deweloperską.

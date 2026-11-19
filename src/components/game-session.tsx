@@ -8,12 +8,14 @@ import { AlkoholicyScreen } from "@/components/alkoholicy-screen";
 import { GoldChallengeScreen } from "@/components/gold-challenge-screen";
 import { FamiliadaScreen } from "@/components/familiada-screen";
 import { FinaleScreen } from "@/components/finale-screen";
+import { useFloorPreload } from "@/components/floor-preload";
 import { FloorScreen } from "@/components/floor-screen";
 import { GameScreen } from "@/components/game-screen";
 import { MelodiaScreen } from "@/components/melodia-screen";
 import { PojedynkiScreen } from "@/components/pojedynki-screen";
 import { SportScreen } from "@/components/sport-screen";
 import { POLL_INTERVAL_MS } from "@/lib/constants";
+import { THE_FLOOR_POLL_INTERVAL_MS } from "@/lib/floor";
 import type { GameSnapshot, SegmentId } from "@/lib/types";
 
 export function useGameSession(initialSnapshot: GameSnapshot, viewerPlayerId?: number) {
@@ -63,15 +65,19 @@ export function useGameSession(initialSnapshot: GameSnapshot, viewerPlayerId?: n
 
   useEffect(() => {
     polling.current = true;
-    const interval = window.setInterval(() => {
-      if (!request.current) void refresh();
-    }, POLL_INTERVAL_MS);
     return () => {
       polling.current = false;
-      window.clearInterval(interval);
       request.current?.abort();
     };
-  }, [refresh]);
+  }, []);
+
+  const intervalMs = snapshot.game.activeSegment === "the-floor" ? THE_FLOOR_POLL_INTERVAL_MS : POLL_INTERVAL_MS;
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      if (!request.current) void refresh();
+    }, intervalMs);
+    return () => window.clearInterval(interval);
+  }, [refresh, intervalMs]);
 
   async function leave() {
     setLeaving(true);
@@ -117,6 +123,7 @@ export function AdminGamePreview({ initialSnapshot }: { initialSnapshot: GameSna
   const router = useRouter();
   const { snapshot, refresh, syncError, leave, leaving, logoutError } = useGameSession(initialSnapshot);
   const waiting = snapshot.game.status === "waiting";
+  useFloorPreload(!waiting && snapshot.game.activeSegment === "the-floor" && snapshot.theFloor.stage !== "results", true);
 
   useEffect(() => {
     if (waiting) router.replace("/admin");

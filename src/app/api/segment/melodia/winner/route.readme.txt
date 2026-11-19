@@ -1,7 +1,1 @@
-File: src/app/api/segment/melodia/winner/route.ts
-
-POST verifies the administrator's database-backed session and returns { ok: true } or a Polish error.
-
-Validates { songId, winnerTeamId } and persists the administrator's choice from the tied first-place teams in the unpaid final results.
-
-Persistence goes through src/lib/database.ts.
+POST weryfikuje prowadzącego i zatwierdza jednego z liderów po piątym utworze. Potwierdzenie otwiera podgląd rozliczenia żetonów.

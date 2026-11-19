@@ -1,7 +1,1 @@
-File: src/app/api/segment/finale/route.ts
-
-Purpose: Receives FINAŁ commands through POST with the current UUID revision and a validated command. Only a verified administrator session can call it.
-
-Dependencies: Next.js Route Handlers, session verification, finaleActionSchema, FinaleConflict, and applyFinaleAction at the database boundary.
-
-Output: Returns { ok: true } on a committed action, 400 for invalid data, 401 or 403 for missing permissions, 409 for invalid phase or stale revision, and a generic Polish 500 response for server errors. The command response has no answer key. The existing state endpoint publishes each screen.
+POST wymaga sesji admina i aktualnej rewizji. `award` podaje rundę i liczbę punktów. `overall-winner` rozstrzyga remis. Baza zapisuje punkty, różnicę ewentualnej korekty oraz wpis audytu.

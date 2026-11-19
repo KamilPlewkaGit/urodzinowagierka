@@ -1,0 +1,3 @@
+Hook zgłasza obecność karty przeglądarki i podczas The Floor pobiera listę grafik. Dekoduje do czterech obrazów równocześnie, zgłasza serwerowi rzeczywiście zdekodowane grafiki i ponawia tylko błędy. Używa identycznych wersjonowanych adresów jak plansza pojedynku, aby przeglądarka użyła własnej pamięci podręcznej. Wygasający sygnał obecności pozwala kontynuować po rozłączeniu gracza.
+
+Prowadzący widzi własny postęp, gotowość urządzeń graczy, konkretne błędy i komunikat, gdy można zacząć. Gracz widzi ładowanie oraz może ponowić nieudane próby. Przy zmianie widoku w lobby hook pozostaje zamontowany.

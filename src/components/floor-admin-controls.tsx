@@ -1,10 +1,12 @@
 "use client";
 
-import { type CSSProperties, useEffect, useMemo, useState } from "react";
+import { type CSSProperties, useEffect, useState } from "react";
 
+import { FloorDuelists, useFloorTimes } from "@/components/floor-clock";
+import { FloorPreloadProgress, useFloorPreload } from "@/components/floor-preload";
 import { FloorPrompt } from "@/components/floor-prompt";
 import { TEAMS, getTeam } from "@/lib/constants";
-import { THE_FLOOR_TITLE, getTheFloorTimes } from "@/lib/floor";
+import { THE_FLOOR_BET_DESCRIPTION, THE_FLOOR_TITLE } from "@/lib/floor";
 import type { GameSnapshot, TeamId, TeamMeta } from "@/lib/types";
 
 interface FloorAdminControlsProps {
@@ -33,35 +35,21 @@ function TeamChoice({ team, selected, onSelect, disabled = false }: TeamChoicePr
   );
 }
 
-function TeamDuelists({ teamA, teamB, activeTeamId, teamATimeSeconds, teamBTimeSeconds }: { teamA: TeamMeta; teamB: TeamMeta; activeTeamId?: TeamId | null; teamATimeSeconds?: number; teamBTimeSeconds?: number }) {
-  return (
-    <div className="floor-duelists" aria-label={`${teamA.name} kontra ${teamB.name}`}>
-      <strong className={activeTeamId === teamA.id ? "is-active" : ""} style={{ color: teamA.color, borderColor: teamA.color }}>{teamA.icon} {teamA.name}{teamATimeSeconds !== undefined ? <small>{teamATimeSeconds} s</small> : null}</strong>
-      <span>kontra</span>
-      <strong className={activeTeamId === teamB.id ? "is-active" : ""} style={{ color: teamB.color, borderColor: teamB.color }}>{teamB.icon} {teamB.name}{teamBTimeSeconds !== undefined ? <small>{teamBTimeSeconds} s</small> : null}</strong>
-    </div>
-  );
-}
-
 export function FloorAdminControls({ snapshot, onRefresh }: FloorAdminControlsProps) {
   const [teamAId, setTeamAId] = useState<TeamId | null>(null);
   const [teamBId, setTeamBId] = useState<TeamId | null>(null);
   const [winnerTeamId, setWinnerTeamId] = useState<TeamId | null>(null);
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const [now, setNow] = useState(Date.now());
   const floor = snapshot.theFloor;
   const duel = floor.currentDuel;
+  const preload = useFloorPreload(floor.stage !== "results", true);
   const category = floor.content;
   const teamA = duel?.teamAId ? getTeam(duel.teamAId) : null;
   const teamB = duel?.teamBId ? getTeam(duel.teamBId) : null;
-  const winnerTeam = duel?.winnerTeamId ? getTeam(duel.winnerTeamId) : null;
-  const times = useMemo(() => duel ? getTheFloorTimes(duel, now) : null, [duel, now]);
-
-  useEffect(() => {
-    const interval = window.setInterval(() => setNow(Date.now()), 250);
-    return () => window.clearInterval(interval);
-  }, []);
+  const winnerTeam = duel?.settledAt && duel.winnerTeamId ? getTeam(duel.winnerTeamId) : null;
+  const selectedWinner = duel?.winnerTeamId ?? winnerTeamId;
+  const times = useFloorTimes(duel, floor.serverTime);
 
   useEffect(() => {
     if (floor.stage !== "live" || !times || (times.teamA > 0 && times.teamB > 0) || pending === "timeout") return;
@@ -71,8 +59,8 @@ export function FloorAdminControls({ snapshot, onRefresh }: FloorAdminControlsPr
   }, [floor.stage, times?.teamA, times?.teamB]);
 
   function confirmStart() {
-    if (window.confirm("Zamknąć obstawianie i rozpocząć pojedynek? Złożone zakłady zostaną rozliczone po wyniku.")) {
-      void post("start-duel", "/api/segment/floor/start-duel");
+    if (preload.ready && preload.deviceId && window.confirm("Zamknąć obstawianie i rozpocząć pojedynek? Złożone zakłady zostaną rozliczone po wyniku.")) {
+      void post("start-duel", "/api/segment/floor/start-duel", { deviceId: preload.deviceId });
     }
   }
 
@@ -100,8 +88,8 @@ export function FloorAdminControls({ snapshot, onRefresh }: FloorAdminControlsPr
   }
 
   async function confirmWinner() {
-    if (!winnerTeamId) return;
-    const done = await post("end", "/api/segment/floor/end", { winnerTeamId });
+    if (!selectedWinner) return;
+    const done = await post("end", "/api/segment/floor/end", { winnerTeamId: selectedWinner });
     if (done) setWinnerTeamId(null);
   }
 
@@ -114,10 +102,10 @@ export function FloorAdminControls({ snapshot, onRefresh }: FloorAdminControlsPr
     <section className="floor-admin-section" aria-label="Sterowanie segmentem The Floor">
       <div className="section-heading"><div><span className="eyebrow">The Floor</span><h2>Sterowanie pojedynkiem drużyn</h2></div><span className="poll-note">Stan zapisuje się automatycznie</span></div>
       <article className="floor-admin-panel">
+        {(floor.stage === "intro" || floor.stage === "setup" || floor.stage === "betting") && <FloorPreloadProgress preload={preload} admin />}
         {floor.stage === "intro" ? <>
           <span className="panel-index">THE FLOOR / START</span><h2>{THE_FLOOR_TITLE}</h2>
-          <p>W każdym pojedynku rywalizują całe drużyny. Członkowie dwóch pozostałych drużyn mogą obstawić zwycięzcę za 2 żetony.</p>
-          {floor.catalogErrors?.map((message) => <p key={message} className="form-error" role="alert">{message}</p>)}
+          <p>{THE_FLOOR_BET_DESCRIPTION}</p>
           <button className="gold-button start-button" onClick={() => post("start", "/api/segment/floor/start")} disabled={pending !== null}>Rozpocznij segment</button>
         </> : null}
 
@@ -130,14 +118,14 @@ export function FloorAdminControls({ snapshot, onRefresh }: FloorAdminControlsPr
 
         {floor.stage === "betting" && duel && category && teamA && teamB ? <>
           <span className="panel-index">POJEDYNEK {duel.sequence + 1}/{floor.duels.length} / OBSTAWIANIE</span><h2>{category.name}</h2><p>{category.instructions}</p>
-          <TeamDuelists teamA={teamA} teamB={teamB} />
+          <FloorDuelists teamA={teamA} teamB={teamB} />
           <p>Zarejestrowane zakłady: <strong>{duel.betCount}</strong>. Obstawianie jest opcjonalne.</p>
-          <button className="gold-button start-button" onClick={confirmStart} disabled={pending !== null}>Rozpocznij pojedynek</button>
+          <button className="gold-button start-button" onClick={confirmStart} disabled={pending !== null || !preload.ready}>Rozpocznij pojedynek</button>
         </> : null}
 
         {floor.stage === "live" && duel && category && teamA && teamB && times ? <>
           <span className="panel-index">POJEDYNEK {duel.sequence + 1}/{floor.duels.length} / W TOKU{category.itemCount ? ` / POZYCJA ${duel.itemIndex + 1}/${category.itemCount}` : ""}</span><h2>{category.name}</h2>
-          <TeamDuelists teamA={teamA} teamB={teamB} activeTeamId={duel.activeTeamId} teamATimeSeconds={times.teamA} teamBTimeSeconds={times.teamB} />
+          <FloorDuelists teamA={teamA} teamB={teamB} activeTeamId={duel.activeTeamId} times={times} />
           <p>Aktywna drużyna: <strong>{duel.activeTeamId ? getTeam(duel.activeTeamId).name : "—"}</strong>. „Poprawna odpowiedź” przełącza turę między drużynami, a „Pas” odejmuje 3 sekundy aktywnej drużynie.</p>
           <FloorPrompt key={`${duel.id}:${duel.itemIndex}`} prompt={category.prompt} alt={`Grafika kategorii ${category.name}, pozycja ${duel.itemIndex + 1}`} admin />
           {category.adminAnswer ? <p className="floor-admin-answer">Poprawna odpowiedź: <strong>{category.adminAnswer}</strong></p> : <p className="form-error" role="alert">Nie można odczytać poprawnej odpowiedzi dla tej pozycji. Sprawdź plik JSON.</p>}
@@ -146,13 +134,13 @@ export function FloorAdminControls({ snapshot, onRefresh }: FloorAdminControlsPr
 
         {floor.stage === "result" && duel && teamA && teamB && !winnerTeam ? <>
           <span className="panel-index">POJEDYNEK {duel.sequence + 1}/{floor.duels.length} / WYBÓR ZWYCIĘZCY</span><h2>Wybierz zwycięzcę</h2><p>Pojedynek jest zakończony, a zakłady oczekują na potwierdzenie wyniku.</p>
-          <TeamDuelists teamA={teamA} teamB={teamB} />
-          <fieldset className="team-fieldset"><legend>Wybierz zwycięską drużynę</legend><div className="team-grid"><TeamChoice team={teamA} selected={winnerTeamId === teamA.id} onSelect={() => setWinnerTeamId(teamA.id)} disabled={pending !== null} /><TeamChoice team={teamB} selected={winnerTeamId === teamB.id} onSelect={() => setWinnerTeamId(teamB.id)} disabled={pending !== null} /></div></fieldset>
-          <button className="gold-button start-button" onClick={confirmWinner} disabled={pending !== null || !winnerTeamId}>Zatwierdź wynik</button>
+          <FloorDuelists teamA={teamA} teamB={teamB} />
+          <fieldset className="team-fieldset"><legend>Wybierz zwycięską drużynę</legend><div className="team-grid"><TeamChoice team={teamA} selected={selectedWinner === teamA.id} onSelect={() => setWinnerTeamId(teamA.id)} disabled={pending !== null || Boolean(duel.winnerTeamId)} /><TeamChoice team={teamB} selected={selectedWinner === teamB.id} onSelect={() => setWinnerTeamId(teamB.id)} disabled={pending !== null || Boolean(duel.winnerTeamId)} /></div></fieldset>
+          <button className="gold-button start-button" onClick={confirmWinner} disabled={pending !== null || !selectedWinner}>Zatwierdź wynik</button>
         </> : null}
 
         {floor.stage === "result" && duel && winnerTeam ? <>
-          <span className="panel-index">POJEDYNEK {duel.sequence + 1}/{floor.duels.length} / WYNIK</span><h2>Wygrywa {winnerTeam.name}.</h2><p>Zakłady zostały rozliczone z zamkniętej puli. Możesz teraz przygotować kolejny pojedynek.</p>
+          <span className="panel-index">POJEDYNEK {duel.sequence + 1}/{floor.duels.length} / WYNIK</span><h2>Wygrywa {winnerTeam.name}.</h2><p>Zakłady zostały rozliczone. Możesz teraz przygotować kolejny pojedynek.</p>
           <button className="gold-button start-button" onClick={moveToNextDuel} disabled={pending !== null}>{duel.sequence === floor.duels.length - 1 ? "Pokaż podsumowanie segmentu" : "Następny pojedynek"}</button>
         </> : null}
 

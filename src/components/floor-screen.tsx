@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
+import { FloorDuelists, useFloorTimes } from "@/components/floor-clock";
 import { FloorPrompt } from "@/components/floor-prompt";
 import { formatChips } from "@/lib/chips";
-import { getTeam } from "@/lib/constants";
-import { THE_FLOOR_BET_STAKE, THE_FLOOR_TITLE, getTheFloorTimes } from "@/lib/floor";
-import type { GameSnapshot, TeamId, TeamMeta } from "@/lib/types";
+import { getSegmentNumber, getTeam } from "@/lib/constants";
+import { THE_FLOOR_BET_STAKE, THE_FLOOR_BET_DESCRIPTION, THE_FLOOR_TITLE } from "@/lib/floor";
+import type { GameSnapshot, TeamId } from "@/lib/types";
 
 interface FloorScreenProps {
   snapshot: GameSnapshot;
@@ -14,39 +15,11 @@ interface FloorScreenProps {
   viewerPlayerId?: number;
 }
 
-interface TeamDuelistsProps {
-  teamA: TeamMeta;
-  teamB: TeamMeta;
-  activeTeamId?: TeamId | null;
-  teamATimeSeconds?: number;
-  teamBTimeSeconds?: number;
-}
-
 type ApiError = { error?: string };
 
-function TeamDuelists({ teamA, teamB, activeTeamId = null, teamATimeSeconds, teamBTimeSeconds }: TeamDuelistsProps) {
-  return (
-    <div className="floor-duelists" aria-label={`${teamA.name} kontra ${teamB.name}`}>
-      <strong className={activeTeamId === teamA.id ? "is-active" : ""} style={{ color: teamA.color, borderColor: teamA.color }}>
-        {teamA.icon} {teamA.name}{teamATimeSeconds !== undefined ? <small>{teamATimeSeconds} s</small> : null}
-      </strong>
-      <span>kontra</span>
-      <strong className={activeTeamId === teamB.id ? "is-active" : ""} style={{ color: teamB.color, borderColor: teamB.color }}>
-        {teamB.icon} {teamB.name}{teamBTimeSeconds !== undefined ? <small>{teamBTimeSeconds} s</small> : null}
-      </strong>
-    </div>
-  );
-}
-
 export function FloorScreen({ snapshot, refresh, viewerRole, viewerPlayerId }: FloorScreenProps) {
-  const [now, setNow] = useState(Date.now());
   const [error, setError] = useState("");
   const [betting, setBetting] = useState(false);
-
-  useEffect(() => {
-    const interval = window.setInterval(() => setNow(Date.now()), 250);
-    return () => window.clearInterval(interval);
-  }, []);
 
   async function placeBet(targetTeamId: TeamId) {
     setError("");
@@ -72,19 +45,19 @@ export function FloorScreen({ snapshot, refresh, viewerRole, viewerPlayerId }: F
   const category = floor.content;
   const teamA = duel?.teamAId ? getTeam(duel.teamAId) : null;
   const teamB = duel?.teamBId ? getTeam(duel.teamBId) : null;
-  const winnerTeam = duel?.winnerTeamId ? getTeam(duel.winnerTeamId) : null;
+  const winnerTeam = duel?.settledAt && duel.winnerTeamId ? getTeam(duel.winnerTeamId) : null;
   const viewerTeamId = viewerPlayerId === undefined ? null : snapshot.players.find((player) => player.id === viewerPlayerId)?.teamId ?? null;
   const viewerIsCompeting = viewerTeamId !== null && duel !== null && (viewerTeamId === duel.teamAId || viewerTeamId === duel.teamBId);
-  const times = useMemo(() => duel ? getTheFloorTimes(duel, now) : null, [duel, now]);
+  const times = useFloorTimes(duel, floor.serverTime);
 
   return (
     <>
       <section className="game-stage floor-stage">
         <div className="game-stage-content">
           {floor.stage === "intro" ? <>
-            <span className="eyebrow">Kolejny segment</span><h1>{THE_FLOOR_TITLE}</h1>
-            <p>W każdym pojedynku rywalizują dwie drużyny. Członkowie pozostałych drużyn mogą obstawić zwycięzcę.</p>
-            <div className="segment-rules"><span><strong>Tryb:</strong> drużyna kontra drużyna</span><span><strong>Format:</strong> jeden pojedynek na kategorię</span><span><strong>Zakłady:</strong> 2 żetony na drużynę</span></div>
+            <span className="eyebrow">{getSegmentNumber(snapshot.game.activeSegment)}</span><h1>{THE_FLOOR_TITLE}</h1>
+            <p>{THE_FLOOR_BET_DESCRIPTION}</p>
+            <div className="segment-rules"><span><strong>Tryb:</strong> drużyna kontra drużyna</span><span><strong>Format:</strong> jeden pojedynek na kategorię</span></div>
           </> : null}
 
           {floor.stage === "setup" && category ? <>
@@ -95,7 +68,7 @@ export function FloorScreen({ snapshot, refresh, viewerRole, viewerPlayerId }: F
           {floor.stage === "betting" && duel && category && teamA && teamB ? <>
             <span className="eyebrow">Pojedynek {duel.sequence + 1}/{floor.duels.length} · obstawianie trwa</span><h1>{category.name}</h1>
             <p>{category.instructions}</p>
-            <TeamDuelists teamA={teamA} teamB={teamB} />
+            <FloorDuelists teamA={teamA} teamB={teamB} />
             {viewerRole === "player" && viewerTeamId && !viewerIsCompeting && !duel.viewerBetTargetTeamId ? <div className="floor-bet-panel"><p>Zakład jest opcjonalny. Poczekaj na start albo wybierz drużynę. Stawka: <strong>{formatChips(THE_FLOOR_BET_STAKE)} żetony</strong>.</p><div className="floor-bet-buttons"><button className="gold-button" disabled={betting} onClick={() => placeBet(teamA.id)}>Stawiam na {teamA.name}</button><button className="gold-button" disabled={betting} onClick={() => placeBet(teamB.id)}>Stawiam na {teamB.name}</button></div></div> : null}
             {viewerRole === "player" && viewerIsCompeting ? <p className="floor-waiting">Twoja drużyna bierze udział w pojedynku, więc jej członkowie nie mogą obstawiać.</p> : null}
             {viewerRole === "player" && duel.viewerBetTargetTeamId ? <p className="floor-waiting">Twój zakład na {getTeam(duel.viewerBetTargetTeamId).name} został przyjęty. Prowadzący zamknie zakłady przed startem.</p> : null}
@@ -104,15 +77,14 @@ export function FloorScreen({ snapshot, refresh, viewerRole, viewerPlayerId }: F
           {floor.stage === "live" && duel && category && teamA && teamB && times ? <>
             <span className="eyebrow">Pojedynek {duel.sequence + 1}/{floor.duels.length} · w toku · zakłady zamknięte</span>
             <h1 className="floor-category-title">{category.name}</h1><p>{category.instructions}</p>
-            <TeamDuelists teamA={teamA} teamB={teamB} activeTeamId={duel.activeTeamId} teamATimeSeconds={times.teamA} teamBTimeSeconds={times.teamB} />
-            <p className="floor-active-player">Teraz odpowiada: <strong>{duel.activeTeamId ? getTeam(duel.activeTeamId).name : "—"}</strong></p>
+            <FloorDuelists teamA={teamA} teamB={teamB} activeTeamId={duel.activeTeamId} times={times} />
             <FloorPrompt key={`${duel.id}:${duel.itemIndex}`} prompt={category.prompt} alt={`Grafika kategorii ${category.name}, pozycja ${duel.itemIndex + 1}`} />
           </> : null}
 
           {floor.stage === "result" && duel ? <>
             <span className="eyebrow">Wynik pojedynku {duel.sequence + 1}/{floor.duels.length}</span>
-            {winnerTeam ? <><h1>Wygrywa <em>{winnerTeam.name}</em>.</h1><p>Zakłady zostały rozliczone z puli tego pojedynku. Prowadzący przygotuje kolejny pojedynek.</p></> : <><h1>Pojedynek dobiegł <em>końca.</em></h1><p>Prowadzący wybiera i zatwierdza zwycięską drużynę.</p></>}
-            {viewerRole === "player" && duel.viewerBetResult ? <p className="floor-waiting">{duel.viewerBetResult === "won" ? `Twój zakład wygrał. Otrzymujesz ${formatChips(duel.viewerBetPayout ?? "0")} żetonów z puli.` : duel.viewerBetResult === "refunded" ? `Nikt nie obstawił zwycięzcy — Twoja stawka ${formatChips(duel.viewerBetPayout ?? "0")} żetonów została zwrócona.` : "Twój zakład nie wygrał."}</p> : null}
+            {winnerTeam ? <><h1>Wygrywa <em>{winnerTeam.name}</em>.</h1><p>Zakłady zostały rozliczone. Prowadzący przygotuje kolejny pojedynek.</p></> : <><h1>Pojedynek dobiegł <em>końca.</em></h1><p>Prowadzący wybiera i zatwierdza zwycięską drużynę.</p></>}
+            {viewerRole === "player" && duel.viewerBetResult && duel.viewerBetResult !== "pending" ? <p className="floor-waiting">{duel.viewerBetResult === "won" ? `Twój zakład wygrał. Otrzymujesz ${formatChips(duel.viewerBetPayout ?? "0")} żetonów.` : duel.viewerBetResult === "refunded" ? `Twoja stawka ${formatChips(duel.viewerBetPayout ?? "0")} żetonów została zwrócona.` : "Twój zakład nie wygrał."}</p> : null}
           </> : null}
 
           {floor.stage === "results" ? <>

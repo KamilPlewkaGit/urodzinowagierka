@@ -61,19 +61,15 @@ function CharadesScoreForm({ team, savedPoints, send }: { team: TeamId; savedPoi
 
 function DuelResultForm({ teams, send }: { teams: [TeamId, TeamId]; send: (command: Command) => void }) {
   const [winner, setWinner] = useState<TeamId | null>(null);
-  const [points, setPoints] = useState("");
   return (
     <form className={styles.form} onSubmit={(event) => {
       event.preventDefault();
-      if (winner && points !== "") send({ action: "finish-duel", teamId: winner, points: Number(points) });
+      if (winner) send({ action: "finish-duel", teamId: winner });
     }}>
       <div className={styles.actions} role="group" aria-label="Zwycięzca pojedynku">
         {teams.map((team) => <button key={team} type="button" className="secondary-button" aria-pressed={winner === team} onClick={() => setWinner(team)}><TeamName id={team} /></button>)}
       </div>
-      <label className="field-label">Punkty dla zwycięskiej drużyny
-        <input className="text-input" type="number" min={0} max={2147483647} step={1} required value={points} onChange={(event) => setPoints(event.target.value)} />
-      </label>
-      <button className="gold-button" type="submit" disabled={!winner || points === ""}>Zatwierdź wynik</button>
+      <button className="gold-button" type="submit" disabled={!winner}>Zatwierdź zwycięzcę</button>
     </form>
   );
 }
@@ -84,7 +80,7 @@ export function AlkoholicyAdminControls({ snapshot, disabled, error, send }: {
   error: string;
   send: (command: Command) => void;
 }) {
-  const { stage, order, performance, scores: savedScores, duelTeams, charadesMarket, duelMarket } = snapshot.alkoholicy;
+  const { stage, order, performance, scores: savedScores, duelTeams, duelIndex, charadesMarket, duelMarket } = snapshot.alkoholicy;
   const current = order[performance];
   const hasCorrections = order.some((team) => savedScores[team] !== undefined);
   const action = (command: Command, label: string) => <button className="gold-button" type="button" onClick={() => send(command)}>{label}</button>;
@@ -115,12 +111,13 @@ export function AlkoholicyAdminControls({ snapshot, disabled, error, send }: {
         {stage === "charades-review" && action({ action: "settle-charades" }, "Zatwierdź wyniki i rozlicz zakłady")}
         {stage === "charades-results" && action({ action: "next-game" }, "Przejdź do gry nr 2")}
         {stage === "duel-setup" && (
-          <TeamSelection key={duelTeams?.join(",")} labels={["Pierwsza drużyna", "Druga drużyna"]} initial={duelTeams ?? []}
+          <TeamSelection key={duelIndex + ":" + (duelTeams?.join(",") ?? "")} labels={["Pierwsza drużyna", "Druga drużyna"]} initial={duelTeams ?? []}
             onSave={([first, second]) => send({ action: "duel-teams", teams: [first, second] })} />
         )}
         {stage === "duel-setup" && duelTeams && <div className={styles.actions}>{action({ action: "open-duel" }, "Otwórz zakłady")}{action({ action: "start-duel" }, "Rozpocznij pojedynek bez zakładów")}</div>}
         {stage === "duel-betting" && <><p>Przyjęte zakłady: {duelMarket.counts.pending}. Rozpoczęcie pojedynku zamknie zakłady.</p>{action({ action: "start-duel" }, "Rozpocznij pojedynek")}</>}
-        {stage === "duel-live" && duelTeams && <DuelResultForm teams={duelTeams} send={send} />}
+        {stage === "duel-live" && duelTeams && <DuelResultForm key={duelIndex} teams={duelTeams} send={send} />}
+        {stage === "duel-result" && action({ action: "next-duel" }, "Przejdź do pojedynku nr 2")}
         {stage === "results" && action({ action: "complete" }, "Zakończ segment")}
         {stage === "completed" && <p>Wyniki segmentu zostały zapisane.</p>}
         {error && <p className="form-error" role="alert">{error}</p>}

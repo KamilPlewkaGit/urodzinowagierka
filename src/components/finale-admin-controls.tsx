@@ -52,6 +52,27 @@ function SelectFinalists({ finale, send }: ControlsProps) {
   );
 }
 
+function WheelPointsForm({ round, team, saved, total, send }: {
+  round: number; team: TeamId; saved: number | null; total: number; send: ControlsProps["send"];
+}) {
+  const [value, setValue] = useState(saved?.toString() ?? "");
+  const points = Number(value);
+  const valid = /^\d+$/.test(value) && Number.isSafeInteger(points) && points <= 2_147_483_647 - total + (saved ?? 0);
+  return (
+    <form className={styles.estimateForm} onSubmit={(event) => {
+      event.preventDefault();
+      if (valid && points !== saved) send({ action: "award", round, points });
+    }}>
+      <p>{getTeam(team).name} · Pytanie nr {round} · Aktualny wynik: <strong>{total} pkt</strong></p>
+      <label className="field-label" htmlFor={"finale-points-" + round}>Liczba zdobytych punktów</label>
+      <input className="text-input" id={"finale-points-" + round} type="number" min={0} step={1}
+        max={2_147_483_647 - total + (saved ?? 0)} required value={value} onChange={(event) => setValue(event.target.value)} />
+      <button className="gold-button" type="submit" disabled={!valid || points === saved}>{saved === null ? "Przyznaj punkty" : "Zapisz korektę punktów"}</button>
+      {saved !== null && <p role="status">Zapisano {saved} pkt. Łącznie {total} pkt.</p>}
+    </form>
+  );
+}
+
 function QuestionControls({ finale, send }: ControlsProps) {
   const [estimate, setEstimate] = useState("");
   const [winner, setWinner] = useState<TeamId | null>(null);
@@ -100,8 +121,12 @@ function QuestionControls({ finale, send }: ControlsProps) {
     );
   }
   if (stage === "winner") return <button className="gold-button" type="button" onClick={() => send({ action: "show-wheel" })}>Pokaż koło fortuny</button>;
-  if (stage === "wheel") {
-    return <button className="gold-button" type="button" onClick={() => send({ action: "next" })}>{question.number === 4 ? "Przejdź do podsumowania" : "Następne pytanie"}</button>;
+  if (stage === "wheel" && question.winner) {
+    const total = finale.ranking.find((row) => row.teamId === question.winner)?.points ?? 0;
+    return <>
+      <WheelPointsForm key={question.points ?? "new"} round={question.number} team={question.winner} saved={question.points} total={total} send={send} />
+      {question.points !== null && <button className="gold-button" type="button" onClick={() => send({ action: "next" })}>{question.number === 4 ? "Przejdź do podsumowania" : "Następne pytanie"}</button>}
+    </>;
   }
   return null;
 }
@@ -122,7 +147,23 @@ export function FinaleAdminControls({ error, ...props }: ControlsProps & { error
           <button className="gold-button" type="button" onClick={() => send({ action: "start" })}>Rozpocznij finał</button>
         ))}
         {question && <QuestionControls key={question.number} {...props} />}
-        {stage === "summary" && <button className="gold-button" type="button" onClick={() => send({ action: "complete" })}>Zakończ grę</button>}
+        {stage === "summary" && <>
+          <details open={finale.roundPoints.includes(null)}>
+            <summary>Punkty z pytań</summary>
+            {finale.winners.map((team, index) => team && <WheelPointsForm key={index + ":" + finale.roundPoints[index]}
+              round={index + 1} team={team} saved={finale.roundPoints[index]}
+              total={finale.ranking.find((row) => row.teamId === team)?.points ?? 0} send={send} />)}
+          </details>
+          {finale.overallLeaders.length > 1 && !finale.roundPoints.includes(null) && <>
+            <p>Rozstrzygnij remis na pierwszym miejscu.</p>
+            <div className={styles.actions} role="group" aria-label="Zwycięzca gry">
+              {finale.overallLeaders.map((team) => <button key={team} className="secondary-button" type="button"
+                aria-pressed={finale.overallWinner === team} onClick={() => send({ action: "overall-winner", teamId: team })}>{getTeam(team).name}</button>)}
+            </div>
+          </>}
+          <button className="gold-button" type="button" onClick={() => send({ action: "complete" })}
+            disabled={!finale.overallWinner || finale.roundPoints.includes(null)}>Zakończ grę</button>
+        </>}
         {stage === "completed" && <p>Wyniki finału zostały zapisane.</p>}
         {error && <p className="form-error" role="alert">{error}</p>}
       </fieldset>

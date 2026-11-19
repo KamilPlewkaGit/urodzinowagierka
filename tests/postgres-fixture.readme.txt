@@ -1,0 +1,1 @@
+Testowy adapter transportu Neon. Polecenia SQL wykonuje w niezależnej bazie PostgreSQL przez PGlite. Przechwytuje tylko sztuczny adres fixture i nie korzysta z bazy użytkownika.

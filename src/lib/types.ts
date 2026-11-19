@@ -48,6 +48,7 @@ export interface TeamScore {
 }
 
 export interface TheFloorDuel {
+  settledAt: string | null;
   id: number;
   sequence: number;
   categoryId: string;
@@ -82,7 +83,23 @@ export interface TheFloorContent {
   adminAnswer?: string | null;
 }
 
+export interface TheFloorPreloadManifest {
+  version: string;
+  urls: string[];
+  labels: Record<string, string>;
+  issues: string[];
+}
+
+export interface TheFloorPreloadStatus {
+  players: number;
+  readyPlayers: number;
+  devices: number;
+  readyDevices: number;
+  failedAssets: string[];
+}
+
 export interface TheFloorState {
+  serverTime: number;
   content: TheFloorContent | null;
   catalogErrors?: string[];
   stage: TheFloorStage;
@@ -138,11 +155,6 @@ export interface SportState {
   playerNumbers: SportPlayerNumber[];
 }
 
-export interface MelodiaBid {
-  teamId: TeamId;
-  declaredLines: number;
-}
-
 export interface MelodiaSong {
   id: number;
   sequence: number;
@@ -150,12 +162,7 @@ export interface MelodiaSong {
   winningTeamId: TeamId | null;
   artistPoints: number | null;
   titlePoints: number | null;
-  singingPoints: number | null;
-  singingMistake: boolean;
-  biddingEnabled: boolean;
-  bidWinnerTeamId: TeamId | null;
-  bidCompleted: boolean | null;
-  bids: MelodiaBid[];
+
 }
 
 export interface MelodiaTeamScore {
@@ -171,7 +178,9 @@ export interface MelodiaState {
   leadingTeamIds: TeamId[];
   winningTeamId: TeamId | null;
   settledAt: string | null;
-  charge: { min: string; max: string } | null;
+  reward: { pool: string; min: string; max: string } | null;
+  transferPreview?: { playerId: number; delta: string }[];
+  insufficientPlayers?: number[];
   viewerDelta: string | null;
   completedLegacy: boolean;
 }
@@ -247,11 +256,15 @@ export interface FinaleSnapshot {
     answer: string | null;
     adminAnswer?: string;
     winner: TeamId | null;
+    points: number | null;
   } | null;
   winners: (TeamId | null)[];
+  roundPoints: (number | null)[];
+  overallLeaders: TeamId[];
+  overallWinner: TeamId | null;
 }
 
-export type AlkoholicyStage = "intro" | "order" | "charades-ready" | "charades-betting" | "charades-play" | "charades-review" | "charades-results" | "duel-setup" | "duel-betting" | "duel-live" | "results" | "completed";
+export type AlkoholicyStage = "intro" | "order" | "charades-ready" | "charades-betting" | "charades-play" | "charades-review" | "charades-results" | "duel-setup" | "duel-betting" | "duel-live" | "duel-result" | "results" | "completed";
 export type AlkoholicyBetResult = "pending" | "won" | "lost" | "refunded";
 
 export interface AlkoholicyMarket {
@@ -265,7 +278,9 @@ export interface AlkoholicyProgress {
   performance: number;
   scores: Partial<Record<TeamId, number>>;
   duelTeams: [TeamId, TeamId] | null;
-  duelResult: { winner: TeamId; points: number } | null;
+  duelIndex: 0 | 1;
+  duelHistory: { teams: [TeamId, TeamId]; winner: TeamId }[];
+  legacyDuelAward?: { winner: TeamId; points: number };
 }
 
 export interface AlkoholicySnapshot extends AlkoholicyProgress {
@@ -273,14 +288,24 @@ export interface AlkoholicySnapshot extends AlkoholicyProgress {
   charadesLeaders: TeamId[];
   charadesMarket: AlkoholicyMarket;
   duelMarket: AlkoholicyMarket;
+  duelMarkets: [AlkoholicyMarket, AlkoholicyMarket];
 }
 
-export type GoldStage = "intro" | "nominations" | "live" | "result" | "completed";
+export type GoldStage = "intro" | "nominations" | "contributions" | "live" | "result"
+  | "six-intro" | "six-voting" | "six-closed" | "six-confirmed" | "six-result" | "completed";
 export type GoldRepresentative = { id: number; nickname: string; teamId: TeamId };
 export type GoldReward = {
   pool: string;
-  losingCount: number;
+  contributors?: number;
   shares: { playerId: number; nickname: string; amount: string }[];
+};
+export type GoldNumberResult = {
+  number: number;
+  correct: number;
+  incorrect: number;
+  pool: string;
+  void: boolean;
+  transfers: { playerId: number; nickname: string; correct: boolean; delta: string }[];
 };
 
 export interface GoldProgress {
@@ -289,13 +314,21 @@ export interface GoldProgress {
   representatives: GoldRepresentative[];
   winner: GoldRepresentative | null;
   reward: GoldReward | null;
+  firstEscrowId?: string;
+  sixRoundId?: string;
+  sixPendingNumber?: number;
+  sixResult?: GoldNumberResult;
 }
 
-export interface GoldSnapshot extends GoldProgress {
+export interface GoldSnapshot extends Omit<GoldProgress, "firstEscrowId" | "sixRoundId" | "sixPendingNumber"> {
   revision: string;
   viewerNominationId: number | null;
+  viewerNumber: number | null;
   adminNominations?: Record<number, number>;
-  adminPreviews?: Partial<Record<TeamId, { reward: GoldReward; shortfalls: string[] }>>;
+  adminContributions?: { players: number; pool: string; shortfalls: string[] };
+  adminPreviews?: Partial<Record<TeamId, GoldReward>>;
+  adminNumbers?: { votedIds: number[]; counts?: number[]; reserved: string; pendingNumber?: number };
+  firstContributors?: { id: number; nickname: string }[];
 }
 
 export interface GameSnapshot {

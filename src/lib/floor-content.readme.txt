@@ -1,7 +1,1 @@
-File: src/lib/floor-content.ts
-
-Server-only loader recursively discovers the ordered JSON decks under public/the floor. It supports a bare array or an items envelope, maps names and aliases to stable IDs, and caches the catalog for the life of the process. The original row order and positions are retained even when one row is invalid.
-
-Text prompts use expression for Dzia?ania and locale-aware uppercase display for Czytanie od ty?u. A verified administrator projection includes answer, falling back to name. Local images use encoded public paths. Embedded and external images use the indexed raster route so filenames and source URLs do not reveal answers. Category errors and item-level issues produce Polish diagnostics.
-
-getTheFloorCatalogStatus supplies category availability for new duels. getTheFloorItemCounts bounds progression. getTheFloorContent projects the current item and getTheFloorImage retrieves the dedicated raster route's source.
+Katalog serwerowy czyta siedem plików kategorii, weryfikuje unikatowe ID i mapuje odpowiedź na stabilny klucz pozycji. Adres grafiki bazuje na skrócie treści lub źródła. Manifest zawiera unikatowe adresy, etykiety diagnostyczne i wersję. Odpowiedzi są wyłącznie w migawce prowadzącego. Politycy i Lokalne miejsca mają lokalne kopie zdjęć.

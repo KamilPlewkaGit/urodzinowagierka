@@ -1,4 +1,4 @@
-import type { TeamId, TeamMeta } from "@/lib/types";
+import type { SegmentId, TeamId, TeamMeta } from "@/lib/types";
 
 export const TEAM_IDS = ["royal", "ruby", "emerald", "onyx"] as const satisfies readonly TeamId[];
 
@@ -8,6 +8,23 @@ export const TEAMS: readonly TeamMeta[] = [
   { id: "emerald", name: "Szmaragdowy Krąg", tagline: "Bystrzy i szczęśliwi", icon: "♠", color: "#42c797", softColor: "#173d32" },
   { id: "onyx", name: "Dom Onyksu", tagline: "Cisi i nieustępliwi", icon: "◈", color: "#a9adbd", softColor: "#292c38" },
 ];
+
+// Keep the published event numbers even where the app skips a segment.
+const segmentNumerals: Record<SegmentId, string> = {
+  solenizant: "I",
+  "the-floor": "II",
+  sport: "III",
+  melodia: "V",
+  pojedynki: "VI",
+  familiada: "VIII",
+  "gold-challenge": "IX",
+  alkoholicy: "X",
+  finale: "XI",
+};
+
+export function getSegmentNumber(segment: SegmentId) {
+  return "Segment " + segmentNumerals[segment];
+}
 
 export const STARTING_TOKENS = 100;
 export const POLL_INTERVAL_MS = 4_000;

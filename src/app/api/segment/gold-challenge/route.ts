@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     if (!session) return NextResponse.json({ error: "Sesja wygasła. Zaloguj się ponownie." }, { status: 401 });
     const parsed = goldActionSchema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Nieprawidłowe dane akcji złotego wyzwania." }, { status: 400 });
-    const role = parsed.data.command.action === "nominate" ? "player" : "admin";
+    const role = ["nominate", "number-vote"].includes(parsed.data.command.action) ? "player" : "admin";
     if (session.role !== role) return NextResponse.json({ error: "Nie masz uprawnień do wykonania tej akcji." }, { status: 403 });
     await applyGoldAction(parsed.data, session.role === "player" ? session.playerId : undefined);
     return NextResponse.json({ ok: true });

@@ -6,8 +6,24 @@ import type { AlkoholicyAction } from "@/lib/validation";
 export class AlkoholicyConflict extends Error {}
 
 export const initialAlkoholicy: AlkoholicyProgress = {
-  stage: "intro", order: [], performance: 0, scores: {}, duelTeams: null, duelResult: null,
+  stage: "intro", order: [], performance: 0, scores: {}, duelTeams: null, duelIndex: 0, duelHistory: [],
 };
+
+type LegacyAlkoholicy = Omit<AlkoholicyProgress, "duelIndex" | "duelHistory"> & {
+  duelResult?: { winner: TeamId; points: number } | null;
+};
+
+export function normalizeAlkoholicy(state: AlkoholicyProgress | LegacyAlkoholicy | null): AlkoholicyProgress {
+  if (!state) return initialAlkoholicy;
+  if ("duelIndex" in state) return state;
+  const { duelResult, ...rest } = state;
+  return {
+    ...rest, duelIndex: 0,
+    stage: duelResult && (rest.stage === "results" || rest.stage === "completed") ? "duel-result" : rest.stage,
+    duelHistory: duelResult && rest.duelTeams ? [{ teams: rest.duelTeams, winner: duelResult.winner }] : [],
+    legacyDuelAward: duelResult ?? undefined,
+  };
+}
 
 export function charadesLeaders(state: AlkoholicyProgress) {
   if (!state.order.length || state.order.some((team) => state.scores[team] === undefined)) return [];
@@ -17,8 +33,8 @@ export function charadesLeaders(state: AlkoholicyProgress) {
 
 export function alkoholicyAwardedPoints(state: AlkoholicyProgress): Partial<Record<TeamId, number>> {
   const points = { ...state.scores };
-  if (state.duelResult) {
-    const { winner, points: award } = state.duelResult;
+  if (state.legacyDuelAward) {
+    const { winner, points: award } = state.legacyDuelAward;
     points[winner] = (points[winner] ?? 0) + award;
   }
   return points;
@@ -73,8 +89,12 @@ export function advanceAlkoholicy(state: AlkoholicyProgress, command: Exclude<Al
       break;
     case "finish-duel":
       if (stage === "duel-live" && duelTeams?.includes(command.teamId)) {
-        return { ...state, stage: "results", duelResult: { winner: command.teamId, points: command.points } };
+        return { ...state, stage: state.duelIndex === 0 ? "duel-result" : "results",
+          duelHistory: [...state.duelHistory, { teams: duelTeams, winner: command.teamId }] };
       }
+      break;
+    case "next-duel":
+      if (stage === "duel-result" && state.duelIndex === 0) return { ...state, stage: "duel-setup", duelIndex: 1, duelTeams: null };
       break;
     case "complete":
       if (stage === "results") return { ...state, stage: "completed" };

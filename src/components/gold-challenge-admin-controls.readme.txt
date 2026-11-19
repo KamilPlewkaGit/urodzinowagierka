@@ -1,5 +1,1 @@
-File: src/components/gold-challenge-admin-controls.tsx
-
-Purpose: Renders gold controls for participating teams, nomination counts, one confirmed representative per team, start, manual winner selection, reward preview and completion.
-
-Implementation: All four teams are selectable. Active rosters populate representative selectors, with nomination counts in the options. The current server preview shows exact individual shares and insufficient balances before payout. The server rechecks eligibility and funds atomically at confirmation.
+Złote sterowanie dwiema grami. W pierwszej prowadzący wybiera uczestniczące drużyny i przedstawicieli, sprawdza wpłaty, rozpoczyna fizyczne wyzwanie, przegląda podział puli i zatwierdza zwycięzcę. W drugiej otwiera i zamyka głosowanie, sprawdza status i liczebności, potwierdza numer i osobno uruchamia wypłatę. Runda bez trafień umożliwia nowe głosowanie.

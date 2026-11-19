@@ -11,3 +11,5 @@ Backend/database interactions: Has no direct database access. It posts small act
 Implementation details: The two team selectors never select players and disable the first selection in the second selector. Browser button state improves usability, but the server again validates phase, participant uniqueness, bet eligibility, selected winner membership, and settlement.
 
 Future expansion: Do not add browser-owned chips or outcome logic; add a focused route/service only for a concrete new segment rule.
+
+Starszy wynik zapisany przed rozliczeniem wraca do zatwierdzenia z poprzednio wskazanym zwycięzcą. Status rozliczenia i skutki pozostają po stronie serwera.

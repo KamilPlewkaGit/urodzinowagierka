@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { finishPojedynkiDuel } from "@/lib/database";
+import { finishPojedynkiDuel, getTeamBetSettlementError } from "@/lib/database";
 import { getRequestSession } from "@/lib/session";
 import { pojedynkiWinnerSchema } from "@/lib/validation";
 
@@ -14,7 +14,8 @@ export async function POST(request: NextRequest) {
   const parsed = pojedynkiWinnerSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Nieprawidłowy zwycięzca." }, { status: 400 });
   try {
-    if (!(await finishPojedynkiDuel(parsed.data.winnerTeamId))) return NextResponse.json({ error: "Zwycięzca musi być jedną z drużyn bieżącego pojedynku." }, { status: 409 });
+    const status = await finishPojedynkiDuel(parsed.data.winnerTeamId);
+    if (status !== "settled") return NextResponse.json({ error: getTeamBetSettlementError(status) }, { status: 409 });
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Nie udało się zapisać wyniku pojedynku", error);

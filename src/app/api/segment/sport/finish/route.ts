@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { finishSportChallenge } from "@/lib/database";
+import { finishSportChallenge, getTeamBetSettlementError } from "@/lib/database";
 import { getRequestSession } from "@/lib/session";
 import { sportWinnerSchema } from "@/lib/validation";
 
@@ -14,7 +14,8 @@ export async function POST(request: NextRequest) {
   const parsed = sportWinnerSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Wybrano nieprawidłową zwycięską drużynę." }, { status: 400 });
   try {
-    if (!(await finishSportChallenge(parsed.data.winnerTeamId))) return NextResponse.json({ error: "Nie można teraz zatwierdzić wyniku lub rozliczyć zakładów." }, { status: 409 });
+    const status = await finishSportChallenge(parsed.data.winnerTeamId);
+    if (status !== "settled") return NextResponse.json({ error: getTeamBetSettlementError(status) }, { status: 409 });
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Nie udało się zatwierdzić wyniku Sport", error);

@@ -9,3 +9,5 @@ Dependencies: Next Route Handler APIs, Floor team configuration validation, opaq
 Backend/database interactions: Calls `configureTheFloorDuel`, which locks setup state and persists the two team sides with reset team clocks.
 
 Implementation details: The client cannot select a player, reuse the same team on both sides, alter category data, or bypass the persisted setup stage.
+
+Zapisuje parę i losową kolejność kluczy tylko w bieżącym pojedynku, po walidacji sesji i drużyn.
