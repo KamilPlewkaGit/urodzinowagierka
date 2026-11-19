@@ -6,6 +6,6 @@ Important exports, inputs, and outputs: Bodyless administrator-only `POST(reques
 
 Dependencies: Next Route Handler APIs, opaque sessions, and `restartPojedynkiSegment`.
 
-Backend/database interactions: Refunds only unclosed Pojedynki wagers, deletes only Segment VI bets and slots, and returns its state to `intro`. It preserves accounts, teams, other segments, scores, and already-settled balances.
+Backend/database interactions: Refunds pending Pojedynki wagers, deletes Segment VI bets, results and their points, and returns its state to `intro`. It preserves accounts, teams, other segments and already-settled balances.
 
 Implementation details: Bets are deleted before their foreign-key duel rows; settled payouts are deliberately not reversed by a segment restart.

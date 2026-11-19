@@ -16,6 +16,7 @@ import { alkoholicyStageLabel } from "@/components/alkoholicy-screen";
 import { GoldChallengeAdminControls } from "@/components/gold-challenge-admin-controls";
 import { GOLD_TITLE, goldStageLabel } from "@/components/gold-challenge-screen";
 import { SportAdminControls } from "@/components/sport-admin-controls";
+import { TeamScoreCorrections } from "@/components/team-score-corrections";
 import { POLL_INTERVAL_MS, TEAMS, getSegmentNumber, getTeam } from "@/lib/constants";
 import { THE_FLOOR_POLL_INTERVAL_MS } from "@/lib/floor";
 import { formatChips } from "@/lib/chips";
@@ -86,7 +87,7 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
       const payload = (await response.json().catch(() => null)) as ApiError | null;
       if (!response.ok) {
         setError(payload?.error ?? "Nie udało się wykonać tej operacji.");
-        if ((action === "finale" || action === "alkoholicy" || action === "gold-challenge") && response.status === 409) await refresh();
+        if ((action === "finale" || action === "alkoholicy" || action === "gold-challenge" || action === "correct-score") && response.status === 409) await refresh();
         return false;
       }
       await refresh();
@@ -156,7 +157,7 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
       return;
     }
     if (snapshot.game.activeSegment === "familiada") {
-      if (window.confirm("Uruchomić Familiadę od początku? Postęp obu meczów zostanie usunięty, a oczekujące stawki zostaną zwrócone.")) {
+      if (window.confirm("Uruchomić Familiadę od początku? Wyniki i punkty obu meczów zostaną usunięte, a oczekujące stawki zwrócone.")) {
         await postAction("restart", "/api/segment/familiada", { revision: snapshot.familiada.revision, command: { action: "restart" } });
       }
       return;
@@ -164,7 +165,9 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
     const segmentName = AVAILABLE_SEGMENTS.find((segment) => segment.id === snapshot.game.activeSegment)?.name ?? "wybrany";
     const restartMessage = snapshot.game.activeSegment === "the-floor"
       ? "Uruchomić The Floor od początku? Wyniki i punkty tego segmentu zostaną usunięte, a oczekujące stawki zwrócone."
-      : `Czy na pewno uruchomić segment ${segmentName} od początku? Zostanie skasowany tylko jego postęp. Żetony graczy pozostaną bez zmian.`;
+      : snapshot.game.activeSegment === "sport" || snapshot.game.activeSegment === "pojedynki"
+        ? `Uruchomić segment ${segmentName} od początku? Punkty za zwycięstwa zostaną usunięte, a oczekujące stawki zwrócone.`
+        : `Czy na pewno uruchomić segment ${segmentName} od początku? Zostanie skasowany tylko jego postęp. Żetony graczy pozostaną bez zmian.`;
     if (!window.confirm(restartMessage)) {
       return;
     }
@@ -469,6 +472,8 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
       {finaleActive && <FinaleAdminControls finale={snapshot.finale} disabled={pendingAction !== null} send={sendFinale} error={error} />}
       {alkoholicyActive && <AlkoholicyAdminControls snapshot={snapshot} disabled={pendingAction !== null} send={sendAlkoholicy} error={error} />}
       {goldActive && <GoldChallengeAdminControls snapshot={snapshot} disabled={pendingAction !== null} send={sendGold} error={error} />}
+      {isStarted && <TeamScoreCorrections snapshot={snapshot} disabled={pendingAction !== null}
+        save={(endpoint, body) => postAction("correct-score", endpoint, body)} />}
 
       <section className="admin-management-grid" aria-label="Zarządzanie grą">
         <article className="management-panel">

@@ -276,7 +276,8 @@ export function advanceFamiliada(state: StoredFamiliada | null, command: Command
       }
       break;
     case "confirm-match":
-      if (stage === "match-confirmation" && !match.settledAt && match.teams.includes(command.teamId)) {
+      if (stage === "match-confirmation" && !match.settledAt && match.teams.includes(command.teamId) &&
+          match.rounds.length === 4 && match.rounds.every((item) => item.winner !== null)) {
         if (score(match, command.teamId) < score(match, opponent(match, command.teamId))) {
           throw new FamiliadaConflict("Zatwierdź drużynę z najwyższym wynikiem.");
         }
@@ -286,6 +287,15 @@ export function advanceFamiliada(state: StoredFamiliada | null, command: Command
         return state;
       }
       break;
+    case "correct-match": {
+      const result = state.matches[command.matchIndex];
+      if (!result.settledAt || !result.teams.includes(command.teamId) ||
+          score(result, result.teams[0]) !== score(result, result.teams[1])) {
+        throw new FamiliadaConflict("Można zmienić rozstrzygnięcie tylko w rozliczonym meczu zakończonym remisem.");
+      }
+      result.winner = command.teamId;
+      return state;
+    }
     case "complete":
       if (stage === "match-result" && state.matchIndex === 1) { state.stage = "completed"; return state; }
       break;

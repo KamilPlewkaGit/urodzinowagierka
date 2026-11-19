@@ -1,1 +1,3 @@
 Wspólna złota plansza dla dwóch gier. Gracz może nominować członka drużyny i potwierdzić jeden numer od 1 do 6. Wynik pokazuje zwycięzców, zmiany żetonów, zwroty i aktualne salda. Numer z podglądu prowadzącego pojawia się dopiero po rozliczeniu.
+
+Plansza wskazuje drużynę punktowaną w pierwszej grze. W drugiej pokazuje skorygowany numer punktacji, jeśli prowadzący zmienił go po rozliczeniu żetonów.

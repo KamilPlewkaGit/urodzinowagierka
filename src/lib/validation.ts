@@ -67,8 +67,8 @@ export const goldActionSchema = z.object({
   revision: z.uuid(),
   command: z.discriminatedUnion("action", [
     z.object({ action: z.literal("teams"), teams: z.array(teamIdSchema).min(2).max(4).refine((teams) => new Set(teams).size === teams.length) }),
-    z.object({ action: z.enum(["nominate", "representative", "winner"]), playerId: playerIdSchema }),
-    z.object({ action: z.enum(["number-vote", "number-confirm"]), number: z.number().int().min(1).max(6) }),
+    z.object({ action: z.enum(["nominate", "representative", "winner", "correct-winner"]), playerId: playerIdSchema }),
+    z.object({ action: z.enum(["number-vote", "number-confirm", "correct-number"]), number: z.number().int().min(1).max(6) }),
     z.object({ action: z.enum(["prepare", "start", "next-game", "number-open", "number-close", "number-settle", "number-restart", "complete", "restart"]) }),
   ]),
 });
@@ -99,6 +99,7 @@ export const familiadaActionSchema = z.object({
     z.object({ action: z.literal("respondent"), playerId: playerIdSchema }),
     z.object({ action: z.literal("answer"), position: z.number().int().min(1).max(8) }),
     z.object({ action: z.enum(["control", "confirm-match", "bet"]), teamId: teamIdSchema }),
+    z.object({ action: z.literal("correct-match"), matchIndex: z.union([z.literal(0), z.literal(1)]), teamId: teamIdSchema }),
   ]),
 });
 
@@ -120,7 +121,11 @@ export const pojedynkiDuelConfigurationSchema = z.object({
 }).refine((value) => value.teamAId !== value.teamBId, "W pojedynku muszą wystąpić dwie różne drużyny.");
 
 export const pojedynkiBetSchema = z.object({ targetTeamId: teamIdSchema });
-export const pojedynkiWinnerSchema = z.object({ winnerTeamId: teamIdSchema });
+export const teamDuelWinnerSchema = z.object({
+  eventId: playerIdNumberSchema,
+  winnerTeamId: teamIdSchema,
+  correctionRevision: z.uuid().optional(),
+});
 
 const sportPairSchema = z.object({ teamAId: teamIdSchema, teamBId: teamIdSchema }).refine((pair) => pair.teamAId !== pair.teamBId, "W parze muszą znaleźć się dwie różne drużyny.");
 const sportPlayerRankSchema = z.object({ teamId: teamIdSchema, playerId: playerIdSchema, number: z.number().int().min(1).max(32767, "Ranga jest zbyt duża.") });
@@ -144,11 +149,10 @@ export const sportSetupSchema = z.object({
 });
 
 export const sportBetSchema = z.object({ targetTeamId: teamIdSchema });
-export const sportWinnerSchema = z.object({ winnerTeamId: teamIdSchema });
 export const sportBonusRequirementsSchema = z.object({
   requirements: z.array(z.object({ teamId: teamIdSchema, limbs: z.number().int().min(0, "Liczba kończyn nie może być ujemna.").max(100, "Liczba kończyn jest zbyt duża.") })).length(4, "Ustaw wymaganie dla każdej drużyny."),
 }).refine((value) => new Set(value.requirements.map((requirement) => requirement.teamId)).size === TEAM_IDS.length, "Każda drużyna może mieć tylko jedno wymaganie.");
-export const sportBonusWinnerSchema = z.object({ winnerTeamId: teamIdSchema, points: z.number().int().min(0, "Liczba punktów nie może być ujemna.").max(100, "Liczba punktów jest zbyt duża.") });
+export const sportBonusWinnerSchema = z.object({ eventId: playerIdNumberSchema, winnerTeamId: teamIdSchema, points: z.number().int().min(0, "Liczba punktów nie może być ujemna.").max(100, "Liczba punktów jest zbyt duża.") });
 
 export const melodiaTeamsSchema = z.object({
   teamIds: z.array(teamIdSchema).length(TEAM_IDS.length, "Wybierz wszystkie cztery drużyny.")

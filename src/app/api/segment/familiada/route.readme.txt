@@ -7,3 +7,5 @@ Dependencies: Next.js Route Handlers, opaque session verification, Zod schemas, 
 Inputs and outputs: Only verified player sessions can submit buzz or bet. The player ID comes from the session. All other commands require a verified administrator. Responses are { ok: true } or Polish 400, 401, 403, 409 or 500 errors. Database errors stay on the server.
 
 Implementation: The database checks current stage, membership, balances and revision before any action takes effect. The endpoint returns no board or answer data. Views poll the authenticated game-state endpoint.
+
+`confirm-match` zapisuje rozstrzygnięcie warte 1 punkt w klasyfikacji drużyn. `correct-match` pozwala administratorowi zmienić rozstrzygnięcie remisu w rozliczonym meczu. Zapisane wypłaty pozostają w saldach.

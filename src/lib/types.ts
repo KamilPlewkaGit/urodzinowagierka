@@ -121,6 +121,7 @@ export interface SportPlayerNumber {
 
 export interface SportChallenge {
   id: number;
+  scoreRevision: string | null;
   sequence: number;
   pairSlot: SportPairSlot;
   stage: SportChallengeStage;
@@ -187,6 +188,7 @@ export interface MelodiaState {
 
 export interface PojedynkiDuel {
   id: number;
+  scoreRevision: string | null;
   sequence: number;
   stage: PojedynkiDuelStage;
   teamAId: TeamId | null;
@@ -301,6 +303,7 @@ export type GoldReward = {
 };
 export type GoldNumberResult = {
   number: number;
+  scoreNumber?: number;
   correct: number;
   incorrect: number;
   pool: string;
@@ -314,6 +317,7 @@ export interface GoldProgress {
   representatives: GoldRepresentative[];
   winner: GoldRepresentative | null;
   reward: GoldReward | null;
+  firstScoreTeam?: TeamId;
   firstEscrowId?: string;
   sixRoundId?: string;
   sixPendingNumber?: number;

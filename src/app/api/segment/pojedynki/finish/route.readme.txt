@@ -1,1 +1,1 @@
-POST zatwierdza zwycięzcę i standardowe transfery drużynowe jednym zapisem. Wymaga admina. Konflikt zwraca informację o braku składu, salda lub ważnego etapu.
+POST wymaga administratora i przyjmuje `{ eventId, winnerTeamId }`. Zatwierdzenie zapisuje zwycięstwo warte 1 punkt oraz standardowe transfery w jednej transakcji. Dodatkowe `correctionRevision` aktualizuje zwycięzcę rozliczonego pojedynku i jego punkt w klasyfikacji. Wypłaty pozostają w saldach.

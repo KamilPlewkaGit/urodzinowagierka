@@ -1,1 +1,3 @@
 Wąskie schematy poleceń. Melodia zapisuje dwa pola poprawności i uporządkowany skład podglądu rozliczenia. Złoty segment ogranicza typ do liczby 1–6. ALKOHOLICY akceptują osobne rynki obu pojedynków i zwycięzcę bez punktów. FINAŁ sprawdza numer rundy, nieujemną liczbę całkowitą i wybór lidera.
+
+Potwierdzenia wyników POJEDYNKÓW i SPORT, w tym bonusów SPORT, wymagają dodatniego `eventId`. Korekta zwycięzcy głównego wyzwania lub pojedynku wymaga również UUID `correctionRevision`. Korekta Familiady przyjmuje indeks meczu 0 albo 1 i drużynę. W złotym segmencie korekta przyjmuje ID przedstawiciela lub poprawny numer z zakresu 1–6.

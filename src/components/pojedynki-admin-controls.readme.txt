@@ -13,3 +13,5 @@ Implementation details: The two team selectors never select players and disable 
 Future expansion: Do not add browser-owned chips or outcome logic; add a focused route/service only for a concrete new segment rule.
 
 Starszy wynik zapisany przed rozliczeniem wraca do zatwierdzenia z poprzednio wskazanym zwycięzcą. Status rozliczenia i skutki pozostają po stronie serwera.
+
+Potwierdzenie przesyła identyfikator pojedynku z migawki. Rozliczone zwycięstwo zasila klasyfikację drużyn jednym punktem.

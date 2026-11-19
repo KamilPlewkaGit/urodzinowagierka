@@ -6,4 +6,4 @@ Important exports, inputs, and outputs: Bodyless admin-only `POST(request)` retu
 
 Dependencies: Next Route Handler APIs, opaque sessions, and `database.ts`.
 
-Backend/database interactions: Refunds pending SPORT stakes, clears SPORT setup/challenge/bonus state, and returns SPORT to `intro`. Settled balance transfers and awarded bonus points are deliberately not reversed.
+Backend/database interactions: Refunds pending SPORT stakes, clears SPORT setup/challenge/bonus state, removes the main-challenge points, and returns SPORT to `intro`. Settled balances and already-awarded bonus points are preserved.

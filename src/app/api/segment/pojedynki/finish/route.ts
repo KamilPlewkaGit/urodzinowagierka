@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { finishPojedynkiDuel, getTeamBetSettlementError } from "@/lib/database";
+import { correctStandardTeamWinner, finishPojedynkiDuel, getTeamBetSettlementError } from "@/lib/database";
 import { getRequestSession } from "@/lib/session";
-import { pojedynkiWinnerSchema } from "@/lib/validation";
+import { teamDuelWinnerSchema } from "@/lib/validation";
 
 export const runtime = "nodejs";
 
@@ -11,10 +11,15 @@ export async function POST(request: NextRequest) {
   if (!session || session.role !== "admin") return NextResponse.json({ error: "Wymagane jest uprawnienie administratora." }, { status: 403 });
   let body: unknown;
   try { body = await request.json(); } catch { return NextResponse.json({ error: "Wymagane jest poprawne ciało żądania." }, { status: 400 }); }
-  const parsed = pojedynkiWinnerSchema.safeParse(body);
+  const parsed = teamDuelWinnerSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Nieprawidłowy zwycięzca." }, { status: 400 });
   try {
-    const status = await finishPojedynkiDuel(parsed.data.winnerTeamId);
+    const { eventId, winnerTeamId, correctionRevision } = parsed.data;
+    if (correctionRevision) {
+      const corrected = await correctStandardTeamWinner("pojedynki", { eventId, winnerTeamId, correctionRevision });
+      return corrected ? NextResponse.json({ ok: true }) : NextResponse.json({ error: "Nie można skorygować wyniku pojedynku. Odśwież stan i sprawdź wybraną drużynę." }, { status: 409 });
+    }
+    const status = await finishPojedynkiDuel(winnerTeamId, eventId);
     if (status !== "settled") return NextResponse.json({ error: getTeamBetSettlementError(status) }, { status: 409 });
     return NextResponse.json({ ok: true });
   } catch (error) {

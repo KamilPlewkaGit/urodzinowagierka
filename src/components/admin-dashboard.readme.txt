@@ -27,3 +27,5 @@ Direct and relative navigation place KTO GRA GRUBO, WYGRAĆ MUSI after Familiada
 Numer aktywnego segmentu pochodzi ze wspólnych metadanych. The Floor synchronizuje się co sekundę. Złoty segment po zapisanej pierwszej wypłacie wymaga kontynuacji do drugiej gry. Panele obsługują dwa pojedynki ALKOHOLIKÓW i nagrody FINAŁU.
 
 Punkty drużyn pokazują klasyfikację ogólną. Potwierdzenie restartu The Floor opisuje utratę wyników i punktów segmentu oraz zwrot oczekujących stawek.
+
+Panel korekt punktacji pojawia się przy rozliczonych zdarzeniach POJEDYNKÓW, głównych wyzwań SPORT, Familiady i złotych gier. Po zapisie lub konflikcie panel odświeża migawkę. Potwierdzenia restartu POJEDYNKÓW, SPORT i Familiady opisują usunięcie punktów wyliczanych z ich wyników.

@@ -112,7 +112,7 @@ type TheFloorViewerBetRow = { duel_id: number; target_team_id: TeamId | null; re
 
 type SportPairingRow = { slot: SportPairSlot; team_a_id: TeamId; team_b_id: TeamId };
 type SportPlayerNumberRow = { team_id: TeamId; player_id: number; player_number: number };
-type SportChallengeRow = { settled_at: string | Date | null; id: number; sequence: number; pair_slot: SportPairSlot; stage: SportChallengeStage; winner_team_id: TeamId | null };
+type SportChallengeRow = { settled_at: string | Date | null; id: number; sequence: number; pair_slot: SportPairSlot; stage: SportChallengeStage; winner_team_id: TeamId | null; score_revision: string };
 type SportBetCountRow = { challenge_id: number; bet_count: number };
 type SportViewerBetRow = { challenge_id: number; target_team_id: TeamId | null; result: "pending" | "won" | "lost" | null; payout: string | number };
 type SportBonusRow = { id: number; sequence: number; stage: SportBonusStage; winner_team_id: TeamId | null; points: number | null };
@@ -129,7 +129,7 @@ type GoldVoteSummary = { candidate_id: number; votes: number; viewer_vote: boole
 type SnapshotRows<Queries extends readonly PromiseLike<unknown>[]> = { [Index in keyof Queries]: Awaited<Queries[Index]> };
 
 type MelodiaSettlementRow = { pool: string | null; reward_min: string | null; reward_max: string | null; viewer_delta: string | null };
-type PojedynkiDuelRow = { settled_at: string | Date | null; id: number; sequence: number; stage: PojedynkiDuelStage; team_a_id: TeamId | null; team_b_id: TeamId | null; winner_team_id: TeamId | null };
+type PojedynkiDuelRow = { settled_at: string | Date | null; id: number; sequence: number; stage: PojedynkiDuelStage; team_a_id: TeamId | null; team_b_id: TeamId | null; winner_team_id: TeamId | null; score_revision: string };
 type PojedynkiBetCountRow = { duel_id: number; bet_count: number };
 type PojedynkiViewerBetRow = { duel_id: number; target_team_id: TeamId; result: "pending" | "won" | "lost" | "refunded"; payout: string | number };
 
@@ -158,10 +158,29 @@ async function runWithGameLock(sql: ReturnType<typeof database>, query: NeonQuer
 
 function overallTeamScores(sql: ReturnType<typeof database>) {
   return sql`
-    SELECT score.team_id, score.points + COUNT(duel.id) AS points
-    FROM solenizant_team_scores score
-    LEFT JOIN the_floor_duels duel ON duel.winner_team_id = score.team_id AND duel.settled_at IS NOT NULL
-    GROUP BY score.team_id, score.points
+    WITH victories AS (
+      SELECT winner_team_id AS team_id FROM the_floor_duels WHERE settled_at IS NOT NULL
+      UNION ALL
+      SELECT winner_team_id FROM pojedynki_duels WHERE settled_at IS NOT NULL
+      UNION ALL
+      SELECT winner_team_id FROM sport_challenges WHERE settled_at IS NOT NULL
+      UNION ALL
+      SELECT match->>'winner' FROM game_state game
+      CROSS JOIN LATERAL jsonb_array_elements(game.familiada_state->'matches') match
+      WHERE game.id = 1 AND match->>'settledAt' IS NOT NULL
+      UNION ALL
+      SELECT COALESCE(gold_state->>'firstScoreTeam', gold_state->'winner'->>'teamId') FROM game_state
+      WHERE id = 1 AND gold_state->>'reward' IS NOT NULL
+      UNION ALL
+      SELECT stake.team_id FROM game_state game
+      JOIN gold_stakes stake ON stake.round_id = (game.gold_state->>'sixRoundId')::UUID
+        AND stake.choice = COALESCE(game.gold_state->'sixResult'->>'scoreNumber', game.gold_state->'sixResult'->>'number')::SMALLINT
+      WHERE game.id = 1 AND stake.game_number = 2 AND stake.settled_at IS NOT NULL
+    ), earned AS (
+      SELECT team_id, COUNT(*) AS points FROM victories GROUP BY team_id
+    )
+    SELECT score.team_id, score.points + COALESCE(earned.points, 0) AS points
+    FROM solenizant_team_scores score LEFT JOIN earned USING (team_id)
   `;
 }
 
@@ -245,7 +264,7 @@ const standardBetMarkets = {
   sport: { duels: "sport_challenges", bets: "sport_bets", key: "challenge_id", stage: "sport_stage", sequence: "current_sport_challenge_sequence", prefix: "sport" },
 } as const;
 
-async function settleStandardTeamDuel(segment: keyof typeof standardBetMarkets, winner: TeamId): Promise<TeamBetSettlement> {
+async function settleStandardTeamDuel(segment: keyof typeof standardBetMarkets, winner: TeamId, eventId?: number): Promise<TeamBetSettlement> {
   await ensureDatabase();
   const sql = database();
   const market = standardBetMarkets[segment];
@@ -274,6 +293,7 @@ async function settleStandardTeamDuel(segment: keyof typeof standardBetMarkets, 
       ${joinPair}
       WHERE game.id = 1 AND game.status = 'started' AND game.active_segment = ${segment}
         AND game.${stage} ${stageFilter} AND duel.stage ${stageFilter}
+        ${segment === "the-floor" ? sql`` : sql`AND duel.id = ${eventId}::BIGINT`}
         AND ${winner} IN (${teams}.team_a_id, ${teams}.team_b_id)
         AND (duel.winner_team_id IS NULL OR duel.winner_team_id = ${winner}) AND duel.settled_at IS NULL
       FOR UPDATE OF duel
@@ -312,6 +332,32 @@ async function settleStandardTeamDuel(segment: keyof typeof standardBetMarkets, 
     SELECT status FROM outcome
   `) as { status: TeamBetSettlement }[];
   return rows[0].status;
+}
+
+export async function correctStandardTeamWinner(segment: "sport" | "pojedynki", input: { eventId: number; winnerTeamId: TeamId; correctionRevision: string }) {
+  await ensureDatabase();
+  const sql = database();
+  const duels = sql.unsafe(standardBetMarkets[segment].duels);
+  const teams = sql.unsafe(segment === "sport" ? "pairing" : "duel");
+  const joinPair = segment === "sport" ? sql`JOIN sport_pairings pairing ON pairing.slot = duel.pair_slot` : sql``;
+  const rows = await runWithGameLock(sql, sql`
+    WITH candidate AS (
+      SELECT duel.id, duel.winner_team_id AS previous_winner
+      FROM ${duels} duel ${joinPair} CROSS JOIN game_state game
+      WHERE game.id = 1 AND game.status = 'started' AND game.active_segment = ${segment}
+        AND duel.id = ${input.eventId} AND duel.settled_at IS NOT NULL AND duel.score_revision = ${input.correctionRevision}::UUID
+        AND ${input.winnerTeamId} IN (${teams}.team_a_id, ${teams}.team_b_id)
+    ), corrected AS (
+      UPDATE ${duels} duel SET winner_team_id = ${input.winnerTeamId}, score_revision = gen_random_uuid()
+      FROM candidate WHERE duel.id = candidate.id
+      RETURNING duel.id, candidate.previous_winner, duel.winner_team_id
+    )
+    INSERT INTO admin_actions (action, details)
+    SELECT 'team_score_corrected', jsonb_build_object('segment', ${segment}::TEXT, 'eventId', id,
+      'previousWinner', previous_winner, 'winnerTeamId', winner_team_id)
+    FROM corrected RETURNING id
+  `);
+  return rows.length > 0;
 }
 
 async function placeAlkoholicyBet(sql: ReturnType<typeof database>, revision: string, bettorId: number, gameNumber: 1 | 2 | 3, target: TeamId) {
@@ -701,6 +747,12 @@ export async function applyGoldAction({ revision, command }: GoldAction, voterId
       if (state.stage !== "live" || !winner) throw new GoldConflict("Wybierz jednego z przedstawicieli tego wyzwania.");
       return settleGoldEscrow(sql, revision, state, winner);
     }
+    case "correct-winner": {
+      const representative = state.representatives.find((rep) => rep.id === command.playerId);
+      if (!state.reward || !state.winner || !representative) throw new GoldConflict("Wybierz przedstawiciela rozliczonego wyzwania.");
+      next = { ...state, firstScoreTeam: representative.teamId === state.winner.teamId ? undefined : representative.teamId };
+      break;
+    }
     case "next-game":
       if (state.stage !== "result") throw new GoldConflict(stale);
       next = { ...state, stage: "six-intro" };
@@ -720,6 +772,10 @@ export async function applyGoldAction({ revision, command }: GoldAction, voterId
     case "number-settle":
       if (state.stage !== "six-confirmed" || !state.sixPendingNumber) throw new GoldConflict(stale);
       return settleGoldEscrow(sql, revision, state);
+    case "correct-number":
+      if (!state.sixResult || !state.sixRoundId) throw new GoldConflict("Najpierw rozlicz głosowanie.");
+      next = { ...state, sixResult: { ...state.sixResult, scoreNumber: command.number === state.sixResult.number ? undefined : command.number } };
+      break;
     case "number-restart":
       if (state.stage !== "six-result" || !state.sixResult?.void) throw new GoldConflict(stale);
       next = { ...state, stage: "six-voting", sixRoundId: randomUUID(), sixResult: undefined };
@@ -1013,6 +1069,7 @@ function toSportPlayerNumber(row: SportPlayerNumberRow): SportPlayerNumber {
 function toSportChallenge(row: SportChallengeRow, betCount: number, viewerBet: SportViewerBetRow | undefined): SportChallenge {
   return {
     id: row.id,
+    scoreRevision: row.settled_at ? row.score_revision : null,
     sequence: row.sequence,
     pairSlot: row.pair_slot,
     stage: row.stage,
@@ -1050,6 +1107,7 @@ function toMelodiaSong(row: MelodiaSongRow): MelodiaSong {
 function toPojedynkiDuel(row: PojedynkiDuelRow, betCount: number, viewerBet: PojedynkiViewerBetRow | undefined): PojedynkiDuel {
   return {
     id: row.id,
+    scoreRevision: row.settled_at ? row.score_revision : null,
     sequence: row.sequence,
     stage: row.stage,
     teamAId: row.team_a_id,
@@ -1733,6 +1791,8 @@ export async function ensureDatabase() {
           CHECK ((game_number = 1 AND choice IS NULL) OR (game_number = 2 AND choice IS NOT NULL))
         )
       `;
+      await sql`ALTER TABLE sport_challenges ADD COLUMN IF NOT EXISTS score_revision UUID NOT NULL DEFAULT gen_random_uuid()`;
+      await sql`ALTER TABLE pojedynki_duels ADD COLUMN IF NOT EXISTS score_revision UUID NOT NULL DEFAULT gen_random_uuid()`;
     })().catch((error: unknown) => {
       schemaPromise = undefined;
       throw error;
@@ -1858,7 +1918,7 @@ export async function getGameSnapshot(viewerPlayerId?: number, options?: { admin
     sql`SELECT duel_id, target_team_id, result, payout FROM the_floor_bets WHERE bettor_id = ${viewerPlayerId ?? null}::BIGINT` as SnapshotQuery<TheFloorViewerBetRow>,
     sql`SELECT slot, team_a_id, team_b_id FROM sport_pairings ORDER BY slot` as SnapshotQuery<SportPairingRow>,
     sql`SELECT team_id, player_id, player_number FROM sport_player_numbers ORDER BY team_id, player_number` as SnapshotQuery<SportPlayerNumberRow>,
-    sql`SELECT id, sequence, pair_slot, stage, winner_team_id, settled_at FROM sport_challenges ORDER BY sequence` as SnapshotQuery<SportChallengeRow>,
+    sql`SELECT id, sequence, pair_slot, stage, winner_team_id, settled_at, score_revision FROM sport_challenges ORDER BY sequence` as SnapshotQuery<SportChallengeRow>,
     sql`SELECT challenge_id, COUNT(*)::INTEGER AS bet_count FROM sport_bets GROUP BY challenge_id` as SnapshotQuery<SportBetCountRow>,
     sql`SELECT challenge_id, target_team_id, result, payout FROM sport_bets WHERE bettor_id = ${viewerPlayerId ?? null}::BIGINT` as SnapshotQuery<SportViewerBetRow>,
     sql`SELECT id, sequence, stage, winner_team_id, points FROM sport_bonus_rounds ORDER BY sequence` as SnapshotQuery<SportBonusRow>,
@@ -1875,7 +1935,7 @@ export async function getGameSnapshot(viewerPlayerId?: number, options?: { admin
       JOIN melodia_chip_transfers transfer ON transfer.final_song_id = song.id
       WHERE game.id = 1 AND game.melodia_settled_at IS NOT NULL
     ` as SnapshotQuery<MelodiaSettlementRow>,
-    sql`SELECT id, sequence, stage, team_a_id, team_b_id, winner_team_id, settled_at FROM pojedynki_duels ORDER BY sequence` as SnapshotQuery<PojedynkiDuelRow>,
+    sql`SELECT id, sequence, stage, team_a_id, team_b_id, winner_team_id, settled_at, score_revision FROM pojedynki_duels ORDER BY sequence` as SnapshotQuery<PojedynkiDuelRow>,
     sql`SELECT duel_id, COUNT(*)::INTEGER AS bet_count FROM pojedynki_bets GROUP BY duel_id` as SnapshotQuery<PojedynkiBetCountRow>,
     sql`SELECT duel_id, target_team_id, result, payout FROM pojedynki_bets WHERE bettor_id = ${viewerPlayerId ?? null}::BIGINT` as SnapshotQuery<PojedynkiViewerBetRow>,
     sql`
@@ -3030,8 +3090,8 @@ export async function startSportChallenge() {
   return rows[0]?.completed === true || rows[0]?.completed === "t";
 }
 
-export function finishSportChallenge(winnerTeamId: TeamId) {
-  return settleStandardTeamDuel("sport", winnerTeamId);
+export function finishSportChallenge(winnerTeamId: TeamId, eventId: number) {
+  return settleStandardTeamDuel("sport", winnerTeamId, eventId);
 }
 
 /** Opens the next SPORT challenge or the first bonus setup after a settled main challenge. */
@@ -3140,7 +3200,7 @@ export async function startSportBonusRound() {
 }
 
 /** Confirms a SPORT bonus winner and adds administrator-selected points exactly once. */
-export async function finishSportBonusRound(input: { winnerTeamId: TeamId; points: number }) {
+export async function finishSportBonusRound(input: { eventId: number; winnerTeamId: TeamId; points: number }) {
   await ensureDatabase();
   const sql = database();
   const rows = (await sql`
@@ -3149,7 +3209,8 @@ export async function finishSportBonusRound(input: { winnerTeamId: TeamId; point
       SET stage = 'result', winner_team_id = ${input.winnerTeamId}, points = ${input.points}, ended_at = NOW()
       FROM game_state game
       WHERE game.id = 1 AND game.active_segment = 'sport' AND game.sport_stage = 'bonus-live'
-        AND game.current_sport_bonus_sequence = bonus.sequence AND bonus.stage = 'live' AND bonus.winner_team_id IS NULL
+        AND game.current_sport_bonus_sequence = bonus.sequence AND bonus.id = ${input.eventId}
+        AND bonus.stage = 'live' AND bonus.winner_team_id IS NULL
       RETURNING bonus.id
     ),
     updated_score AS (
@@ -3213,7 +3274,7 @@ export async function moveToNextSportStage() {
   return await moveToNextSportChallenge() || await moveToNextSportBonusRound();
 }
 
-/** Clears only uncompleted SPORT setup and bets, refunding pending stakes without reversing settled results or bonus scores. */
+/** Clears SPORT progress and its main-challenge points, preserving paid transfers and awarded bonus points. */
 export async function restartSportSegment() {
   await ensureDatabase();
   const sql = database();
@@ -3648,8 +3709,8 @@ export async function startPojedynkiDuel() {
   return rows[0]?.completed === true || rows[0]?.completed === "t";
 }
 
-export function finishPojedynkiDuel(winnerTeamId: TeamId) {
-  return settleStandardTeamDuel("pojedynki", winnerTeamId);
+export function finishPojedynkiDuel(winnerTeamId: TeamId, eventId: number) {
+  return settleStandardTeamDuel("pojedynki", winnerTeamId, eventId);
 }
 
 /** Opens only the next pending Pojedynki slot, or marks the segment's fourth result as final. */

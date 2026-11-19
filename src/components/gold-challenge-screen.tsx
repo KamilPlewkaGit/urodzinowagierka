@@ -51,10 +51,10 @@ export function GoldBoard({ state }: { state: GoldSnapshot }) {
           <p className={styles.intro}>Każda drużyna wybiera swojego najdzielniejszego zawodnika, który będzie ją reprezentował w wielkim wyzwaniu. Zwycięzca zdobywa ogromną pulę żetonów dla całej swojej drużyny!</p>
           <ul className={styles.rules}>
             <li>Każda uczestnicząca drużyna nominuje jednego przedstawiciela.</li>
-            <li>Prowadzący wybiera zwycięzcę wyzwania.</li>
+            <li>Prowadzący wybiera zwycięzcę wyzwania. Jego drużyna otrzymuje 1 punkt.</li>
             <li>Każdy zawodnik uczestniczącej drużyny wpłaca 10 żetonów przed wyzwaniem.</li>
             <li>Cała pula jest dzielona między aktywnych członków zwycięskiej drużyny.</li>
-            <li>W grze nr 2 każdy gracz może wybrać numer od 1 do 6 za 10 żetonów.</li>
+            <li>W grze nr 2 każdy gracz może wybrać numer od 1 do 6 za 10 żetonów. Każdy trafiony głos daje 1 punkt jego drużynie.</li>
           </ul>
         </>
       )}
@@ -75,6 +75,7 @@ export function GoldBoard({ state }: { state: GoldSnapshot }) {
           <h2>GRA 1 ZAKOŃCZONA</h2>
           <p className={styles.winnerName}>{winner.nickname}</p>
           <p>{getTeam(winner.teamId).name}</p>
+          <p>Punkt drużynowy otrzymuje {getTeam(state.firstScoreTeam ?? winner.teamId).name}.</p>
           <GoldRewardList reward={reward} />
         </div>
       )}
@@ -140,6 +141,7 @@ function GoldNumberReveal({ state }: { state: GoldSnapshot }) {
   return <div className={styles.winner}>
     <h2>WYGRYWA NUMER</h2>
     <strong className={styles.revealNumber}>{result.number}</strong>
+    {result.scoreNumber !== undefined && <p>Po korekcie każdy głos na numer {result.scoreNumber} liczy się jako 1 punkt dla drużyny głosującego.</p>}
     <p>Trafione głosy: {result.correct} · Nietrafione głosy: {result.incorrect}</p>
     {result.void ? <p>Nikt nie wytypował poprawnego numeru. Wszystkie stawki zostały zwrócone.</p> : <>
       <p className={styles.rewardTotal}>Pula zysku: <strong>{formatPolishChips(result.pool)}</strong> żetonów</p>
@@ -153,6 +155,7 @@ function GoldNumberReveal({ state }: { state: GoldSnapshot }) {
     </details>}
     {state.reward && <details><summary>Wynik pierwszej gry</summary>
       <p>{state.winner && getTeam(state.winner.teamId).name}</p><GoldRewardList reward={state.reward} />
+      {state.winner && <p>Punkt drużynowy otrzymuje {getTeam(state.firstScoreTeam ?? state.winner.teamId).name}.</p>}
       {state.firstContributors && <ul className={styles.ledger} aria-label="Wpłaty graczy">{state.firstContributors.map((player) =>
         <li key={player.id}><span>{player.nickname}</span><strong>−10 żet.</strong></li>)}</ul>}
     </details>}

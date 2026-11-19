@@ -1,1 +1,3 @@
 POST przyjmuje rewizję i polecenie. Gracz może nominować lub raz głosować na numer. Pozostałe działania wymagają admina. Kwoty, wybór rundy, opłaty i wypłaty rozstrzyga baza. Aktualna migawka ujawnia wynik po wypłacie.
+
+`correct-winner` i `correct-number` aktualizują podstawę klasyfikacji rozliczonej gry. Drużyna rozliczonego przedstawiciela otrzymuje 1 punkt, a w drugiej grze każdy trafiony głos daje 1 punkt drużynie zapisanej przy stawce.

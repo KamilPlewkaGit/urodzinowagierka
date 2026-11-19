@@ -13,3 +13,5 @@ Implementation details: Teams can be released and reselected while setup is open
 Future expansion: Add new challenge controls only with matching server validation and persistent stage transitions.
 
 Jeśli po dawniejszym potwierdzeniu wyzwanie zostało zapisane bez wypłaty, prowadzący może ponowić rozliczenie dotychczasowego zwycięzcy.
+
+Potwierdzenie przesyła identyfikator wyzwania lub bonusu z migawki. Każde główne wyzwanie jest warte 1 punkt, a w bonusie prowadzący podaje liczbę punktów.

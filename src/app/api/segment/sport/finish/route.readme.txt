@@ -1,1 +1,1 @@
-POST zatwierdza zwycięzcę oraz standardowe rozliczenie w jednej transakcji. Kontroluje uprawnienia, gotowość wyniku i środki drużyny. Błąd zostawia możliwość ponowienia.
+POST wymaga administratora i przyjmuje `{ eventId, winnerTeamId }`. Zatwierdzenie zapisuje zwycięstwo warte 1 punkt oraz standardowe transfery w jednej transakcji. Dodatkowe `correctionRevision` aktualizuje zwycięzcę rozliczonego głównego wyzwania i jego punkt w klasyfikacji. Wypłaty pozostają w saldach.

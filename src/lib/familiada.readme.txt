@@ -9,3 +9,5 @@ Dependencies: Shared Familiada types, the inferred server validation contract an
 Implementation: Saving matchups seeds the exact question text and descending answer values. The state machine governs opening priority, ranked answer reveals, strikes, stealing, presentation reveals, and stage changes. Match scores sum awarded round pools. Hidden slots have a position and null reveal. The full key for the current question is emitted only for the admin projection. Revision and transaction checks belong to database.ts.
 
 After the opening face-off, the board shows one shared three-strike counter per question. The third strike starts a single steal attempt. A hidden answer wins the pool for the opponent, and a miss awards it to the controlling team. Legacy split counters are summed and capped at three when read. Saved round results are preserved.
+
+Potwierdzenie wymaga rozstrzygnięcia wszystkich czterech rund. Zapisany zwycięzca rozliczonego meczu daje drużynie 1 punkt w klasyfikacji ogólnej. Pula odpowiedzi wyznacza wynik meczu. `correct-match` zmienia wyłącznie rozstrzygnięcie remisu w rozliczonym meczu.

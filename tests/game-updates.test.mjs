@@ -21,7 +21,8 @@ async function request(path, { cookie, body, status = 200, method = "GET" } = {}
   if (cookie) headers.set("cookie", cookie);
   if (body !== undefined) headers.set("content-type", "application/json");
   const response = await fetch(origin + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(10_000) });
-  assert.equal(response.status, status, path + ": " + (response.status === status ? "" : (await response.clone().text()).slice(0, 250)));
+  const expected = Array.isArray(status) ? status : [status];
+  if (!expected.includes(response.status)) assert.fail(path + " (" + response.status + "): " + (await response.clone().text()).slice(0, 250));
   return response;
 }
 
@@ -34,6 +35,11 @@ const units = (value) => {
 const total = (state) => units(state.totalTokens);
 const balance = (state, player) => units(state.players.find(({ id }) => id === player.id).tokens);
 const points = (state, team) => state.teamScores.find(({ teamId }) => teamId === team).points;
+function assertPointChanges(before, after, changes = {}) {
+  for (const { teamId } of before.teamScores) {
+    assert.equal(points(after, teamId) - points(before, teamId), changes[teamId] ?? 0, teamId);
+  }
+}
 
 test("Scenariusze gry w odizolowanej bazie PostgreSQL", { timeout: 120_000 }, async (t) => {
   const child = spawn(process.execPath, ["--require", fixture, next, "start", "-H", "127.0.0.1", "-p", String(port)], {
@@ -184,32 +190,67 @@ test("Scenariusze gry w odizolowanej bazie PostgreSQL", { timeout: 120_000 }, as
     assert.deepEqual(restarted.players, settled.players);
   });
 
-  await t.test("Pojedynki – wszystkie typy trafione, nietrafione, brak zakładów i brak salda", async () => {
+  await t.test("Pojedynki – cztery punkty, korekta, ponowienia i rozliczenia zakładów", async () => {
     await setSegment("pojedynki");
     await move("pojedynki", "start");
     const extra = await register("royal");
     const bettor = roster.onyx[0];
+    const initial = await status();
+    let previousFinish;
     for (const targetTeamId of ["royal", "ruby", null, "royal"]) {
       await move("pojedynki", "configure", { teamAId: "royal", teamBId: "ruby" });
-      const blocked = (await status()).pojedynki.currentDuel.sequence === 3;
+      const duel = (await status()).pojedynki.currentDuel;
+      const blocked = duel.sequence === 3;
+      const finish = { eventId: duel.id, winnerTeamId: "royal" };
       if (blocked) await post("/api/admin/players/chips", admin, { playerId: roster.ruby[0].id, tokens: "0.3999" });
       const before = await status();
       if (targetTeamId) await move("pojedynki", "bet", { targetTeamId }, 200, bettor.cookie);
       await move("pojedynki", "start-duel");
+      if (previousFinish) await move("pojedynki", "finish", previousFinish, 409);
       if (blocked) {
-        const error = await move("pojedynki", "finish", { winnerTeamId: "royal" }, 409);
+        const error = await move("pojedynki", "finish", finish, 409);
         assert.match((await error.json()).error, /ma za mało żetonów/);
         assert.equal(total(await status()) + 20000n, total(before));
+        assertPointChanges(before, await status());
         await post("/api/admin/players/chips", admin, { playerId: roster.ruby[0].id, tokens: "100" });
       }
       const liquid = total(await status());
-      await move("pojedynki", "finish", { winnerTeamId: "royal" });
+      if (duel.sequence === 0) {
+        const path = "/api/segment/pojedynki/finish";
+        const responses = await Promise.all([post(path, admin, finish, [200, 409]), post(path, admin, finish, [200, 409])]);
+        assert.deepEqual(responses.map((response) => response.status).sort(), [200, 409]);
+      } else await move("pojedynki", "finish", finish);
       const after = await status();
+      assertPointChanges(before, after, { royal: 1 });
       assert.equal(total(after), liquid + (targetTeamId ? 20000n : 0n));
+      if (targetTeamId === "royal") assert.equal(balance(after, bettor) - balance(before, bettor), 20000n);
       if (targetTeamId === "ruby") assert.ok([3333n, 3334n].includes(balance(after, extra) - balance(before, extra)));
+      previousFinish = finish;
       await move("pojedynki", "next");
     }
-    assert.equal((await status()).pojedynki.stage, "results");
+    const completed = await status();
+    assert.equal(completed.pojedynki.stage, "results");
+    assertPointChanges(initial, completed, { royal: 4 });
+    const { id: eventId, scoreRevision: correctionRevision } = completed.pojedynki.duels[0];
+    const correction = { eventId, correctionRevision, winnerTeamId: "ruby" };
+    await move("pojedynki", "finish", correction, 403, bettor.cookie);
+    await move("pojedynki", "finish", { ...correction, winnerTeamId: "onyx" }, 409);
+    await move("pojedynki", "finish", correction);
+    await move("pojedynki", "finish", correction, 409);
+    await setSegment("finale");
+    const qualification = await status();
+    assert.deepEqual(qualification.finale.eligibleOrders, [["royal", "ruby"]]);
+    assert.deepEqual(qualification.finale.ranking.slice(0, 2).map(({ teamId, points }) => [teamId, points]), [["royal", 3], ["ruby", 1]]);
+    await setSegment("pojedynki");
+    const corrected = await status(bettor.cookie);
+    assert.match(await (await request("/admin", { cookie: admin })).text(), /Korekta punktacji drużyn/);
+    assert.equal(corrected.pojedynki.duels[0].winnerTeamId, "ruby");
+    assertPointChanges(completed, corrected, { royal: -1, ruby: 1 });
+    assert.deepEqual(corrected.players, completed.players);
+    assert.deepEqual(corrected.teamScores, (await status(roster.ruby[0].cookie)).teamScores);
+    await move("pojedynki", "restart");
+    assertPointChanges(initial, await status());
+    assert.deepEqual((await status()).players, completed.players);
   });
 
 
@@ -234,25 +275,54 @@ test("Scenariusze gry w odizolowanej bazie PostgreSQL", { timeout: 120_000 }, as
     await move("sport", "bet", { targetTeamId: "royal" }, 200, roster.emerald[0].cookie);
     await move("sport", "bet", { targetTeamId: "ruby" }, 200, roster.onyx[0].cookie);
     await move("sport", "start-challenge");
-    await move("sport", "finish", { winnerTeamId: "royal" });
-    assert.equal(total(await status()), total(beforeSport));
-    await move("sport", "finish", { winnerTeamId: "royal" }, 409);
-    for (let index = 1; index < 8; index++) {
-      await move("sport", "next");
-      const { currentChallenge } = (await status()).sport;
+    let firstFinish;
+    for (let index = 0; index < 8; index++) {
+      const before = await status();
+      const { currentChallenge } = before.sport;
       assert.equal(currentChallenge.sequence, index);
-      await move("sport", "start-challenge");
-      await move("sport", "finish", { winnerTeamId: currentChallenge.pairSlot === "a" ? "royal" : "emerald" });
+      const winnerTeamId = currentChallenge.pairSlot === "a" ? "royal" : "emerald";
+      if (index > 0) {
+        await move("sport", "start-challenge");
+        if (index === 2) await move("sport", "finish", firstFinish, 409);
+      }
+      const finish = { eventId: currentChallenge.id, winnerTeamId };
+      await move("sport", "finish", finish);
+      await move("sport", "finish", finish, 409);
+      const after = await status(roster.emerald[0].cookie);
+      assertPointChanges(before, after, { [winnerTeamId]: 1 });
+      if (index === 0) {
+        assert.equal(balance(after, roster.emerald[0]) - balance(beforeSport, roster.emerald[0]), 20000n);
+        assert.equal(balance(after, roster.onyx[0]) - balance(beforeSport, roster.onyx[0]), -20000n);
+      } else assert.deepEqual(after.players, before.players);
+      if (index === 0) firstFinish = finish;
+      await move("sport", "next");
     }
-    await move("sport", "next");
-    for (let index = 0; index < 2; index++) {
+    const afterMain = await status();
+    assertPointChanges(beforeSport, afterMain, { royal: 4, emerald: 4 });
+    const { id: eventId, scoreRevision: correctionRevision } = afterMain.sport.challenges[2];
+    await move("sport", "finish", { eventId, correctionRevision, winnerTeamId: "ruby" });
+    const afterCorrection = await status();
+    assertPointChanges(afterMain, afterCorrection, { royal: -1, ruby: 1 });
+    assert.deepEqual(afterCorrection.players, afterMain.players);
+    let previousBonus;
+    for (const [index, points] of [7, 3].entries()) {
       await move("sport", "bonus-configure", { requirements: teams.map((teamId) => ({ teamId, limbs: 2 })) });
       await move("sport", "bonus-start");
-      await move("sport", "bonus-finish", { winnerTeamId: "royal", points: 0 });
+      const before = await status();
+      const bonus = { eventId: before.sport.currentBonus.id, winnerTeamId: teams[index], points };
+      if (previousBonus) await move("sport", "bonus-finish", previousBonus, 409);
+      await move("sport", "bonus-finish", bonus);
+      await move("sport", "bonus-finish", bonus, 409);
+      const after = await status();
+      assertPointChanges(before, after, { [teams[index]]: points });
+      assert.deepEqual(after.players, before.players);
+      previousBonus = bonus;
       await move("sport", "next");
     }
     assert.equal((await status()).sport.stage, "results");
     assert.equal(total(await status()), total(beforeSport));
+    await move("sport", "restart");
+    assertPointChanges(beforeSport, await status(), { royal: 7, ruby: 3 });
 
     await setSegment("familiada");
     const fam = (action, payload, options) => command("familiada", "familiada", action, payload, options);
@@ -270,27 +340,75 @@ test("Scenariusze gry w odizolowanej bazie PostgreSQL", { timeout: 120_000 }, as
       await fam("buzz", {}, { cookie: members[0].cookie });
       const board = (await status(bettor.cookie)).familiada.round;
       assert.ok(board.answers.every((answer) => answer.revealed === null));
-      for (const { position } of board.answers) await fam("answer", { position });
+      const count = board.answers.length;
+      if (index === 0) {
+        await fam("confirm-match", { teamId: "royal" }, { expected: 409 });
+        await fam("answer", { position: 1 });
+        await fam("answer", { position: 1 }, { expected: 409 });
+        for (let strike = 1; strike <= 3; strike++) {
+          await fam("mistake");
+          const current = (await status()).familiada;
+          assert.equal(current.round.strikes, strike);
+          assert.equal(current.round.pool, 5);
+          assert.equal(current.stage, strike === 3 ? "steal" : "play");
+        }
+        await fam("answer", { position: 2 });
+        await fam("answer", { position: 3 });
+        const current = (await status()).familiada;
+        assert.equal(current.round.winner, "ruby");
+        assert.equal(current.round.pool, 9);
+      } else {
+        let pool = 0;
+        for (const { position } of board.answers) {
+          await fam("answer", { position });
+          pool += count - position + 1;
+          const { round } = (await status(bettor.cookie)).familiada;
+          assert.equal(round.answers[position - 1].revealed.points, count - position + 1);
+          assert.equal(round.pool, pool);
+        }
+      }
       await fam("next");
+      assertPointChanges(beforeFam, await status());
     }
-    await fam("confirm-match", { teamId: "royal" });
+    const ready = (await status()).familiada;
+    assert.deepEqual(ready.matches[0].scores, [108, 9]);
+    await fam("confirm-match", { teamId: "ruby" }, { expected: 409 });
+    await fam("confirm-match", { teamId: "royal" }, { revision: ready.revision });
     const afterFam = await status();
+    assertPointChanges(beforeFam, afterFam, { royal: 1 });
     assert.equal(total(afterFam), total(beforeFam));
     assert.equal(balance(afterFam, bettor) - balance(beforeFam, bettor), 20000n);
-    await fam("confirm-match", { teamId: "royal" }, { expected: 409 });
+    await fam("confirm-match", { teamId: "royal" }, { revision: ready.revision, expected: 409 });
+    await fam("correct-match", { matchIndex: 0, teamId: "ruby" }, { expected: 409 });
     await fam("next");
     await fam("close-betting");
-    for (let index = 0; index < 4; index++) {
+    for (const [index, leader] of [0, 1, 1, 0].entries()) {
       const members = [roster.emerald[0], roster.onyx[0]];
       await fam("start-question", { players: members.map((player) => player.id) });
-      await fam("respondent", { playerId: members[0].id });
-      const board = (await status()).familiada.round;
-      for (const { position } of board.answers) await fam("answer", { position });
+      await fam("respondent", { playerId: members[leader].id });
+      await fam("answer", { position: index === 3 ? 2 : 1 });
+      if (index === 3) await fam("mistake");
+      for (let attempt = 0; attempt < 4; attempt++) await fam("mistake");
+      const { round } = (await status()).familiada;
+      assert.equal(round.stealFailed, true);
+      assert.equal(round.winner, members[leader].teamId);
       await fam("next");
+      assertPointChanges(afterFam, await status());
     }
+    assert.deepEqual((await status()).familiada.matches[1].scores, [11, 11]);
     await fam("confirm-match", { teamId: "emerald" });
     await fam("complete");
-    assert.equal((await status()).familiada.stage, "completed");
+    const complete = await status();
+    assert.equal(complete.familiada.stage, "completed");
+    assertPointChanges(beforeFam, complete, { royal: 1, emerald: 1 });
+    await fam("correct-match", { matchIndex: 1, teamId: "onyx" }, { revision: complete.familiada.revision });
+    await fam("correct-match", { matchIndex: 1, teamId: "emerald" }, { revision: complete.familiada.revision, expected: 409 });
+    const corrected = await status(bettor.cookie);
+    assertPointChanges(beforeFam, corrected, { royal: 1, onyx: 1 });
+    assert.deepEqual(corrected.players, complete.players);
+    assert.deepEqual(corrected.familiada.matches[1].scores, [11, 11]);
+    await fam("restart");
+    assertPointChanges(beforeFam, await status());
   });
 
   await t.test("ALKOHOLICY – remis w Kalamburach, dwa niezależne pojedynki i brak punktów za wygraną", async () => {
@@ -371,7 +489,7 @@ test("Scenariusze gry w odizolowanej bazie PostgreSQL", { timeout: 120_000 }, as
     await move("melodia", "complete", { songId });
   });
 
-  await t.test("Złoty segment – wspólna pula, zwrot głosów i wypłata indywidualna", async () => {
+  await t.test("Złoty segment – punkt zwycięzcy, punkt za każdy głos, korekty i wypłaty", async () => {
     await setSegment("gold-challenge");
     const gold = (action, payload, options) => command("gold-challenge", "goldChallenge", action, payload, options);
     await gold("teams", { teams });
@@ -383,14 +501,21 @@ test("Scenariusze gry w odizolowanej bazie PostgreSQL", { timeout: 120_000 }, as
     const before = await status();
     await gold("start");
     const during = await status();
+    assertPointChanges(before, during);
     assert.equal(total(during) + 2100000n, total(before));
     assert.equal(balance(before, roster.royal[0]) - balance(during, roster.royal[0]), 100000n);
     await gold("start", {}, { expected: 409 });
     await gold("winner", { playerId: roster.royal[0].id });
     const first = await status();
+    assertPointChanges(before, first, { royal: 1 });
     assert.equal(total(first), total(before));
     assert.equal(balance(first, roster.royal[0]) - balance(before, roster.royal[0]), 250000n);
     await gold("winner", { playerId: roster.royal[0].id }, { expected: 409 });
+    await gold("correct-winner", { playerId: roster.ruby[0].id }, { revision: first.goldChallenge.revision });
+    await gold("correct-winner", { playerId: roster.royal[0].id }, { revision: first.goldChallenge.revision, expected: 409 });
+    const correctedFirst = await status();
+    assertPointChanges(before, correctedFirst, { ruby: 1 });
+    assert.deepEqual(correctedFirst.players, first.players);
     await gold("complete", {}, { expected: 409 });
     await gold("next-game");
     await gold("number-open");
@@ -400,26 +525,61 @@ test("Scenariusze gry w odizolowanej bazie PostgreSQL", { timeout: 120_000 }, as
     assert.equal((await status()).goldChallenge.adminNumbers.counts, undefined);
     await gold("number-close");
     await gold("number-confirm", { number: 6 });
+    assertPointChanges(correctedFirst, await status());
     const publicState = (await status(bettor.cookie)).goldChallenge;
     assert.equal(publicState.adminNumbers, undefined);
     assert.equal(publicState.sixPendingNumber, undefined);
     await gold("number-settle");
     assert.ok((await status()).goldChallenge.sixResult.void);
     assert.equal(total(await status()), total(before));
+    assertPointChanges(correctedFirst, await status());
+    await gold("correct-number", { number: 1 });
+    assertPointChanges(correctedFirst, await status(), { emerald: 1 });
+    assert.deepEqual((await status()).players, first.players);
     await gold("number-restart");
+    assertPointChanges(correctedFirst, await status());
     for (const [index, player] of roster.emerald.entries()) await gold("number-vote", { number: index < 3 ? 4 : 1 }, { cookie: player.cookie });
+    await gold("number-vote", { number: 4 }, { cookie: roster.ruby[0].cookie });
     await gold("number-close");
     await gold("number-vote", { number: 4 }, { cookie: roster.onyx[0].cookie, expected: 409 });
     await gold("number-confirm", { number: 4 });
-    await gold("number-settle");
+    const pending = await status();
+    assertPointChanges(correctedFirst, pending);
+    await gold("number-settle", {}, { revision: pending.goldChallenge.revision });
     const after = await status();
+    assertPointChanges(correctedFirst, after, { emerald: 3, ruby: 1 });
     assert.equal(total(after), total(before));
-    assert.equal(after.goldChallenge.sixResult.correct, 3);
+    assert.equal(after.goldChallenge.sixResult.correct, 4);
     assert.equal(after.goldChallenge.sixResult.incorrect, 2);
-    assert.equal(balance(after, bettor) - balance(first, bettor), 66667n);
+    assert.equal(balance(after, bettor) - balance(first, bettor), 50000n);
+    assert.equal(balance(after, roster.ruby[0]) - balance(first, roster.ruby[0]), 50000n);
     assert.equal(balance(after, roster.emerald[4]) - balance(first, roster.emerald[4]), -100000n);
-    await gold("number-settle", {}, { expected: 409 });
+    await gold("number-settle", {}, { revision: pending.goldChallenge.revision, expected: 409 });
     await gold("complete");
+    await setSegment("sport");
+    await setSegment("gold-challenge");
+    const rejoined = cookieOf(await post("/api/auth/register", undefined, { nickname: bettor.nickname, teamId: bettor.teamId }));
+    assert.deepEqual((await status(rejoined)).teamScores, after.teamScores);
+    assert.deepEqual((await status(roster.ruby[0].cookie)).teamScores, after.teamScores);
+    await gold("correct-number", { number: 1 });
+    const correctedNumber = await status(rejoined);
+    assertPointChanges(correctedFirst, correctedNumber, { emerald: 2 });
+    assert.deepEqual(correctedNumber.players, after.players);
+    await gold("correct-number", { number: 6 });
+    assertPointChanges(correctedFirst, await status());
+    assert.deepEqual((await status()).players, after.players);
+  });
+
+  await t.test("Pełny reset usuwa punkty i pozwala rozpocząć niezależną grę", async () => {
+    await post("/api/admin/game/reset", admin);
+    const reset = await status();
+    assert.ok(reset.teamScores.every((team) => team.points === 0));
+    assert.ok(reset.players.every((player) => units(player.tokens) === 1000000n));
+    await post("/api/game/start", admin);
+    await setSegment("solenizant");
+    await move("solenizant", "start");
+    await move("solenizant", "scoring", { questionIndex: 0 });
+    await move("solenizant", "score", { questionIndex: 0, teamIds: ["royal", "ruby"] });
   });
 
   await t.test("FINAŁ – cztery koła, korekta punktów, stała para i rozstrzygnięcie remisu", async () => {

@@ -148,7 +148,13 @@ There is exactly one current game row (`id = 1`). It has `status` (`waiting` or 
 
 ### `solenizant_team_scores`
 
-There is one row for each of the four stable team IDs. `points` starts at zero and is independent of player `tokens`. Each selected team gains exactly one point when the administrator confirms a SOLENIZANT question. The overall standings add each team's settled The Floor wins to its stored points.
+There is one row for each of the four stable team IDs. `points` starts at zero and is independent of player `tokens`. Each selected team gains exactly one point when the administrator confirms a SOLENIZANT question. The global standings combine this stored balance with the persisted scoring events described below.
+
+### Klasyfikacja ogólna drużyn
+
+Odczyt punktacji dolicza do zapisanych punktów rozliczone zwycięstwa The Floor, po 1 punkcie za rozliczony pojedynek POJEDYNKÓW, zwycięstwo w głównym wyzwaniu SPORT, potwierdzony mecz Familiady i zwycięzcę Najdzielniejszego zawodnika. W Szczęśliwej szóstce dolicza po 1 punkcie za każdy trafiony, rozliczony głos do drużyny zapisanej przy stawce. Bonusy SPORT zachowują liczbę punktów wpisaną przez prowadzącego. Migawka `GET /api/game/state` przekazuje tę samą klasyfikację administratorowi i graczom.
+
+Kluczem wyniku jest zapisany identyfikator pojedynku albo wyzwania, indeks meczu Familiady w bieżącym stanie segmentu, zapis zwycięzcy pierwszej złotej gry albo UUID głosowania i ID gracza. Odczyt obejmuje również wcześniejsze rozliczone wyniki, jeśli ich zapisy nadal istnieją. Ponowne żądanie i nawigacja nie tworzą dodatkowych zapisów punktowych. **Korekta punktacji drużyn** w panelu prowadzącego zastępuje wynik używany przez klasyfikację. Można zmienić zwycięzcę głównego wyzwania lub pojedynku na jednego z uczestników, decyzję o remisie w zakończonym meczu Familiady, przedstawiciela w pierwszej złotej grze lub numer w drugiej. Korekty weryfikują bieżącą rewizję. Zaksięgowane zakłady, zwroty i wypłaty pozostają w saldach.
 
 ### `solenizant_question_awards`
 
@@ -199,7 +205,7 @@ The fixed, persisted schedule resolves Pair A/B only after those administrator s
 
 Ranks above 5 are retained and shown to the player, but do not change the fixed schedule. Before opening the first betting phase the server requires a complete ranking for every active player and at least five active ranked players in every team. If a team is too small, the administrator receives a clear Polish validation message instead of a failed challenge transition.
 
-For each main challenge, only active members of the two non-competing teams can bet. Each eligible player may place one 2-chip bet. The administrator confirms the start of the real-world challenge and closes betting with any number of bets. The administrator then selects one of the persisted pair teams and confirms the result. The durable `settled_at` marker prevents duplicate settlement. Correct bettors receive their 2-chip stake plus 2 chips of profit; the profit is debited equally from active members of the losing competing team. Incorrect stakes are distributed equally among active members of the winning competing team. All split calculations are `NUMERIC(20,4)`, with a deterministic remainder, and transfers are saved in `sport_chip_transfers`.
+For each main challenge, only active members of the two non-competing teams can bet. Each eligible player may place one 2-chip bet. The administrator confirms the start of the real-world challenge and closes betting with any number of bets. The administrator then selects one of the persisted pair teams and confirms the result. Each settled victory gives the team one point, including each two-versus-two yoga challenge. The durable `settled_at` marker prevents duplicate settlement. Correct bettors receive their 2-chip stake plus 2 chips of profit funded equally by active members of the losing competing team. Incorrect stakes are distributed equally among active members of the winning competing team. All split calculations are `NUMERIC(20,4)`, with a deterministic remainder, and transfers are saved in `sport_chip_transfers`.
 
 ### SPORT: bonus challenges
 
@@ -208,6 +214,8 @@ After all eight main challenges, SPORT opens two bonus rounds. All four teams pa
 ### SPORT tables
 
 `sport_pairings` stores Pair A/B and their ordered team sides. `sport_player_numbers` stores every active player's positive rank; its historical column name remains for compatibility, but its former upper limit of 5 is migrated away. `sport_challenges` stores the eight fixed sequences, pair slot, stage, winner, timestamps, and settlement marker. `sport_bets` stores the one eligible-player bet per challenge; `sport_chip_transfers` is the settlement ledger. `sport_bonus_rounds` and `sport_bonus_requirements` persist the two bonus results and per-team limb requirements.
+
+Potwierdzenia `sport/finish` i `sport/bonus-finish` przyjmują `eventId` bieżącej rundy z migawki, a korekta przez `sport/finish` wymaga też `correctionRevision` równej `scoreRevision` wybranego wyzwania. Restart SPORT usuwa punkty z głównych wyzwań wraz z ich wynikami, zwraca oczekujące stawki i zachowuje rozliczone salda oraz przyznane punkty bonusowe.
 
 ### SPORT synchronization and rendering stability
 
@@ -318,11 +326,11 @@ The persistent flow for each zero-based slot is `setup` → `betting` → `live`
 2. Each eligible active player may submit one 2-chip bet. The database derives eligibility from the player session and selected team IDs.
 3. The administrator confirms the start of the real-world duel, which locks betting with any number of bets.
 4. The administrator chooses one of the competing teams and confirms the result.
-5. The standard chip transfers are settled once, then the administrator opens the next slot. After Duel 4 the segment shows a durable summary of all four winners.
+5. The confirmed winner earns one team point and standard chip transfers settle once. The administrator then opens the next slot. After Duel 4 the segment shows a durable summary of all four winners.
 
-`pojedynki_duels` has exactly four sequence rows and stores selected team sides, stage, winner, timestamps, and a `settled_at` guard. `pojedynki_bets` has one row per eligible bettor and duel, with a `NUMERIC(20,4)` 2-chip stake, result, and payout. Duel settlement uses the standard team-funded rule. No Pojedynki action modifies team scores.
+`pojedynki_duels` has four sequence slots and stores selected team sides, stage, winner, timestamps, and a `settled_at` guard. Each settled slot contributes one point, so the four duels award at most four points. `pojedynki_bets` has one row per eligible bettor and duel, with a `NUMERIC(20,4)` 2-chip stake, result, and payout. Duel settlement uses the standard team-funded rule.
 
-The sixth segment has focused protected routes: administrator-only `start`, `configure`, `start-duel`, `finish`, `next`, `complete`, and `restart`, and player-only `bet` under `/api/segment/pojedynki/*`. All state is returned by the existing non-cacheable four-second snapshot poll. The player screen shows only the player's own wager, never another player's choice. Restarting only this segment refunds pending Pojedynki wagers and clears its four slot rows; it preserves teams, balances outside those pending wagers, completed settlement balances, scores, and all other segment data.
+The sixth segment has focused protected routes: administrator-only `start`, `configure`, `start-duel`, `finish`, `next`, `complete`, and `restart`, and player-only `bet` under `/api/segment/pojedynki/*`. The finish request uses the duel's `eventId` from the snapshot. Corrections also use the duel's `scoreRevision` as `correctionRevision`. The four-second snapshot poll shows each player their own wager. Restart refunds pending Pojedynki wagers and removes its four slot rows and their points. Settled payouts, teams and other segment data are preserved.
 - **Explicit destructive actions:** Reopening or directly navigating to a segment never resets it. Segment restart and full-game reset are separate admin-only endpoints with Polish UI confirmation. Full reset preserves active registrations and teams but restores their balances to 100 and resets game/segment state.
 - **Audited manual balances:** An exact chip balance change is server validated, uses `NUMERIC(20,4)`, records before/after/delta atomically, and is the only current operation allowed to add or remove virtual chips from the total.
 - **Future expansion seam:** Add a dedicated fixed-question module, focused database service functions, new admin-only Route Handlers, then client components for a future segment. Keep chips and game state mutations server-owned and extend the snapshot contract deliberately.
@@ -333,7 +341,7 @@ The sixth segment has focused protected routes: administrator-only `start`, `con
 
 1. W panelu prowadzącego wybierz cztery różne drużyny i zapisz je jako dwie uporządkowane pary. Puste drużyny również można wybrać. Skład obu meczów można zmieniać do naciśnięcia **Rozpocznij segment**. Każdy mecz ma cztery własne pytania i osobną punktację.
 2. Przed pierwszym pytaniem każdego meczu prowadzący otwiera zakłady albo je pomija. Aktywny gracz z jednej z pozostałych drużyn może postawić jeden zakład na zwycięzcę meczu za 2 wirtualne żetony. Prowadzący zamyka zakłady przed przejściem do pytania.
-3. Po czterech pytaniach prowadzący potwierdza drużynę z większą liczbą punktów. Przy remisie wskazuje zwycięzcę spośród obu drużyn. Następnie przygotowuje drugi mecz albo kończy segment. Wyniki obu meczów pozostają dostępne w podsumowaniu.
+3. Po czterech pytaniach prowadzący potwierdza drużynę z większą liczbą punktów. Przy remisie wskazuje zwycięzcę spośród obu drużyn. Dopiero rozliczony mecz daje zwycięzcy 1 punkt w klasyfikacji ogólnej. Następnie prowadzący przygotowuje drugi mecz albo kończy segment. Wyniki obu meczów pozostają dostępne w podsumowaniu.
 4. Potwierdzenie rozlicza wszystkie zakłady na mecz według zasad SPORT. Trafiony zakład oddaje stawkę i wypłaca 2 żetony zysku finansowane po równo przez aktywnych członków przegranej drużyny. Stawki nietrafionych zakładów trafiają po równo do aktywnych członków wygranej drużyny. Salda mają cztery miejsca po przecinku. Reszta jest rozdzielana po 0,0001 żetonu według daty rejestracji i ID. Jeśli brakuje uczestników potrzebnych do wykonania transferu lub wystarczającego salda, cały zapis wyniku i wypłaty czeka na ponowną próbę. Punkty z pytań są oddzielone od żetonów i punktacji ogólnej.
 
 ### Konfrontacja, tablica i punkty
@@ -359,7 +367,7 @@ The sixth segment has focused protected routes: administrator-only `start`, `con
 
 ### Stan, API i wdrożenie
 
-- `POST /api/segment/familiada` przyjmuje `{ revision, command }`. Akcje gracza to `buzz` i `bet`. `configure`, `start`, `open-betting`, `close-betting`, `start-question`, `replace-representatives`, `activate`, `reset-buzzer`, `respondent`, `answer`, `mistake`, `control`, `next`, `confirm-match`, `complete` i `restart` są dostępne wyłącznie dla zweryfikowanej sesji administratora.
+- `POST /api/segment/familiada` przyjmuje `{ revision, command }`. Akcje gracza to `buzz` i `bet`. `configure`, `start`, `open-betting`, `close-betting`, `start-question`, `replace-representatives`, `activate`, `reset-buzzer`, `respondent`, `answer`, `mistake`, `control`, `next`, `confirm-match`, `correct-match`, `complete` i `restart` są dostępne wyłącznie dla zweryfikowanej sesji administratora. `correct-match` przyjmuje indeks meczu `matchIndex` (0 albo 1) i `teamId` w celu korekty rozstrzygnięcia remisu.
 - `game_state.familiada_state` przechowuje pary drużyn, osiem pytań i odpowiedzi, fazę, bieżący mecz i pytanie, ujawnione pozycje, przedstawicieli, pierwszeństwo, drużynę prowadzącą, błędy, pulę, rozstrzygnięcia i daty rozliczenia. Wynik meczu jest sumą zapisanych pul wygranych rund. Wspólna blokada wiersza gry i warunek aktualnej rewizji chronią przed akceptacją dwóch naciśnięć, ponowieniem błędu, powtórnym naliczeniem punktów i rozliczeniem tego samego meczu.
 - `familiada_bets` zapisuje stawkę, typ, wynik, wypłatę i datę rozliczenia pod unikatowym kluczem meczu i gracza. Zatwierdzenie wyniku, rozliczenie zakładów, transfery i wpis audytu w `admin_actions` zapisują się atomowo. Restart segmentu zwraca oczekujące stawki i czyści stan Familiady. Zaksięgowane transfery pozostają w saldach. Pełny reset dodatkowo przywraca salda aktywnych graczy do 100.
 - `GET /api/game/state` synchronizuje wszystkie ekrany co cztery sekundy i publikuje tylko zakład zalogowanego gracza. Dla gracza odpowiedź przed odsłonięciem ma wyłącznie pozycję i pustą wartość. Klucz bieżącego pytania otrzymuje zweryfikowany administrator. Dane pytań znajdują się w module serwerowym. Odświeżenie i nawigacja odczytują trwały postęp.
@@ -368,9 +376,11 @@ The sixth segment has focused protected routes: administrator-only `start`, `con
 
 ## KTO GRA GRUBO, WYGRAĆ MUSI
 
-**Gra 1 – Najdzielniejszy zawodnik.** Prowadzący wybiera od dwóch do czterech drużyn, gracze nominują po jednej osobie ze swojej drużyny, a prowadzący potwierdza przedstawicieli. Po podglądzie wpłat start pobiera 10 żetonów od każdego aktywnego członka wybranych drużyn, także od przyszłych zwycięzców. Pula i skład zostają zapisane przed fizycznym wyzwaniem. Prowadzący wybiera zwycięskiego przedstawiciela. Cała pula trafia do członków jego drużyny z zapisanego składu. Przy 20 wpłatach i pięciu zwycięzcach jest to 40 żetonów brutto i 30 zysku na zwycięzcę. Następnie **Przejdź do gry nr 2** otwiera drugą grę.
+**Gra 1 – Najdzielniejszy zawodnik.** Prowadzący wybiera od dwóch do czterech drużyn, gracze nominują po jednej osobie ze swojej drużyny, a prowadzący potwierdza przedstawicieli. Po podglądzie wpłat start pobiera 10 żetonów od każdego aktywnego członka wybranych drużyn, także od przyszłych zwycięzców. Pula i skład zostają zapisane przed fizycznym wyzwaniem. Po zatwierdzeniu zwycięskiego przedstawiciela jego drużyna otrzymuje 1 punkt w klasyfikacji ogólnej. Cała pula trafia do członków jego drużyny z zapisanego składu. Przy 20 wpłatach i pięciu zwycięzcach jest to 40 żetonów brutto i 30 zysku na zwycięzcę. Następnie **Przejdź do gry nr 2** otwiera drugą grę.
 
-**Gra 2 – Szczęśliwa szóstka.** Każdy aktywny gracz może potwierdzić jeden numer od 1 do 6 za 10 żetonów. Głos jest zapisany jednokrotnie. Przed zamknięciem prowadzący widzi status głosowania i wielkość rezerwy. Po zamknięciu widzi też liczebności według numeru. Prowadzący wybiera i potwierdza poprawny numer, po czym osobno zatwierdza wypłatę i ujawnienie wyniku. Trafione głosy odzyskują stawki i dzielą wszystkie nietrafione stawki. Przy braku trafień wszyscy odzyskują pełne stawki. Wtedy można zakończyć segment albo jawnie otworzyć nową rundę.
+**Gra 2 – Szczęśliwa szóstka.** Każdy aktywny gracz może potwierdzić jeden numer od 1 do 6 za 10 żetonów. Głos jest zapisany jednokrotnie. Przed zamknięciem prowadzący widzi status głosowania i wielkość rezerwy. Po zamknięciu widzi też liczebności według numeru. Prowadzący wybiera i potwierdza poprawny numer, po czym osobno zatwierdza wypłatę i ujawnienie wyniku. Przy ujawnieniu każdy trafiony głos daje 1 punkt drużynie głosującego. Trafione głosy odzyskują stawki i dzielą wszystkie nietrafione stawki. Przy braku trafień wszyscy odzyskują pełne stawki, a drużyny dostają zero punktów. Wtedy można zakończyć segment albo jawnie otworzyć nową rundę, która zastępuje poprzednią w klasyfikacji.
+
+Polecenia administratora `correct-winner` z `playerId` i `correct-number` z `number` korzystają z bieżącej rewizji `/api/segment/gold-challenge`. Zapis korekty zastępuje podstawę punktacji. W drugiej grze klasyfikacja przelicza głosy z tej samej rundy według skorygowanego numeru.
 
 Obie gry zapisują rezerwę w `gold_stakes` według rundy i gracza. Pobrania i wypłaty trafiają do `gold_chip_transfers`. Blokada gry, rewizja i klucz rundy uniemożliwiają ponowne pobranie lub wypłatę. Dzielenie używa czterech miejsc po przecinku i rozdziela resztę według ID. Złożone głosy i uprawnienia do puli przetrwają rozłączenie. Przed ujawnieniem migawka gracza podaje tylko jego głos. Rozliczone wcześniej pierwsze wyzwanie można kontynuować od gry nr 2 z zachowaniem historycznych wypłat.
 
@@ -395,7 +405,7 @@ Prowadzący osobno wybiera dwie różne drużyny przed każdym z dwóch pojedynk
 
 ### Kwalifikacja
 
-Prowadzący otwiera **FINAŁ** po segmencie ALKOHOLICY przez dotychczasową nawigację segmentów. Klasyfikacja wyświetla wszystkie cztery drużyny według punktacji ogólnej z `GameSnapshot.teamScores`. Obejmuje ona punkty z SOLENIZANTA, rozliczonych zwycięstw The Floor, bonusów SPORT, JAKA TO MELODIA? i Kalamburów segmentu ALKOHOLICY.
+Prowadzący otwiera **FINAŁ** po segmencie ALKOHOLICY przez dotychczasową nawigację segmentów. Klasyfikacja wyświetla wszystkie cztery drużyny według punktacji ogólnej z `GameSnapshot.teamScores`.
 
 Serwer proponuje dwie najlepsze drużyny. Przy remisie na granicy awansu prowadzący wybiera spośród drużyn z wynikiem dającym awans. Jeżeli remis dotyczy pierwszego miejsca, prowadzący wybiera też, która z uprawnionych drużyn zaczyna. Kolejność w tabeli przy remisie służy wyłącznie do prezentacji. **Zatwierdź finalistów** zapisuje parę, kolejność i punktację. Zmiana klasyfikacji przed startem wymaga ponownego potwierdzenia. Po **Rozpocznij finał** zapisana para i kolejność obowiązują przez wszystkie cztery pytania.
 

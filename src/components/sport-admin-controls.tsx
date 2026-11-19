@@ -167,8 +167,8 @@ export function SportAdminControls({ snapshot, onRefresh }: SportAdminControlsPr
 
   async function confirmWinner() {
     const selected = challenge?.winnerTeamId ?? winnerTeamId;
-    if (!selected) return;
-    const done = await post("finish", "/api/segment/sport/finish", { winnerTeamId: selected });
+    if (!selected || !challenge) return;
+    const done = await post("finish", "/api/segment/sport/finish", { eventId: challenge.id, winnerTeamId: selected });
     if (done) setWinnerTeamId(null);
   }
 
@@ -178,8 +178,8 @@ export function SportAdminControls({ snapshot, onRefresh }: SportAdminControlsPr
   }
 
   async function confirmBonus() {
-    if (!winnerTeamId) return;
-    const done = await post("bonus-finish", "/api/segment/sport/bonus-finish", { winnerTeamId, points: Number(bonusPoints) });
+    if (!winnerTeamId || !bonus) return;
+    const done = await post("bonus-finish", "/api/segment/sport/bonus-finish", { eventId: bonus.id, winnerTeamId, points: Number(bonusPoints) });
     if (done) setWinnerTeamId(null);
   }
 

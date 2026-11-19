@@ -67,8 +67,8 @@ export function PojedynkiAdminControls({ snapshot, onRefresh }: PojedynkiAdminCo
 
   async function confirmWinner() {
     const selected = duel?.winnerTeamId ?? winnerTeamId;
-    if (!selected) return;
-    if (await post("finish", "/api/segment/pojedynki/finish", { winnerTeamId: selected })) setWinnerTeamId(null);
+    if (!selected || !duel) return;
+    if (await post("finish", "/api/segment/pojedynki/finish", { eventId: duel.id, winnerTeamId: selected })) setWinnerTeamId(null);
   }
 
   async function next() {
