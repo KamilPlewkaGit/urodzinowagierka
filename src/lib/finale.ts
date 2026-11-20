@@ -1,6 +1,6 @@
 import "server-only";
 
-import { TEAM_IDS } from "@/lib/constants";
+import { FINALE_QUESTION_COUNT, TEAM_IDS } from "@/lib/constants";
 import type { FinaleDirection, FinaleSnapshot, FinaleStage, FinaleUnit, TeamId, TeamScore } from "@/lib/types";
 import type { FinaleAction } from "@/lib/validation";
 
@@ -9,12 +9,17 @@ const questions = [
   { text: "Ilu Polaków nosi nazwisko Plewka?", answer: "1483", unit: "people" },
   { text: "Ilu Polaków zginęło podczas II wojny światowej?", answer: "5,9 mln", unit: "people" },
   { text: "Ile lat średnio trwa małżeństwo przed rozwodem?", answer: "15 lat", unit: "years" },
-] as const satisfies readonly { text: string; answer: string; unit: FinaleUnit }[];
+  { text: "Jaki procent Polaków w wieku 18–44 lat uważa, że to mężczyzna powinien płacić za kobietę na randce?", answer: "61%", unit: "percent" },
+  { text: "Ile razy łącznie odwiedzono polskie kina w 2025 roku?", answer: "49,7 miliona razy", unit: "visits" },
+] as const satisfies readonly { text: string; answer: string; unit: FinaleUnit }[] & { length: typeof FINALE_QUESTION_COUNT };
+
+export const FINALE_WINNER_CHIP_REWARD = 2;
 
 type Round = {
   estimate: number | null;
   direction: FinaleDirection | null;
   winner: TeamId | null;
+  winnerPointAwarded?: boolean;
   points?: number;
 };
 
@@ -26,6 +31,7 @@ export type StoredFinale = {
   rounds: Round[];
   overallWinner?: TeamId;
   finalRanking?: TeamScore[];
+  chipReward?: { id: string; perWinner: number; transfers: Record<string, string> };
 };
 
 export class FinaleConflict extends Error {}
@@ -49,7 +55,14 @@ function needsConfirmation(state: StoredFinale | null, ranking: TeamScore[]) {
   }));
 }
 
-export function getFinaleSnapshot(state: StoredFinale | null, revision: string, scores: TeamScore[], isAdmin: boolean): FinaleSnapshot {
+function extendOpenFinale(state: StoredFinale | null): StoredFinale | null {
+  if (!state || state.stage === "completed" || state.rounds.length === questions.length) return state;
+  const rounds = questions.map((_, index) => state.rounds[index] ?? { estimate: null, direction: null, winner: null });
+  return state.stage === "summary" ? { ...state, rounds, stage: "question", questionIndex: state.rounds.length, overallWinner: undefined } : { ...state, rounds };
+}
+
+export function getFinaleSnapshot(saved: StoredFinale | null, revision: string, scores: TeamScore[], isAdmin: boolean): FinaleSnapshot {
+  const state = extendOpenFinale(saved);
   const stage = state?.stage ?? "intro";
   const preparing = stage === "intro" || stage === "ready";
   const ranking = stage === "completed" && state?.finalRanking ? state.finalRanking : rankFinaleTeams(scores);
@@ -62,6 +75,7 @@ export function getFinaleSnapshot(state: StoredFinale | null, revision: string, 
   return {
     revision,
     stage,
+    questionCount: state?.rounds.length ?? questions.length,
     ranking,
     eligibleOrders: preparing ? eligibleOrders(ranking) : [],
     finalists: confirm ? null : state?.finalists ?? null,
@@ -81,10 +95,12 @@ export function getFinaleSnapshot(state: StoredFinale | null, revision: string, 
     roundPoints: state?.rounds.map((round) => round.points ?? null) ?? [],
     overallLeaders: leaders,
     overallWinner,
+    chipReward: state?.chipReward ? { id: state.chipReward.id, perWinner: state.chipReward.perWinner } : null,
   };
 }
 
-export function advanceFinale(state: StoredFinale | null, command: FinaleAction["command"], ranking: TeamScore[]): StoredFinale | null {
+export function advanceFinale(saved: StoredFinale | null, command: FinaleAction["command"], ranking: TeamScore[]): StoredFinale | null {
+  const state = extendOpenFinale(saved);
   if (command.action === "restart") return null;
   if (command.action === "confirm-finalists" && needsConfirmation(state, ranking)) {
     const [first, second] = command.teams;
@@ -112,9 +128,8 @@ export function advanceFinale(state: StoredFinale | null, command: FinaleAction[
       if (questions[questionIndex].unit === "percent" && command.value > 100) {
         throw new FinaleConflict("Podaj procent od 0 do 100.");
       }
-      if (questions[questionIndex].unit === "people" && !Number.isInteger(command.value)) {
-        throw new FinaleConflict("Podaj liczbę osób w pełnych jednostkach.");
-      }
+      if (!Number.isInteger(command.value) && questions[questionIndex].unit === "people") throw new FinaleConflict("Podaj liczbę osób w pełnych jednostkach.");
+      if (!Number.isInteger(command.value) && questions[questionIndex].unit === "visits") throw new FinaleConflict("Podaj liczbę wizyt w pełnych jednostkach.");
       round.estimate = command.value;
       return state;
     case "direction":
@@ -127,6 +142,7 @@ export function advanceFinale(state: StoredFinale | null, command: FinaleAction[
     case "confirm-winner":
       if (stage !== "answer" || !state.finalists.some((team) => team.teamId === command.teamId)) break;
       round.winner = command.teamId;
+      round.winnerPointAwarded = true;
       return { ...state, stage: "winner" };
     case "show-wheel":
       if (stage === "winner") return { ...state, stage: "wheel" };
@@ -143,13 +159,13 @@ export function advanceFinale(state: StoredFinale | null, command: FinaleAction[
         ? { ...state, stage: "question", questionIndex: questionIndex + 1 }
         : { ...state, stage: "summary" };
     case "overall-winner":
-      if (stage !== "summary" || rounds.some((item) => item.points === undefined)) break;
+      if (stage !== "summary" || rounds.length !== questions.length || rounds.some((item) => !item.winner || item.points === undefined)) break;
       if (!ranking.some((team) => team.teamId === command.teamId && team.points === ranking[0].points)) {
         throw new FinaleConflict("Wybierz jedną z drużyn na pierwszym miejscu.");
       }
       return { ...state, overallWinner: command.teamId };
     case "complete": {
-      if (stage !== "summary" || rounds.some((item) => item.points === undefined)) break;
+      if (stage !== "summary" || rounds.length !== questions.length || rounds.some((item) => !item.winner || item.points === undefined)) break;
       const leaders = ranking.filter((team) => team.points === ranking[0].points);
       const winner = leaders.length === 1 ? leaders[0].teamId : state.overallWinner;
       if (!winner || !leaders.some((team) => team.teamId === winner)) throw new FinaleConflict("Rozstrzygnij remis w punktacji ogólnej.");

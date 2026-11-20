@@ -244,11 +244,12 @@ export interface FamiliadaSnapshot {
 
 export type FinaleStage = "intro" | "ready" | "question" | "answer" | "winner" | "wheel" | "summary" | "completed";
 export type FinaleDirection = "more" | "less";
-export type FinaleUnit = "percent" | "people" | "years";
+export type FinaleUnit = "percent" | "people" | "years" | "visits";
 
 export interface FinaleSnapshot {
   revision: string;
   stage: FinaleStage;
+  questionCount: number;
   ranking: TeamScore[];
   eligibleOrders: [TeamId, TeamId][];
   finalists: [TeamScore, TeamScore] | null;
@@ -268,6 +269,7 @@ export interface FinaleSnapshot {
   roundPoints: (number | null)[];
   overallLeaders: TeamId[];
   overallWinner: TeamId | null;
+  chipReward: { id: string; perWinner: number } | null;
 }
 
 export type AlkoholicyStage = "intro" | "order" | "charades-ready" | "charades-betting" | "charades-play" | "charades-review" | "charades-results" | "duel-setup" | "duel-betting" | "duel-live" | "duel-result" | "results" | "completed";

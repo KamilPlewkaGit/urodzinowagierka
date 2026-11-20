@@ -12,9 +12,9 @@ export async function POST(request: NextRequest) {
   let body: unknown;
   try { body = await request.json(); } catch { return NextResponse.json({ error: "Wymagane jest poprawne ciało żądania." }, { status: 400 }); }
   const parsed = theFloorWinnerSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Wybrano nieprawidłową zwycięską drużynę." }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: "Podaj identyfikator pojedynku i wybierz zwycięską drużynę." }, { status: 400 });
   try {
-    const status = await endTheFloorDuel(parsed.data.winnerTeamId);
+    const status = await endTheFloorDuel(parsed.data.winnerTeamId, parsed.data.eventId);
     if (status !== "settled") return NextResponse.json({ error: getTeamBetSettlementError(status) }, { status: 409 });
     return NextResponse.json({ ok: true });
   } catch (error) {

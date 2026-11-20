@@ -151,7 +151,8 @@ export function AdminDashboard({ initialSnapshot }: AdminDashboardProps) {
       return;
     }
     if (snapshot.game.activeSegment === "finale") {
-      if (window.confirm("Uruchomić finał od początku? Zapisani finaliści i wyniki czterech pytań zostaną usunięci.")) {
+      const rewardMessage = snapshot.finale.chipReward ? " Transfery nagrody finałowej zostaną cofnięte." : "";
+      if (window.confirm("Uruchomić finał od początku? Zapisani finaliści i wyniki pytań zostaną usunięci, a punkty z finału odjęte." + rewardMessage)) {
         await sendFinale({ action: "restart" });
       }
       return;

@@ -14,4 +14,6 @@ Future expansion: Updating houses requires coordinated changes to the database C
 
 Wspólne numery rzymskie segmentów na podstawie identyfikatorów. Dotychczasowe numery V, VI i VIII zachowują swoje przypisania.
 
-Stałe obejmują zarezerwowany login obserwatora, stawki nowych i historycznych rund oraz polskie opisy zakładów.
+Stałe obejmują zarezerwowany login obserwatora, stawki nowych i historycznych rund oraz polskie opisy zakładów z wypłatą brutto i podziałem na zwrot stawki i zysk.
+
+Limit sześciu pytań finałowych jest wspólny dla serwerowego katalogu, walidacji i prezentacji zasad.

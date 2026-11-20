@@ -39,6 +39,7 @@ export const LEGACY_DUEL_BET_STAKE = "2.0000";
 export const STANDARD_DUEL_BET_STAKE = "4.0000";
 export const FAMILIADA_BET_STAKE = "8.0000";
 export const CHARADES_BET_STAKE = "2.0000";
+export const FINALE_QUESTION_COUNT = 6;
 
-export const STANDARD_DUEL_BET_DESCRIPTION = "Każdy gracz, którego drużyna nie uczestniczy w pojedynku, może obstawić zwycięzcę. Jeden zakład = 4 żetony.";
-export const FAMILIADA_BET_DESCRIPTION = "Każdy gracz, którego drużyna nie uczestniczy w meczu, może obstawić zwycięzcę. Jeden zakład = 8 żetonów.";
+export const STANDARD_DUEL_BET_DESCRIPTION = "Każdy gracz spoza pary może obstawić zwycięzcę za 4 żetony. Trafiony zakład daje 8 żetonów wypłaty (4 zwrotu stawki i 4 zysku).";
+export const FAMILIADA_BET_DESCRIPTION = "Każdy gracz spoza pary może obstawić zwycięzcę za 8 żetonów. Trafiony zakład daje 16 żetonów wypłaty (8 zwrotu stawki i 8 zysku).";

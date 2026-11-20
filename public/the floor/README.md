@@ -4,7 +4,7 @@
 | --- | --- | --- |
 | Znajome twarze | `znajome-twarze/znane_twarze_z_obrazami.json` | 29 obrazów osadzonych |
 | Lokalne miejsca | `lokalne-miejsca/miejsca.json` | 49 lokalnych zdjęć WebP i odwołania do źródeł |
-| Loga | `loga/logotypy_the_floor_poprawione_id.json` | 38 osadzonych grafik |
+| Loga | `loga/logotypy_the_floor_poprawione_id.json` | 34 osadzone grafiki |
 | Czytanie od tyłu | `od_tylu/od_tylu.json` | 48 zagadek tekstowych |
 | Działania | `działania/The_Floor_DZIALANIA_100_z_obrazami.json` | 100 prostych działań |
 | Rebusy | `rebus/rebusy.json` | 28 lokalnych grafik |

@@ -1,5 +1,5 @@
 import styles from "@/components/finale.module.css";
-import { getTeam } from "@/lib/constants";
+import { FINALE_QUESTION_COUNT, getTeam } from "@/lib/constants";
 import type { FinaleSnapshot, FinaleStage, FinaleUnit, GameSnapshot, TeamScore } from "@/lib/types";
 
 export const finaleStageLabel: Record<FinaleStage, string> = {
@@ -19,8 +19,8 @@ const rules = [
   ["Rozpoczyna", "Drużyna z większą liczbą punktów."],
   ["Druga drużyna", "Odpowiada „więcej” lub „mniej”."],
   ["Wygrywa pytanie", "Drużyna, której odpowiedź jest bliższa prawdy."],
-  ["Nagroda", "Możliwość zakręcenia kołem fortuny."],
-  ["Liczba pytań", "4."],
+  ["Nagroda za pytanie", "+1 punkt i możliwość zakręcenia kołem fortuny."],
+  ["Liczba pytań", String(FINALE_QUESTION_COUNT)],
   ["Koło fortuny", "Fizyczne, poza aplikacją."],
 ];
 
@@ -61,7 +61,7 @@ function Finalists({ teams, question, showOpener }: {
 }
 
 export function FinalePresentation({ finale }: { finale: FinaleSnapshot }) {
-  const { stage, question, ranking, finalists, eligibleOrders, winners, overallWinner, roundPoints } = finale;
+  const { stage, question, questionCount, ranking, finalists, eligibleOrders, winners, overallWinner, roundPoints, chipReward } = finale;
   const proposedOrder = eligibleOrders.length === 1 ? eligibleOrders[0] : null;
   const proposed: [TeamScore, TeamScore] | null = proposedOrder ? [ranking[0], ranking[1]] : null;
   const matchup = finalists ?? proposed;
@@ -97,14 +97,14 @@ export function FinalePresentation({ finale }: { finale: FinaleSnapshot }) {
         {stage === "question" && question && finalists && (
           <>
             <h1 className={styles.kicker}>FINAŁ</h1>
-            <p className={styles.questionNumber}>PYTANIE NR {question.number}</p>
+            <p className={styles.questionNumber}>Pytanie {question.number} z {questionCount}</p>
             <h2 className={styles.question}>{question.text}</h2>
             <Finalists teams={finalists} question={question} showOpener />
           </>
         )}
         {(stage === "answer" || stage === "winner") && question && (
           <>
-            <p className={styles.kicker}>FINAŁ · PYTANIE NR {question.number}</p>
+            <p className={styles.kicker}>FINAŁ · Pytanie {question.number} z {questionCount}</p>
             <h1 className={styles.revealTitle}>POPRAWNA ODPOWIEDŹ</h1>
             <p className={styles.answer}>{question.answer}</p>
             {winner && <p className={styles.celebration}>Wygrywa {winner.name}!</p>}
@@ -112,7 +112,7 @@ export function FinalePresentation({ finale }: { finale: FinaleSnapshot }) {
         )}
         {stage === "wheel" && winner && (
           <>
-            <p className={styles.kicker}>FINAŁ · PYTANIE NR {question.number}</p>
+            <p className={styles.kicker}>FINAŁ · Pytanie {question?.number} z {questionCount}</p>
             <h1 className={styles.title}>KOŁO FORTUNY</h1>
             <p className={styles.celebration}>{winner.name}</p>
             {question?.points === null ? <p className={styles.message}>Czas zakręcić kołem fortuny!</p> : <>
@@ -123,13 +123,13 @@ export function FinalePresentation({ finale }: { finale: FinaleSnapshot }) {
         )}
         {done && finalists && (
           <>
-            <h1 className={styles.title}>{overallWinner ? "ZWYCIĘZCA GRY" : "KONIEC FINAŁU"}</h1>
+            <h1 className={styles.title}>{chipReward ? "ZWYCIĘZCY FINAŁU!" : overallWinner ? "ZWYCIĘZCA GRY" : "KONIEC FINAŁU"}</h1>
             {overallWinner ? <p className={styles.celebration}>{getTeam(overallWinner).name}</p> : <p className={styles.message}>Prowadzący potwierdzi końcowy wynik.</p>}
+            {chipReward && <p className={styles.message}>Każdy zawodnik zwycięskiej drużyny otrzymał <strong>+{chipReward.perWinner} żetony!</strong></p>}
             <FinaleRanking ranking={ranking} winnerId={overallWinner} />
-            <p className={styles.message}>Gratulacje dla obu drużyn! Za nami wszystkie cztery pytania.</p>
             <Finalists teams={finalists} showOpener={false} />
             <ol className={styles.history} aria-label="Zwycięzcy pytań">
-              {winners.map((teamId, index) => teamId && <li key={index}>Pytanie {index + 1} <strong>{getTeam(teamId).name}{roundPoints[index] !== null ? " · " + roundPoints[index] + " pkt" : ""}</strong></li>)}
+              {winners.map((teamId, index) => teamId && <li key={index}>Pytanie {index + 1} <strong>{getTeam(teamId).name}{roundPoints[index] !== null ? " · " + roundPoints[index] + " pkt z koła" : ""}</strong></li>)}
             </ol>
             {stage === "completed" && <p className={styles.message}>Gra została zakończona.</p>}
           </>

@@ -29,3 +29,5 @@ Numer aktywnego segmentu pochodzi ze wspólnych metadanych. The Floor synchroniz
 Punkty drużyn pokazują klasyfikację ogólną. Potwierdzenie restartu The Floor opisuje utratę wyników i punktów segmentu oraz zwrot oczekujących stawek.
 
 Panel korekt punktacji pojawia się przy rozliczonych zdarzeniach POJEDYNKÓW, głównych wyzwań SPORT, Familiady i złotych gier. Po zapisie lub konflikcie panel odświeża migawkę. Potwierdzenia restartu POJEDYNKÓW, SPORT i Familiady opisują usunięcie punktów wyliczanych z ich wyników.
+
+Potwierdzenie restartu FINAŁU opisuje odjęcie punktów i, po rozliczeniu nagrody, odwrócenie zapisanych transferów.

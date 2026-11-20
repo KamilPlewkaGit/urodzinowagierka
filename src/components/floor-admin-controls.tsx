@@ -89,8 +89,8 @@ export function FloorAdminControls({ snapshot, onRefresh }: FloorAdminControlsPr
   }
 
   async function confirmWinner() {
-    if (!selectedWinner) return;
-    const done = await post("end", "/api/segment/floor/end", { winnerTeamId: selectedWinner });
+    if (!duel || !selectedWinner) return;
+    const done = await post("end", "/api/segment/floor/end", { eventId: duel.id, winnerTeamId: selectedWinner });
     if (done) setWinnerTeamId(null);
   }
 

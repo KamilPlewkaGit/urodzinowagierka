@@ -6,4 +6,4 @@ Eligible players may leave the optional wager unsubmitted and wait for the admin
 
 ActiveSegment supplies the live GameSnapshot, viewer role and optional session-derived player ID, and a shared refresh callback. After a successful bet the screen requests a fresh snapshot through that callback. The screen receives only the viewer's own bet details and keeps transient feedback local. Game progression and settlement remain in the existing protected Route Handlers.
 
-Widok pokazuje stawkę zapisaną dla otwartej rundy. Obserwator ogląda przebieg z wyłączonymi akcjami gracza.
+Widok pokazuje stawkę zapisaną dla otwartej rundy. Wynik zakładu pokazuje zapisaną wypłatę brutto. Obserwator ogląda przebieg z wyłączonymi akcjami gracza.

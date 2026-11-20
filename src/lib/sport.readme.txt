@@ -1,6 +1,6 @@
 File: `src/lib/sport.ts`
 
-Purpose and responsibilities: Defines client-safe, fixed metadata for SPORT: title, eight main challenges, two bonus-round count, and fixed virtual-chip profit for a correct bet.
+Purpose and responsibilities: Defines client-safe, fixed metadata for SPORT: title, eight main challenges and two bonus rounds.
 
 Important exports, inputs, and outputs: `SPORT_CHALLENGES` records the pair slot and player-rank positions 1–5 used by every challenge. `getSportChallenge` returns one definition by zero-based sequence.
 
@@ -12,4 +12,4 @@ Implementation details: Pair slots `a` and `b` are placeholders resolved from ad
 
 Future expansion: Change schedule metadata only together with the seeded challenge count and documentation.
 
-Wysokość stawki rynkowej pochodzi z zapisanego wyzwania. Zysk trafionego zakładu nadal wynosi 2 żetony.
+Wysokość stawki rynkowej pochodzi z zapisanego wyzwania. Warstwa bazy rozlicza zysk na podstawie zapisanej stawki każdego zakładu.

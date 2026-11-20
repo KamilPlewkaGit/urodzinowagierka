@@ -4,4 +4,6 @@ The Floor sprawdza wszystkie grafiki z manifestu, nowe zestawy Lokalnych miejsc 
 
 POJEDYNKI i SPORT sprawdzają wszystkie główne wyniki, spóźnione i równoległe potwierdzenia, korekty, restarty, oba bonusy i zakłady. Familiada sprawdza uszeregowane odpowiedzi, pulę, udane i nieudane przejęcie, dwa mecze i korektę remisu. Złote gry sprawdzają punkt za wygraną, punkty za indywidualne głosy z kilku drużyn, brak trafień, wypłaty, ponowne dołączenie i korekty bez zmiany sald. Pełny reset weryfikuje wyzerowanie punktów i oddziela scenariusz finału.
 
-Testy sprawdzają stawki, rzeczywiste pobrania, wypłaty i pełną sumę żetonów w Familiadzie oraz czterech segmentach ze standardowymi zakładami. Sesja obserwatora sprawdza nadpisanie hasła, zarezerwowany login, odmowę zapisów, publiczne odpowiedzi, nawigację i wylogowanie.
+Testy sprawdzają końcowe salda 104 i 96 przy stawce 4, 108 i 92 przy stawce 8 oraz 110 i 90 przy zapisanej stawce 10. Weryfikują rezerwę, zachowanie sumy żetonów, dokładny podział z resztą, blokadę przy niedoborze środków, ponowienia i odświeżenia. Baza testowa zawiera także otwartą starszą stawkę 2 i historyczną wypłatę 6 przy stawce 4.
+
+FINAŁ sprawdza sześć pytań, punkt za każde pytanie, punkty i korekty koła, rozstrzygnięcie remisu, jednorazowe rozliczenie, odświeżenie ekranów i zwrot nagrody według pierwotnej listy graczy. Starsze podsumowanie wznawia grę od pytania 5, a zakończony finał zachowuje historyczny wynik. Sesja obserwatora sprawdza nadpisanie hasła, zarezerwowany login, odmowę zapisów, publiczne odpowiedzi, nawigację i wylogowanie.

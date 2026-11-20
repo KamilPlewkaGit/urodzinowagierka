@@ -1,1 +1,1 @@
-Na kole pokazuje zapisane punkty, zwycięzcę pytania i aktualny ranking. Podsumowanie zawiera cztery nagrody, wszystkich finalistów i właściwego zwycięzcę gry po rozstrzygnięciu punktacji. Przed zapisem gracz widzi komunikat o fizycznym kole.
+Plansza pokazuje numer i łączną liczbę pytań z migawki. Na fizycznym kole pokazuje zapisane punkty, zwycięzcę pytania i aktualny ranking. Podsumowanie zawiera wyniki rund, finalistów i końcową klasyfikację. Po zapisaniu nagrody pokazuje zwycięzców finału i przyznane 2 żetony na gracza zwycięskiej drużyny.

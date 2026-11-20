@@ -5,13 +5,20 @@ import { useState } from "react";
 import { FinalePresentation, formatFinaleEstimate } from "@/components/finale-screen";
 import styles from "@/components/finale.module.css";
 import { getTeam } from "@/lib/constants";
-import type { FinaleSnapshot, TeamId } from "@/lib/types";
+import type { FinaleSnapshot, FinaleUnit, TeamId } from "@/lib/types";
 import type { FinaleCommand } from "@/lib/validation";
 
 type ControlsProps = {
   finale: FinaleSnapshot;
   disabled: boolean;
   send: (command: FinaleCommand) => void;
+};
+
+const estimateInstructions: Record<FinaleUnit, string> = {
+  percent: "Podaj procent od 0 do 100.",
+  people: "Podaj pełną liczbę osób, bez skrótu „mln”.",
+  years: "Podaj liczbę lat.",
+  visits: "Podaj pełną liczbę wizyt, bez skrótu „mln”.",
 };
 
 function SelectFinalists({ finale, send }: ControlsProps) {
@@ -87,8 +94,8 @@ function QuestionControls({ finale, send }: ControlsProps) {
           if (estimate.trim()) send({ action: "estimate", value: estimate });
         }}>
           <label className="field-label" htmlFor="finale-estimate">Szacunek drużyny {getTeam(finalists[0].teamId).name}</label>
-          <input id="finale-estimate" className="text-input" value={estimate} onChange={(event) => setEstimate(event.target.value)} inputMode={question.unit === "people" ? "numeric" : "decimal"} aria-describedby="finale-unit" maxLength={15} required autoComplete="off" />
-          <p id="finale-unit">{question.unit === "percent" ? "Podaj procent od 0 do 100." : question.unit === "people" ? "Podaj pełną liczbę osób, bez skrótu „mln”." : "Podaj liczbę lat."}</p>
+          <input id="finale-estimate" className="text-input" value={estimate} onChange={(event) => setEstimate(event.target.value)} inputMode={question.unit === "percent" || question.unit === "years" ? "decimal" : "numeric"} aria-describedby="finale-unit" maxLength={15} required autoComplete="off" />
+          <p id="finale-unit">{estimateInstructions[question.unit]}</p>
           <button className="gold-button" type="submit" disabled={!estimate.trim()}>Zatwierdź szacunek</button>
         </form>
       );
@@ -125,7 +132,7 @@ function QuestionControls({ finale, send }: ControlsProps) {
     const total = finale.ranking.find((row) => row.teamId === question.winner)?.points ?? 0;
     return <>
       <WheelPointsForm key={question.points ?? "new"} round={question.number} team={question.winner} saved={question.points} total={total} send={send} />
-      {question.points !== null && <button className="gold-button" type="button" onClick={() => send({ action: "next" })}>{question.number === 4 ? "Przejdź do podsumowania" : "Następne pytanie"}</button>}
+      {question.points !== null && <button className="gold-button" type="button" onClick={() => send({ action: "next" })}>{question.number === finale.questionCount ? "Przejdź do podsumowania" : "Następne pytanie"}</button>}
     </>;
   }
   return null;

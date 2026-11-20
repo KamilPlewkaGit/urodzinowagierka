@@ -9,12 +9,12 @@ import { CHARADES_BET_STAKE, LEGACY_DUEL_BET_STAKE, STANDARD_DUEL_BET_STAKE, STA
 import { advanceAlkoholicy, alkoholicyAwardedPoints, AlkoholicyConflict, charadesLeaders, normalizeAlkoholicy } from "@/lib/alkoholicy";
 import { getGoldSnapshot, GOLD_CONTRIBUTION, GoldConflict, normalizeGoldProgress, type GoldStakeView } from "@/lib/gold-challenge";
 import { advanceFamiliada, FamiliadaConflict, getFamiliadaSnapshot, type FamiliadaBetSummary, type StoredFamiliada } from "@/lib/familiada";
-import { advanceFinale, FinaleConflict, getFinaleSnapshot, rankFinaleTeams, type StoredFinale } from "@/lib/finale";
+import { advanceFinale, FINALE_WINNER_CHIP_REWARD, FinaleConflict, getFinaleSnapshot, rankFinaleTeams, type StoredFinale } from "@/lib/finale";
 import type { AlkoholicyAction, FamiliadaAction, FinaleAction, GoldAction } from "@/lib/validation";
 import { THE_FLOOR_CATEGORY_IDS, THE_FLOOR_DUEL_SECONDS, THE_FLOOR_PASS_PENALTY_SECONDS, THE_FLOOR_PRESENCE_SECONDS } from "@/lib/floor";
 import { getTheFloorCatalogStatus, getTheFloorContent, getTheFloorDeckKeys, getTheFloorItemCounts, getTheFloorPreloadManifest } from "@/lib/floor-content";
 import { SOLENIZANT_LAST_QUESTION_INDEX } from "@/lib/solenizant";
-import { SPORT_BONUS_ROUND_COUNT, SPORT_CHALLENGE_COUNT, SPORT_CORRECT_BET_PROFIT, SPORT_CHALLENGES } from "@/lib/sport";
+import { SPORT_BONUS_ROUND_COUNT, SPORT_CHALLENGE_COUNT, SPORT_CHALLENGES } from "@/lib/sport";
 import { MELODIA_LOSER_CONTRIBUTION, MELODIA_SONG_COUNT } from "@/lib/melodia";
 import { POJEDYNKI_DUEL_COUNT } from "@/lib/pojedynki";
 import type { GameSnapshot, GameState, MelodiaSong, MelodiaSongStage, MelodiaStage, MelodiaState, MelodiaTeamScore, Player, PojedynkiDuel, PojedynkiDuelStage, PojedynkiStage, PojedynkiState, SegmentId, Session, SportBonusRound, SportBonusStage, SportChallenge, SportChallengeStage, SportPairing, SportPairSlot, SportPlayerNumber, SportStage, SportState, TeamId, TeamScore, TheFloorDuel, TheFloorDuelStage, TheFloorState, TheFloorStage } from "@/lib/types";
@@ -151,10 +151,14 @@ function database() {
   return neon(connectionString);
 }
 
-async function runWithGameLock(sql: ReturnType<typeof database>, query: NeonQueryPromise<false, false>) {
+async function runWithGameLock(sql: ReturnType<typeof database>, query: NeonQueryPromise<false, false>, lockPlayerRoster = false) {
   // Acquire the shared lock before taking the write statement's snapshot.
-  const [, rows] = await sql.transaction([sql`SELECT id FROM game_state WHERE id = 1 FOR UPDATE`, query]);
-  return rows;
+  const statements = [sql`SELECT id FROM game_state WHERE id = 1 FOR UPDATE`];
+  // Final reward settlement needs active memberships and balances from the same snapshot.
+  if (lockPlayerRoster) statements.push(sql`LOCK TABLE players IN SHARE ROW EXCLUSIVE MODE`);
+  statements.push(query);
+  const results = await sql.transaction(statements);
+  return results[results.length - 1];
 }
 
 function overallTeamScores(sql: ReturnType<typeof database>) {
@@ -190,7 +194,7 @@ function teamBetAllocations(sql: ReturnType<typeof database>) {
     totals AS (
       SELECT COALESCE(SUM(bet.stake), 0)::NUMERIC AS escrow,
         COALESCE(SUM(bet.stake) FILTER (WHERE bet.target_team_id IS DISTINCT FROM candidate.winner), 0)::NUMERIC AS lost_stakes,
-        COUNT(*) FILTER (WHERE bet.target_team_id = candidate.winner) * ${SPORT_CORRECT_BET_PROFIT}::NUMERIC AS profit_due
+        COALESCE(SUM(bet.stake) FILTER (WHERE bet.target_team_id = candidate.winner), 0)::NUMERIC AS profit_due
       FROM bets bet CROSS JOIN candidate
     ),
     locked_players AS (
@@ -213,13 +217,13 @@ function teamBetAllocations(sql: ReturnType<typeof database>) {
     ),
     movements AS (
       SELECT id AS player_id,
-        TRUNC(team_delta / team_size, 4) +
+        DIV(team_delta * 10000, team_size) * 0.0001 +
           CASE WHEN member_rank <= MOD(ABS(team_delta) * 10000, team_size::NUMERIC)
             THEN SIGN(team_delta) * 0.0001 ELSE 0 END AS delta,
         CASE WHEN team_delta < 0 THEN 'zysk_dla_trafnych_typów' ELSE 'stawki_błędnych_typów' END AS kind
       FROM shares
       UNION ALL
-      SELECT bet.bettor_id, bet.stake + ${SPORT_CORRECT_BET_PROFIT}::NUMERIC, 'prawidłowy_typ'
+      SELECT bet.bettor_id, bet.stake * 2, 'prawidłowy_typ'
       FROM bets bet CROSS JOIN candidate WHERE bet.target_team_id = candidate.winner
     ),
     allocations AS (
@@ -265,7 +269,7 @@ const standardBetMarkets = {
   sport: { duels: "sport_challenges", bets: "sport_bets", key: "challenge_id", stage: "sport_stage", sequence: "current_sport_challenge_sequence", prefix: "sport" },
 } as const;
 
-async function settleStandardTeamDuel(segment: keyof typeof standardBetMarkets, winner: TeamId, eventId?: number): Promise<TeamBetSettlement> {
+async function settleStandardTeamDuel(segment: keyof typeof standardBetMarkets, winner: TeamId, eventId: number): Promise<TeamBetSettlement> {
   await ensureDatabase();
   const sql = database();
   const market = standardBetMarkets[segment];
@@ -294,7 +298,7 @@ async function settleStandardTeamDuel(segment: keyof typeof standardBetMarkets, 
       ${joinPair}
       WHERE game.id = 1 AND game.status = 'started' AND game.active_segment = ${segment}
         AND game.${stage} ${stageFilter} AND duel.stage ${stageFilter}
-        ${segment === "the-floor" ? sql`` : sql`AND duel.id = ${eventId}::BIGINT`}
+        AND duel.id = ${eventId}::BIGINT
         AND ${winner} IN (${teams}.team_a_id, ${teams}.team_b_id)
         AND (duel.winner_team_id IS NULL OR duel.winner_team_id = ${winner}) AND duel.settled_at IS NULL
       FOR UPDATE OF duel
@@ -312,7 +316,7 @@ async function settleStandardTeamDuel(segment: keyof typeof standardBetMarkets, 
     ), settled_bets AS (
       UPDATE ${bets} bet
       SET result = CASE WHEN bets.target_team_id = candidate.winner THEN 'won' ELSE 'lost' END,
-        payout = CASE WHEN bets.target_team_id = candidate.winner THEN bets.stake + ${SPORT_CORRECT_BET_PROFIT}::NUMERIC ELSE 0 END,
+        payout = CASE WHEN bets.target_team_id = candidate.winner THEN bets.stake * 2 ELSE 0 END,
         settled_at = NOW()
       FROM bets CROSS JOIN candidate CROSS JOIN marked WHERE bet.id = bets.id
     ), paid AS (
@@ -442,7 +446,7 @@ async function settleAlkoholicy(sql: ReturnType<typeof database>, revision: stri
           WHEN bet.target_team_id = ${winner} THEN 'won' ELSE 'lost' END AS result,
         CASE WHEN NOT ${duel}::BOOLEAN AND totals.correct = 0 THEN bet.stake
           WHEN bet.target_team_id <> ${winner} THEN 0::NUMERIC
-          WHEN ${duel}::BOOLEAN THEN bet.stake + ${SPORT_CORRECT_BET_PROFIT}::NUMERIC
+          WHEN ${duel}::BOOLEAN THEN bet.stake * 2
           ELSE TRUNC(totals.pot / NULLIF(totals.correct, 0), 4) + CASE WHEN bet.id = totals.first_correct
             THEN totals.pot - TRUNC(totals.pot / NULLIF(totals.correct, 0), 4) * totals.correct ELSE 0 END
         END AS payout
@@ -799,6 +803,38 @@ export async function applyGoldAction({ revision, command }: GoldAction, voterId
   }
 }
 
+function finaleChipAllocations(sql: ReturnType<typeof database>, winner: TeamId | null, reversedReward?: StoredFinale["chipReward"]) {
+  if (winner) return sql`
+    roster AS (
+      SELECT id, tokens, team_id = ${winner} AS is_winner
+      FROM players WHERE active AND EXISTS (SELECT 1 FROM candidate)
+    ), ranked AS (
+      SELECT roster.*, ROW_NUMBER() OVER (PARTITION BY is_winner ORDER BY id) AS position FROM roster
+    ), counts AS (
+      SELECT COUNT(*) FILTER (WHERE is_winner) AS winners, COUNT(*) FILTER (WHERE NOT is_winner) AS contributors
+      FROM roster
+    ), budget AS (
+      SELECT winners * ${FINALE_WINNER_CHIP_REWARD}::NUMERIC * 10000 AS units, contributors
+      FROM counts WHERE winners > 0 AND contributors > 0
+    ), chip_allocations AS (
+      SELECT ranked.id, ranked.tokens,
+        CASE WHEN is_winner THEN ${FINALE_WINNER_CHIP_REWARD}::NUMERIC
+          ELSE -(DIV(units, contributors) + CASE WHEN position <= MOD(units, contributors) THEN 1 ELSE 0 END) * 0.0001
+        END AS delta
+      FROM ranked CROSS JOIN budget
+    )
+  `;
+  if (reversedReward) return sql`
+    chip_allocations AS (
+      SELECT player.id, player.tokens, -(transfer.value::NUMERIC) AS delta
+      FROM jsonb_each_text(${JSON.stringify(reversedReward.transfers)}::JSONB) transfer
+      JOIN players player ON player.id = transfer.key::BIGINT
+      WHERE EXISTS (SELECT 1 FROM candidate)
+    )
+  `;
+  return sql`chip_allocations AS (SELECT id, tokens, 0::NUMERIC AS delta FROM players WHERE FALSE)`;
+}
+
 export async function applyFinaleAction({ revision, command }: FinaleAction) {
   await ensureDatabase();
   const sql = database();
@@ -814,9 +850,15 @@ export async function applyFinaleAction({ revision, command }: FinaleAction) {
   const ranking = rankFinaleTeams(Object.entries(current.scores).map(([teamId, points]) => ({ teamId: teamId as TeamId, points })));
   const next = advanceFinale(current.finale_state, command, ranking);
   const expectedScores = ["confirm-finalists", "start", "overall-winner", "complete"].includes(command.action) ? JSON.stringify(current.scores) : null;
+  const rewardWinner = command.action === "complete" ? next!.overallWinner! : null;
+  const reversedReward = command.action === "restart" ? current.finale_state?.chipReward : undefined;
+  const previousTransferCount = reversedReward ? Object.keys(reversedReward.transfers).length : 0;
   const deltas: Partial<Record<TeamId, number>> = {};
   let audit: Record<string, unknown> = { command: command.action };
-  if (command.action === "award") {
+  if (command.action === "confirm-winner") {
+    deltas[command.teamId] = 1;
+    audit = { ...audit, round: next!.questionIndex + 1, winner: command.teamId, delta: 1 };
+  } else if (command.action === "award") {
     const round = current.finale_state?.rounds[command.round - 1];
     if (!round?.winner) throw new FinaleConflict(stale);
     const previous = round.points ?? null;
@@ -824,33 +866,63 @@ export async function applyFinaleAction({ revision, command }: FinaleAction) {
     audit = { ...audit, round: command.round, winner: round.winner, previous, points: command.points, delta: deltas[round.winner] };
   } else if (command.action === "restart") {
     for (const round of current.finale_state?.rounds ?? []) {
-      if (round.winner && round.points !== undefined) deltas[round.winner] = (deltas[round.winner] ?? 0) - round.points;
+      if (round.winner) deltas[round.winner] = (deltas[round.winner] ?? 0) - (round.points ?? 0) - Number(round.winnerPointAwarded === true);
     }
-    audit = { ...audit, deltas };
+    audit = { ...audit, deltas, reversedRewardId: reversedReward?.id };
   }
-  const rows = await runWithGameLock(sql, sql`
-    WITH allocations AS (
-      SELECT score.team_id, score.points::BIGINT + delta.value::BIGINT AS new_points
-      FROM solenizant_team_scores score JOIN jsonb_each_text(${JSON.stringify(deltas)}::JSONB) delta ON score.team_id = delta.key
-      ORDER BY score.team_id FOR UPDATE OF score
-    ), changed AS (
-      UPDATE game_state
-      SET finale_state = ${next === null ? null : JSON.stringify(next)}::JSONB, finale_revision = gen_random_uuid()
+  const [{ status }] = await runWithGameLock(sql, sql`
+    WITH candidate AS (
+      SELECT id FROM game_state
       WHERE id = 1 AND status = 'started' AND active_segment = 'finale' AND finale_revision = ${revision}::UUID
-        AND NOT EXISTS (SELECT 1 FROM allocations WHERE new_points NOT BETWEEN 0 AND 2147483647)
         AND (${expectedScores}::JSONB IS NULL OR ${expectedScores}::JSONB = (
           SELECT jsonb_object_agg(team_id, points) FROM (${overallTeamScores(sql)}) scores
         ))
-      RETURNING id
+    ), allocations AS (
+      SELECT score.team_id, score.points::BIGINT + delta.value::BIGINT AS new_points
+      FROM solenizant_team_scores score JOIN jsonb_each_text(${JSON.stringify(deltas)}::JSONB) delta ON score.team_id = delta.key
+      ORDER BY score.team_id FOR UPDATE OF score
+    ), ${finaleChipAllocations(sql, rewardWinner, reversedReward)}, outcome AS (
+      SELECT CASE
+        WHEN NOT EXISTS (SELECT 1 FROM candidate) OR EXISTS (SELECT 1 FROM allocations WHERE new_points NOT BETWEEN 0 AND 2147483647) THEN 'conflict'
+        WHEN ${Boolean(rewardWinner)}::BOOLEAN AND NOT EXISTS (SELECT 1 FROM chip_allocations) THEN 'empty-roster'
+        WHEN ${Boolean(reversedReward)}::BOOLEAN AND (SELECT COUNT(*) FROM chip_allocations) <> ${previousTransferCount}::BIGINT THEN 'missing-player'
+        WHEN EXISTS (SELECT 1 FROM chip_allocations WHERE tokens + delta < 0) THEN 'insufficient'
+        WHEN EXISTS (SELECT 1 FROM chip_allocations WHERE tokens + delta > 9999999999999999.9999) THEN 'balance-limit'
+        WHEN (SELECT COALESCE(SUM(delta), 0) FROM chip_allocations) <> 0 THEN 'conflict'
+        ELSE 'saved'
+      END AS status
+    ), reward AS (
+      SELECT jsonb_build_object('id', ${revision}::TEXT, 'perWinner', ${FINALE_WINNER_CHIP_REWARD}::NUMERIC,
+        'transfers', jsonb_object_agg(id, delta::TEXT)) AS details FROM chip_allocations
+    ), changed AS (
+      UPDATE game_state game
+      SET finale_state = ${next === null ? null : JSON.stringify(next)}::JSONB || CASE WHEN ${Boolean(rewardWinner)}::BOOLEAN
+        THEN jsonb_build_object('chipReward', reward.details) ELSE '{}'::JSONB END,
+        finale_revision = gen_random_uuid()
+      FROM candidate CROSS JOIN outcome CROSS JOIN reward
+      WHERE game.id = candidate.id AND outcome.status = 'saved'
+      RETURNING game.id
     ), scored AS (
       UPDATE solenizant_team_scores score SET points = allocations.new_points
       FROM allocations CROSS JOIN changed WHERE score.team_id = allocations.team_id
+    ), paid AS (
+      UPDATE players player SET tokens = player.tokens + chip_allocations.delta
+      FROM chip_allocations CROSS JOIN changed WHERE player.id = chip_allocations.id AND chip_allocations.delta <> 0
+    ), audited AS (
+      INSERT INTO admin_actions (action, details)
+      SELECT 'finale_action', ${JSON.stringify(audit)}::JSONB || CASE WHEN ${Boolean(rewardWinner)}::BOOLEAN
+        THEN jsonb_build_object('winner', ${rewardWinner}::TEXT, 'chipReward', reward.details) ELSE '{}'::JSONB END
+      FROM changed CROSS JOIN reward
     )
-    INSERT INTO admin_actions (action, details)
-    SELECT 'finale_action', ${JSON.stringify(audit)}::JSONB FROM changed
-    RETURNING id
-  `);
-  if (!rows.length) throw new FinaleConflict(stale);
+    SELECT status FROM outcome
+  `, Boolean(rewardWinner || reversedReward)) as { status: string }[];
+  if (status === "saved") return;
+  const rewardAction = reversedReward ? "cofnąć wypłaty finałowej" : "wypłacić nagrody finałowej";
+  if (status === "empty-roster") throw new FinaleConflict("Do wypłaty nagrody finałowej potrzebni są aktywni gracze zwycięskiej drużyny i aktywni gracze pozostałych drużyn.");
+  if (status === "missing-player") throw new FinaleConflict("Nie można cofnąć wypłaty finałowej. Brakuje zapisu jednego z uczestników rozliczenia.");
+  if (status === "insufficient") throw new FinaleConflict(`Nie można ${rewardAction}. Co najmniej jeden gracz ma za mało żetonów na wymagany przelew.`);
+  if (status === "balance-limit") throw new FinaleConflict(`Nie można ${rewardAction}. Transfer przekroczyłby maksymalne saldo gracza.`);
+  throw new FinaleConflict(stale);
 }
 
 async function saveFamiliada(
@@ -920,7 +992,7 @@ async function settleFamiliadaMatch(sql: ReturnType<typeof database>, revision: 
     settled_bets AS (
       UPDATE familiada_bets bet
       SET result = CASE WHEN bet.target_team_id = ${winner} THEN 'won' ELSE 'lost' END,
-        payout = CASE WHEN bet.target_team_id = ${winner} THEN bet.stake + ${SPORT_CORRECT_BET_PROFIT}::NUMERIC ELSE 0 END,
+        payout = CASE WHEN bet.target_team_id = ${winner} THEN bet.stake * 2 ELSE 0 END,
         settled_at = NOW()
       FROM bets CROSS JOIN approved
       WHERE bet.match_index = bets.match_index AND bet.bettor_id = bets.bettor_id
@@ -1410,7 +1482,7 @@ export async function ensureDatabase() {
         WITH removed(category_id, keys) AS (
           VALUES
             ('lokalne-miejsca', ARRAY['45']),
-            ('loga', ARRAY['5', '16', '17', '19', '21', '22', '23', '24', '27', '31', '45', '48'])
+            ('loga', ARRAY['5', '16', '17', '19', '21', '22', '23', '24', '27', '28', '30', '31', '38', '45', '48', '50'])
         ), remaining AS (
           SELECT duel.id, jsonb_agg(card.key ORDER BY card.position) AS item_order,
             COUNT(*) FILTER (WHERE card.position <= duel.item_index) % COUNT(*) AS item_index
@@ -2858,8 +2930,8 @@ export async function finishExpiredTheFloorDuel() {
   return rows[0] ?? null;
 }
 
-export function endTheFloorDuel(winnerTeamId: TeamId) {
-  return settleStandardTeamDuel("the-floor", winnerTeamId);
+export function endTheFloorDuel(winnerTeamId: TeamId, eventId: number) {
+  return settleStandardTeamDuel("the-floor", winnerTeamId, eventId);
 }
 
 /** Opens the next unconfigured duel slot, or the segment-summary stage after all six categories. */

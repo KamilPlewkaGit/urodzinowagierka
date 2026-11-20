@@ -1,1 +1,3 @@
-Utrzymuje cztery pytania i stałą parę finalistów. Zapisuje w rundach całkowite punkty z fizycznego koła. Przejście wymaga zapisanej nagrody. Wylicza z bieżącego rankingu liderów gry i w przypadku remisu wymaga wyboru prowadzącego.
+Utrzymuje sześć pytań, stałą parę finalistów i klucz serwerowy, w tym 61% i 49,7 miliona wizyt. Zapisuje zwycięzcę i przyznanie punktu za pytanie oraz osobno całkowite punkty z fizycznego koła. Przejście wymaga potwierdzenia punktów z koła. Po sześciu rundach wybiera lidera rankingu lub wymaga rozstrzygnięcia remisu przez prowadzącego.
+
+Normalizacja uzupełnia pytania w starszych otwartych finałach. Zachowuje wcześniej zapisane punkty i stan ukończonych finałów. Migawka pokazuje liczbę rund oraz potwierdzoną kwotę nagrody. Dokładne transfery i transakcja pozostają w bazie.

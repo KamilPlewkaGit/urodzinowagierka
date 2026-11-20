@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { OBSERVER_NICKNAME, TEAM_IDS } from "@/lib/constants";
+import { FINALE_QUESTION_COUNT, OBSERVER_NICKNAME, TEAM_IDS } from "@/lib/constants";
 import { SOLENIZANT_LAST_QUESTION_INDEX } from "@/lib/solenizant";
 
 z.config(z.locales.pl());
@@ -82,7 +82,7 @@ export const finaleActionSchema = z.object({
     z.object({ action: z.literal("estimate"), value: z.string().trim().regex(/^\d{1,12}(?:[,.]\d{1,2})?$/).transform((value) => Number(value.replace(",", "."))) }),
     z.object({ action: z.literal("direction"), value: z.enum(["more", "less"]) }),
     z.object({ action: z.enum(["confirm-winner", "overall-winner"]), teamId: teamIdSchema }),
-    z.object({ action: z.literal("award"), round: z.number().int().min(1).max(4), points: z.number().int().min(0).max(2_147_483_647) }),
+    z.object({ action: z.literal("award"), round: z.number().int().min(1).max(FINALE_QUESTION_COUNT), points: z.number().int().min(0).max(2_147_483_647) }),
     z.object({ action: z.enum(["start", "reveal", "show-wheel", "next", "complete", "restart"]) }),
   ]),
 });
@@ -112,7 +112,7 @@ export const theFloorDuelConfigurationSchema = z.object({
 
 export const theFloorBetSchema = z.object({ targetTeamId: teamIdSchema });
 
-export const theFloorWinnerSchema = z.object({ winnerTeamId: teamIdSchema });
+export const theFloorWinnerSchema = z.object({ eventId: playerIdNumberSchema, winnerTeamId: teamIdSchema });
 export const theFloorAdvanceSchema = z.object({ action: z.enum(["correct", "pass"]) });
 
 export const pojedynkiDuelConfigurationSchema = z.object({

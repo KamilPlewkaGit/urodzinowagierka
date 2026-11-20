@@ -1,1 +1,3 @@
 POST wymaga sesji admina i aktualnej rewizji. `award` podaje rundę i liczbę punktów. `overall-winner` rozstrzyga remis. Baza zapisuje punkty, różnicę ewentualnej korekty oraz wpis audytu.
+
+`complete` zatwierdza jednorazową nagrodę po zapisaniu sześciu rund i rozstrzygnięciu rankingu. Konflikt finansowania zwraca 409 z komunikatem po polsku. `restart` odwraca zaksięgowaną nagrodę po sprawdzeniu sald pierwotnych uczestników.
