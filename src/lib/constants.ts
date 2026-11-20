@@ -3,10 +3,10 @@ import type { SegmentId, TeamId, TeamMeta } from "@/lib/types";
 export const TEAM_IDS = ["royal", "ruby", "emerald", "onyx"] as const satisfies readonly TeamId[];
 
 export const TEAMS: readonly TeamMeta[] = [
-  { id: "royal", name: "Królewski Klub", tagline: "Spokojni i wyrachowani", icon: "♛", color: "#d6b76f", softColor: "#3f3320" },
-  { id: "ruby", name: "Rubinowy Syndykat", tagline: "Nieustraszeni i ognisti", icon: "♦", color: "#f15d61", softColor: "#4d2026" },
-  { id: "emerald", name: "Szmaragdowy Krąg", tagline: "Bystrzy i szczęśliwi", icon: "♠", color: "#42c797", softColor: "#173d32" },
-  { id: "onyx", name: "Dom Onyksu", tagline: "Cisi i nieustępliwi", icon: "◈", color: "#a9adbd", softColor: "#292c38" },
+  { id: "royal", name: "Asy z Rękawa", tagline: "Spokojni i wyrachowani", icon: "♛", color: "#d6b76f", softColor: "#3f3320" },
+  { id: "ruby", name: "Królowie Blefu", tagline: "Nieustraszeni i ognisti", icon: "♦", color: "#f15d61", softColor: "#4d2026" },
+  { id: "emerald", name: "Ruletkowi Rozbójnicy", tagline: "Bystrzy i szczęśliwi", icon: "♠", color: "#42c797", softColor: "#173d32" },
+  { id: "onyx", name: "Żetonowi Magnaci", tagline: "Cisi i nieustępliwi", icon: "◈", color: "#a9adbd", softColor: "#292c38" },
 ];
 
 // Keep the published event numbers even where the app skips a segment.

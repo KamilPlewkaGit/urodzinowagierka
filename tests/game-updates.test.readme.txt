@@ -1,5 +1,7 @@
 Testy HTTP na zbudowanej aplikacji. Uruchamiają tymczasowy serwer, weryfikują autoryzację, nawigację, treści The Floor, stan zakładów i etapów, przebiegi segmentów oraz sumę sald po rozliczeniu.
 
+Sprawdzają cztery nazwy w wyborze drużyny, lobby, punktacji, panelu prowadzącego i widoku obserwatora we wszystkich segmentach. Weryfikują też nazwy w zakładach i wynikach The Floor oraz na planszy finału. Po odświeżeniu i ponownym dołączeniu porównują istniejące dane graczy i punktację z zapisem po rozliczeniu.
+
 The Floor sprawdza wszystkie grafiki z manifestu, nowe zestawy Lokalnych miejsc i Loga oraz punkty po zatwierdzeniu wyniku, ponowieniu żądania i restarcie. Punktacja jest sprawdzana także z konta gracza i w kwalifikacji finału.
 
 POJEDYNKI i SPORT sprawdzają wszystkie główne wyniki, spóźnione i równoległe potwierdzenia, korekty, restarty, oba bonusy i zakłady. Familiada sprawdza uszeregowane odpowiedzi, pulę, udane i nieudane przejęcie, dwa mecze i korektę remisu. Złote gry sprawdzają punkt za wygraną, punkty za indywidualne głosy z kilku drużyn, brak trafień, wypłaty, ponowne dołączenie i korekty bez zmiany sald. Pełny reset weryfikuje wyzerowanie punktów i oddziela scenariusz finału.

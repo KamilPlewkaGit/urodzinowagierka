@@ -71,7 +71,16 @@ test("Scenariusze gry w odizolowanej bazie PostgreSQL", { timeout: 120_000 }, as
     revision ??= (await status(cookie))[key].revision;
     return post("/api/segment/" + segment, cookie, { revision, command: { action, ...payload } }, expected);
   }
-  const teams = ["royal", "ruby", "emerald", "onyx"];
+  const teamNames = {
+    royal: "Asy z Rękawa",
+    ruby: "Królowie Blefu",
+    emerald: "Ruletkowi Rozbójnicy",
+    onyx: "Żetonowi Magnaci",
+  };
+  const teams = Object.keys(teamNames);
+  function assertTeamNames(html, view) {
+    for (const name of Object.values(teamNames)) assert.ok(html.includes(name), `${view}: ${name}`);
+  }
   const roster = Object.fromEntries(teams.map((team) => [team, []]));
   async function register(team) {
     const nickname = team + (roster[team].length + 1);
@@ -102,16 +111,24 @@ test("Scenariusze gry w odizolowanej bazie PostgreSQL", { timeout: 120_000 }, as
   await post("/api/admin/players/chips", observer, { playerId: 1, tokens: "500" }, 403);
   await command("gold-challenge", "goldChallenge", "number-vote", { number: 1 }, { cookie: observer, expected: 403 });
   await command("familiada", "familiada", "buzz", {}, { cookie: observer, expected: 403 });
+  const landing = await (await request("/")).text();
+  const choices = landing.match(/<fieldset[^>]*class="team-fieldset"[^>]*>(.*?)<\/fieldset>/s)?.[1];
+  assert.ok(choices, "Wybór drużyny przy rejestracji");
+  assert.deepEqual(Array.from(choices.matchAll(/<strong>([^<]+)<\/strong>/g), ([, name]) => name), Object.values(teamNames));
   for (const team of teams) for (let index = 0; index < 5; index++) await register(team);
-  await request("/lobby", { cookie: roster.royal[0].cookie });
-  await request("/admin", { cookie: admin });
+  const playerCookie = roster.royal[0].cookie;
+  assertTeamNames(await (await request("/lobby", { cookie: playerCookie })).text(), "Lobby");
+  assert.deepEqual((await status()).teamScores.map(({ teamId }) => teamId), teams);
   await post("/api/game/start", admin);
+  assertTeamNames(await (await request("/lobby?widok=zetony", { cookie: playerCookie })).text(), "Punktacja");
   for (const segmentId of ["solenizant", "the-floor", "sport", "melodia", "pojedynki", "familiada", "gold-challenge", "alkoholicy", "finale"]) {
     await setSegment(segmentId);
     assert.equal((await status(observer)).game.activeSegment, segmentId);
-    assert.match(await (await request("/obserwator", { cookie: observer })).text(), new RegExp('data-segment="' + segmentId + '"'));
-    await request("/lobby", { cookie: roster.royal[0].cookie });
-    await request("/admin", { cookie: admin });
+    const observerHtml = await (await request("/obserwator", { cookie: observer })).text();
+    assert.match(observerHtml, new RegExp('data-segment="' + segmentId + '"'));
+    assertTeamNames(observerHtml, `Obserwator, ${segmentId}`);
+    await request("/lobby", { cookie: playerCookie });
+    assertTeamNames(await (await request("/admin", { cookie: admin })).text(), `Prowadzący, ${segmentId}`);
   }
 
   await t.test("The Floor – materiały, gotowość, zegar, prywatne odpowiedzi i rozliczenie", async () => {
@@ -176,7 +193,10 @@ test("Scenariusze gry w odizolowanej bazie PostgreSQL", { timeout: 120_000 }, as
       assert.equal(balance(before, bettor), 1000000n);
       assert.equal(balance(reserved, bettor), 960000n);
     }
-    assert.match(await (await request("/lobby?widok=segment", { cookie: undersupplied.cookie })).text(), /8 żetonów wypłaty/);
+    const bettingPage = await request("/lobby?widok=segment", { cookie: undersupplied.cookie });
+    const bettingHtml = (await bettingPage.text()).replaceAll("<!-- -->", "");
+    assert.match(bettingHtml, /8 żetonów wypłaty/);
+    for (const team of ["royal", "ruby"]) assert.ok(bettingHtml.includes(`Stawiam na ${teamNames[team]}</button>`));
     await move("floor", "start-duel", { deviceId: host }, 409);
     await report(player.cookie, remote, manifest.urls.length);
     await post("/api/auth/logout", roster.onyx[4].cookie);
@@ -221,11 +241,20 @@ test("Scenariusze gry w odizolowanej bazie PostgreSQL", { timeout: 120_000 }, as
     await move("floor", "end", finish, 409);
     for (let refresh = 0; refresh < 2; refresh++) {
       const page = await request("/lobby?widok=segment", { cookie: player.cookie });
-      assert.match(await page.text(), /Otrzymujesz 8 żetonów/);
+      const html = await page.text();
+      assert.match(html, /Otrzymujesz 8 żetonów/);
+      assert.ok(html.includes(`<h1>Wygrywa <em>${teamNames.royal}</em>.</h1>`));
       const refreshed = await status(player.cookie);
       assert.deepEqual(refreshed.players, after.players);
       assert.deepEqual(refreshed.teamScores, after.teamScores);
     }
+    const reconnected = await post("/api/auth/register", undefined, { nickname: player.nickname, teamId: "onyx" });
+    assert.deepEqual((await reconnected.json()).player, after.players.find(({ id }) => id === player.id));
+    const reconnectedCookie = cookieOf(reconnected);
+    assertTeamNames(await (await request("/lobby?widok=lobby", { cookie: reconnectedCookie })).text(), "Ponowne dołączenie");
+    const reconnectedState = await status(reconnectedCookie);
+    assert.deepEqual(reconnectedState.players, after.players);
+    assert.deepEqual(reconnectedState.teamScores, after.teamScores);
 
     for (const [categoryId, itemCount] of [["lokalne-miejsca", 49], ["loga", 34]]) {
       await move("floor", "next");
@@ -818,7 +847,9 @@ test("Scenariusze gry w odizolowanej bazie PostgreSQL", { timeout: 120_000 }, as
     await finale("complete", {}, { expected: 409 });
     for (const cookie of [roster.ruby[0].cookie, roster.onyx[0].cookie, observer]) {
       const page = await request(cookie === observer ? "/obserwator" : "/lobby?widok=segment", { cookie });
-      assert.match(await page.text(), /ZWYCIĘZCY FINAŁU!.*Każdy zawodnik zwycięskiej drużyny otrzymał/);
+      const html = await page.text();
+      assert.match(html, new RegExp(`ZWYCIĘZCY FINAŁU!</h1><p[^>]*>${teamNames.ruby}</p>.*Każdy zawodnik zwycięskiej drużyny otrzymał`));
+      assertTeamNames(html, "Wyniki finału");
       const refreshed = await status(cookie);
       assert.deepEqual(refreshed.players, complete.players);
       assert.deepEqual(refreshed.finale, complete.finale);

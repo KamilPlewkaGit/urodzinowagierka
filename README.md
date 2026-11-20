@@ -41,6 +41,17 @@ Przełączanie widoków zachowuje formularz aktualnego segmentu i trwające oper
 
 Wszystkie widoki korzystają ze wspólnej migawki `/api/game/state`. Ponadto gracze zgłaszają obecność urządzenia na potrzeby The Floor. Przyjęcie własnego zakładu wywołuje także odczyt od razu. Składy, salda, wypłaty i zmiany prowadzącego pochodzą z bazy Neon i są widoczne po kolejnym udanym odczycie. Krótka przerwa w połączeniu pozostawia ostatnie dostępne dane z komunikatem o ponawianiu synchronizacji. Ponowne dołączenie z tym samym pseudonimem aktywnego gracza przywraca jego drużynę i zapisane saldo.
 
+### Drużyny
+
+Nazwy używane we wszystkich widokach pochodzą ze wspólnej konfiguracji `src/lib/constants.ts`. Baza wiąże graczy, punktację, zakłady i wyniki ze stałymi identyfikatorami. Zmiana nazwy w konfiguracji obowiązuje także dla wcześniej zapisanych danych.
+
+| Identyfikator | Nazwa |
+| --- | --- |
+| `royal` | Asy z Rękawa |
+| `ruby` | Królowie Blefu |
+| `emerald` | Ruletkowi Rozbójnicy |
+| `onyx` | Żetonowi Magnaci |
+
 ## Widok obserwatora
 
 Na stronie głównej wybierz **Zaloguj jako obserwator** lub wpisz login `obserwator`. W prywatnej konfiguracji hasło to `obserwator`. Ustaw własne hasło w serwerowej zmiennej `OBSERVER_PASSWORD` na publicznym wdrożeniu. Login jest zarezerwowany w rejestracji. Serwer wystawia niejawne ciasteczko sesji z rolą `observer`, bez rekordu zawodnika, drużyny i salda.

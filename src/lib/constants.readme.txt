@@ -10,7 +10,9 @@ Backend/database interactions: `TEAM_IDS` and `STARTING_TOKENS` inform schema an
 
 Implementation details: Team IDs are a literal tuple so validation, UI, scoring, and typing share one stable identifier set. Polish labels are layered over stable IDs and visual metadata, which remain non-user data.
 
-Future expansion: Updating houses requires coordinated changes to the database CHECK in `database.ts`, so use a migration before changing this list in production.
+`TEAMS` wiąże identyfikatory z nazwami używanymi we wszystkich widokach. `royal` to Asy z Rękawa, `ruby` to Królowie Blefu, `emerald` to Ruletkowi Rozbójnicy, a `onyx` to Żetonowi Magnaci. Gracze, punkty i wyniki są zapisane według identyfikatorów, więc zmiana samej nazwy odbywa się w konfiguracji.
+
+Future expansion: Adding or changing a team ID requires a coordinated database migration and changes to validation.
 
 Wspólne numery rzymskie segmentów na podstawie identyfikatorów. Dotychczasowe numery V, VI i VIII zachowują swoje przypisania.
 
