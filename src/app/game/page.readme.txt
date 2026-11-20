@@ -3,3 +3,5 @@ File: src/app/game/page.tsx
 Purpose: Preserves the administrator's live preview and the existing player entry URL.
 
 The dynamic page verifies the current session. Players opening /game enter /lobby?widok=segment, where the dashboard checks active membership and shows the current segment. Administrators preview the active segment through AdminGamePreview with an administrator-safe snapshot or return to /admin while the game is waiting. Control actions remain protected by their existing Route Handlers.
+
+Zalogowany obserwator jest przekierowywany do /obserwator.

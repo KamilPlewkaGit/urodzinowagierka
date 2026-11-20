@@ -1,0 +1,1 @@
+Motyw transmisji z responsywnym paskiem segmentu, pełnym ekranem i dużą tabelą drużyn. Dopasowuje wspólne plansze oraz stałą ramę The Floor do widoku telewizyjnego. Animacje przejścia i wyniku respektują preferencję ograniczonego ruchu.

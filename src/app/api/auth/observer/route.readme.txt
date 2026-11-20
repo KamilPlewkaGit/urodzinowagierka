@@ -1,0 +1,1 @@
+POST sprawdza hasło obserwatora z konfiguracji serwera OBSERVER_PASSWORD lub używa domyślnego hasła dla gry prywatnej. Zapisuje niejawny token sesji observer w Neon i ustawia wspólne ciasteczko HttpOnly. Nie tworzy zawodnika ani salda.

@@ -1,1 +1,3 @@
 Przejścia Kalamburów zachowują ranking, punktację oraz zwrot w remisie. Gra 2 ma dwa kolejne pojedynki obsługiwane przez osobne rynki. Zapis zwycięzcy nie przyznaje punktów. Starsze zakończone pojedynki są odczytywane jako pierwszy wynik bez powtarzania rozliczenia.
+
+Otwarcie każdego pojedynku zapisuje własną stawkę 4 żetonów. Kalambury i otwarte wcześniej rynki zachowują poprzednią stawkę.

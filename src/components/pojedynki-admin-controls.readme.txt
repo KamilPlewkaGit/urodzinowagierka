@@ -15,3 +15,5 @@ Future expansion: Do not add browser-owned chips or outcome logic; add a focused
 Starszy wynik zapisany przed rozliczeniem wraca do zatwierdzenia z poprzednio wskazanym zwycięzcą. Status rozliczenia i skutki pozostają po stronie serwera.
 
 Potwierdzenie przesyła identyfikator pojedynku z migawki. Rozliczone zwycięstwo zasila klasyfikację drużyn jednym punktem.
+
+Przy otwartych zakładach prowadzący widzi rzeczywistą stawkę na bieżącą rundę.

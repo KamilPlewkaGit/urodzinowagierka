@@ -64,6 +64,7 @@ export interface TheFloorDuel {
   endedAt: string | null;
   winnerTeamId: TeamId | null;
   betCount: number;
+  betStake: string;
   viewerBetTargetTeamId: TeamId | null;
   viewerBetResult: "pending" | "won" | "lost" | "refunded" | null;
   viewerBetPayout: string | null;
@@ -127,6 +128,7 @@ export interface SportChallenge {
   stage: SportChallengeStage;
   winnerTeamId: TeamId | null;
   betCount: number;
+  betStake: string;
   viewerBetTargetTeamId: TeamId | null;
   viewerBetResult: "pending" | "won" | "lost" | null;
   viewerBetPayout: string | null;
@@ -195,6 +197,7 @@ export interface PojedynkiDuel {
   teamBId: TeamId | null;
   winnerTeamId: TeamId | null;
   betCount: number;
+  betStake: string;
   viewerBetTargetTeamId: TeamId | null;
   viewerBetResult: "pending" | "won" | "lost" | "refunded" | null;
   viewerBetPayout: string | null;
@@ -221,7 +224,8 @@ export interface FamiliadaSnapshot {
     winner: TeamId | null;
     settledAt: string | null;
     betCount: number;
-    viewerBet: { target: TeamId; result: "pending" | "won" | "lost"; payout: string } | null;
+    betStake: string;
+    viewerBet: { target: TeamId; result: "pending" | "won" | "lost"; stake: string; payout: string } | null;
   }[];
   questionIndex: number;
   round: {
@@ -270,6 +274,7 @@ export type AlkoholicyStage = "intro" | "order" | "charades-ready" | "charades-b
 export type AlkoholicyBetResult = "pending" | "won" | "lost" | "refunded";
 
 export interface AlkoholicyMarket {
+  betStake: string;
   counts: Record<AlkoholicyBetResult, number>;
   viewerBet: { target: TeamId; result: AlkoholicyBetResult; payout: string } | null;
 }
@@ -281,6 +286,7 @@ export interface AlkoholicyProgress {
   scores: Partial<Record<TeamId, number>>;
   duelTeams: [TeamId, TeamId] | null;
   duelIndex: 0 | 1;
+  duelBetStakes?: [string | null, string | null];
   duelHistory: { teams: [TeamId, TeamId]; winner: TeamId }[];
   legacyDuelAward?: { winner: TeamId; points: number };
 }
@@ -352,7 +358,7 @@ export interface GameSnapshot {
 
 export type Session =
   | { role: "player"; playerId: number; expiresAt: number }
-  | { role: "admin"; expiresAt: number };
+  | { role: "admin" | "observer"; expiresAt: number };
 
 export interface TeamMeta {
   id: TeamId;

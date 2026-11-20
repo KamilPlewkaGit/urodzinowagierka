@@ -1,7 +1,6 @@
 export const SPORT_TITLE = "Sport";
 export const SPORT_CHALLENGE_COUNT = 8;
 export const SPORT_BONUS_ROUND_COUNT = 2;
-export const SPORT_BET_STAKE = "2.0000";
 export const SPORT_CORRECT_BET_PROFIT = "2.0000";
 
 export type SportPairSlot = "a" | "b";

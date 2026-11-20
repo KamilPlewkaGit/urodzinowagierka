@@ -19,13 +19,15 @@ export async function GET(request: NextRequest) {
   const session = await getRequestSession(request);
   if (!session) return NextResponse.json({ error: "Sesja wygasła." }, { status: 401 });
   const manifest = await getTheFloorPreloadManifest();
-  return NextResponse.json(manifest, { headers: { "Cache-Control": "no-store" } });
+  const payload = session.role === "observer" ? { ...manifest, labels: {}, issues: [] } : manifest;
+  return NextResponse.json(payload, { headers: { "Cache-Control": "no-store" } });
 }
 
 export async function POST(request: NextRequest) {
   const session = await getRequestSession(request);
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   if (!session || !token) return NextResponse.json({ error: "Sesja wygasła." }, { status: 401 });
+  if (session.role === "observer") return NextResponse.json({ error: "Raporty gotowości są dostępne dla graczy i prowadzącego." }, { status: 403 });
   const report = reportSchema.safeParse(await request.json().catch(() => null));
   if (!report.success) return NextResponse.json({ error: "Nieprawidłowy raport wczytywania zdjęć." }, { status: 400 });
   const { deviceId, version, decoded, failed } = report.data;

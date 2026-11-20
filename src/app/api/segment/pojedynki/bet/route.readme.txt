@@ -1,11 +1,13 @@
 File: `src/app/api/segment/pojedynki/bet/route.ts`
 
-Purpose and responsibilities: Records one fixed two-chip player prediction for the current Pojedynki duel.
+Purpose and responsibilities: Records one fixed-stake player prediction for the current Pojedynki duel.
 
 Important exports, inputs, and outputs: Player-only `POST(request)` validates `{ targetTeamId }` and returns `{ ok: true }` or Polish errors.
 
 Dependencies: Next Route Handler APIs, opaque sessions, `pojedynkiBetSchema`, and `placePojedynkiBet`.
 
-Backend/database interactions: Derives the bettor only from the verified session. The service checks active status, balance, betting phase, target membership, remaining-team eligibility, and duplicate prevention before atomically debiting 2 chips and storing the wager.
+Backend/database interactions: Derives the bettor only from the verified session. The service checks active status, balance, betting phase, target membership, remaining-team eligibility, and duplicate prevention before atomically debiting the recorded round stake and storing the wager.
 
 Implementation details: No player ID, chip balance, stake amount, team score, or outcome is accepted from the browser.
+
+Nowe rundy rezerwują 4 żetony. Otwarte przed zmianą stawki rundy korzystają z wcześniejszej kwoty.

@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { AlkoholicyBoard, TeamName } from "@/components/alkoholicy-screen";
 import styles from "@/components/alkoholicy.module.css";
+import { formatPolishChips } from "@/lib/chips";
 import { TEAMS, getTeam } from "@/lib/constants";
 import type { GameSnapshot, TeamId } from "@/lib/types";
 import type { AlkoholicyAction } from "@/lib/validation";
@@ -115,7 +116,7 @@ export function AlkoholicyAdminControls({ snapshot, disabled, error, send }: {
             onSave={([first, second]) => send({ action: "duel-teams", teams: [first, second] })} />
         )}
         {stage === "duel-setup" && duelTeams && <div className={styles.actions}>{action({ action: "open-duel" }, "Otwórz zakłady")}{action({ action: "start-duel" }, "Rozpocznij pojedynek bez zakładów")}</div>}
-        {stage === "duel-betting" && <><p>Przyjęte zakłady: {duelMarket.counts.pending}. Rozpoczęcie pojedynku zamknie zakłady.</p>{action({ action: "start-duel" }, "Rozpocznij pojedynek")}</>}
+        {stage === "duel-betting" && <><p>Przyjęte zakłady: {duelMarket.counts.pending}. Stawka to {formatPolishChips(duelMarket.betStake)} żetony. Rozpoczęcie pojedynku zamknie zakłady.</p>{action({ action: "start-duel" }, "Rozpocznij pojedynek")}</>}
         {stage === "duel-live" && duelTeams && <DuelResultForm key={duelIndex} teams={duelTeams} send={send} />}
         {stage === "duel-result" && action({ action: "next-duel" }, "Przejdź do pojedynku nr 2")}
         {stage === "results" && action({ action: "complete" }, "Zakończ segment")}

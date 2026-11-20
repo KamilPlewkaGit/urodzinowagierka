@@ -1,5 +1,7 @@
 import "server-only";
 
+import { STANDARD_DUEL_BET_STAKE } from "@/lib/constants";
+
 import type { AlkoholicyProgress, TeamId } from "@/lib/types";
 import type { AlkoholicyAction } from "@/lib/validation";
 
@@ -82,7 +84,11 @@ export function advanceAlkoholicy(state: AlkoholicyProgress, command: Exclude<Al
       if (stage === "duel-setup") return { ...state, duelTeams: command.teams };
       break;
     case "open-duel":
-      if (stage === "duel-setup" && duelTeams) return { ...state, stage: "duel-betting" };
+      if (stage === "duel-setup" && duelTeams) {
+        const duelBetStakes: [string | null, string | null] = [...(state.duelBetStakes ?? [null, null])];
+        duelBetStakes[state.duelIndex] = STANDARD_DUEL_BET_STAKE;
+        return { ...state, stage: "duel-betting", duelBetStakes };
+      }
       break;
     case "start-duel":
       if ((stage === "duel-setup" || stage === "duel-betting") && duelTeams) return { ...state, stage: "duel-live" };

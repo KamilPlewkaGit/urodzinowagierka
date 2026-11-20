@@ -9,3 +9,5 @@ Dependencies: Next.js CSS Modules and inherited casino button and typography sty
 Implementation: The live title and rows are compact to keep eight answers and the strike indicators in view on a television. The board wraps long answer text across screen widths, and the admin selectors stack on narrow displays. Brief reveal, buzzer and strike animations honor reduced-motion preferences.
 
 The board footer shows one labeled group of three shared strike markers next to the round pool.
+
+Widownia używa większej tablicy, a długą listę odpowiedzi na szerokim ekranie układa w dwóch kolumnach. Nazwę i numer segmentu pokazuje wspólny pasek obserwatora.

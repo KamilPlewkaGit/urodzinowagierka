@@ -13,3 +13,5 @@ FinaleScreen displays the active FINAŁ through the same four-second snapshot an
 AlkoholicyScreen and GoldChallengeScreen also use the same active segment selector and polling. Bets and nominations request an immediate refresh of the existing snapshot. The administrator preview mounts the presentation with player actions hidden.
 
 Odczyt migawki przyspiesza podczas The Floor do jednej sekundy i pozostaje czterosekundowy w innych segmentach. Podgląd prowadzącego także dekoduje materiały The Floor.
+
+Widok obserwatora korzysta z tego samego harmonogramu odczytu i jawnej roli observer w selektorze plansz. Nie przekazuje identyfikatora zawodnika.

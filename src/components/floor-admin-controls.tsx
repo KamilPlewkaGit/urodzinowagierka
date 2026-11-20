@@ -5,8 +5,9 @@ import { type CSSProperties, useEffect, useState } from "react";
 import { FloorDuelists, useFloorTimes } from "@/components/floor-clock";
 import { FloorPreloadProgress, useFloorPreload } from "@/components/floor-preload";
 import { FloorPrompt } from "@/components/floor-prompt";
-import { TEAMS, getTeam } from "@/lib/constants";
-import { THE_FLOOR_BET_DESCRIPTION, THE_FLOOR_TITLE } from "@/lib/floor";
+import { formatChips } from "@/lib/chips";
+import { TEAMS, getTeam, STANDARD_DUEL_BET_DESCRIPTION } from "@/lib/constants";
+import { THE_FLOOR_TITLE } from "@/lib/floor";
 import type { GameSnapshot, TeamId, TeamMeta } from "@/lib/types";
 
 interface FloorAdminControlsProps {
@@ -105,7 +106,7 @@ export function FloorAdminControls({ snapshot, onRefresh }: FloorAdminControlsPr
         {(floor.stage === "intro" || floor.stage === "setup" || floor.stage === "betting") && <FloorPreloadProgress preload={preload} admin />}
         {floor.stage === "intro" ? <>
           <span className="panel-index">THE FLOOR / START</span><h2>{THE_FLOOR_TITLE}</h2>
-          <p>{THE_FLOOR_BET_DESCRIPTION}</p>
+          <p>{STANDARD_DUEL_BET_DESCRIPTION}</p>
           <button className="gold-button start-button" onClick={() => post("start", "/api/segment/floor/start")} disabled={pending !== null}>Rozpocznij segment</button>
         </> : null}
 
@@ -119,17 +120,24 @@ export function FloorAdminControls({ snapshot, onRefresh }: FloorAdminControlsPr
         {floor.stage === "betting" && duel && category && teamA && teamB ? <>
           <span className="panel-index">POJEDYNEK {duel.sequence + 1}/{floor.duels.length} / OBSTAWIANIE</span><h2>{category.name}</h2><p>{category.instructions}</p>
           <FloorDuelists teamA={teamA} teamB={teamB} />
-          <p>Zarejestrowane zakłady: <strong>{duel.betCount}</strong>. Obstawianie jest opcjonalne.</p>
+          <p>Zarejestrowane zakłady: <strong>{duel.betCount}</strong>. Stawka za zakład to {formatChips(duel.betStake)} żetony.</p>
           <button className="gold-button start-button" onClick={confirmStart} disabled={pending !== null || !preload.ready}>Rozpocznij pojedynek</button>
         </> : null}
 
         {floor.stage === "live" && duel && category && teamA && teamB && times ? <>
           <span className="panel-index">POJEDYNEK {duel.sequence + 1}/{floor.duels.length} / W TOKU{category.itemCount ? ` / POZYCJA ${duel.itemIndex + 1}/${category.itemCount}` : ""}</span><h2>{category.name}</h2>
           <FloorDuelists teamA={teamA} teamB={teamB} activeTeamId={duel.activeTeamId} times={times} />
-          <p>Aktywna drużyna: <strong>{duel.activeTeamId ? getTeam(duel.activeTeamId).name : "—"}</strong>. „Poprawna odpowiedź” przełącza turę między drużynami, a „Pas” odejmuje 3 sekundy aktywnej drużynie.</p>
-          <FloorPrompt key={`${duel.id}:${duel.itemIndex}`} prompt={category.prompt} alt={`Grafika kategorii ${category.name}, pozycja ${duel.itemIndex + 1}`} admin />
-          {category.adminAnswer ? <p className="floor-admin-answer">Poprawna odpowiedź: <strong>{category.adminAnswer}</strong></p> : <p className="form-error" role="alert">Nie można odczytać poprawnej odpowiedzi dla tej pozycji. Sprawdź plik JSON.</p>}
-          <div className="floor-admin-actions"><button className="gold-button" onClick={() => post("correct", "/api/segment/floor/advance", { action: "correct" })} disabled={pending !== null}>Poprawna odpowiedź</button><button className="secondary-button" onClick={() => post("pass", "/api/segment/floor/advance", { action: "pass" })} disabled={pending !== null}>Pas (−3 s)</button></div>
+          <p>„Poprawna odpowiedź” przełącza turę między drużynami, a „Pas” odejmuje 3 sekundy aktywnej drużynie.</p>
+          <FloorPrompt prompt={category.prompt} alt={`Grafika kategorii ${category.name}, pozycja ${duel.itemIndex + 1}`} admin />
+          <p className="floor-admin-answer">{category.adminAnswer ? <>Poprawna odpowiedź: <strong>{category.adminAnswer}</strong></> : "Brak zapisanej odpowiedzi dla tej pozycji."}</p>
+          <div className="floor-admin-actions">
+            <button type="button" className="gold-button" aria-disabled={pending !== null} onClick={() => {
+              if (pending === null) void post("correct", "/api/segment/floor/advance", { action: "correct" });
+            }}>Poprawna odpowiedź</button>
+            <button type="button" className="secondary-button" aria-disabled={pending !== null} onClick={() => {
+              if (pending === null) void post("pass", "/api/segment/floor/advance", { action: "pass" });
+            }}>Pas (−3 s)</button>
+          </div>
         </> : null}
 
         {floor.stage === "result" && duel && teamA && teamB && !winnerTeam ? <>

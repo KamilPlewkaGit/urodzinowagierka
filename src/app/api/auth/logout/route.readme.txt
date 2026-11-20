@@ -1,6 +1,6 @@
 File: `src/app/api/auth/logout/route.ts`
 
-Purpose and responsibilities: Revokes either player or administrator browser session and clears its browser cookie without needing to inspect the role.
+Purpose and responsibilities: Revokes the player, administrator, or observer browser session and clears its browser cookie without needing to inspect the role.
 
 Important exports, inputs, and outputs: `POST(request)` returns `{ ok: true }`, revokes the supplied session token, and expires the `casino_session` cookie immediately.
 

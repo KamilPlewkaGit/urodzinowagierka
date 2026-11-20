@@ -1,5 +1,7 @@
 import "server-only";
 
+import { FAMILIADA_BET_STAKE, LEGACY_DUEL_BET_STAKE } from "@/lib/constants";
+
 import type { FamiliadaAnswer, FamiliadaRepresentative, FamiliadaSnapshot, FamiliadaStage, TeamId } from "@/lib/types";
 import type { FamiliadaAction } from "@/lib/validation";
 
@@ -38,6 +40,7 @@ type Match = {
   rounds: Round[];
   winner: TeamId | null;
   settledAt: string | null;
+  betStake?: string;
 };
 
 export type StoredFamiliada = {
@@ -53,6 +56,7 @@ export type FamiliadaBetSummary = {
   target: TeamId | null;
   result: "pending" | "won" | "lost" | null;
   payout: string | null;
+  stake: string | null;
 };
 
 export class FamiliadaConflict extends Error {}
@@ -122,7 +126,8 @@ export function getFamiliadaSnapshot(state: StoredFamiliada | null, revision: st
         winner: match.winner,
         settledAt: match.settledAt,
         betCount: bet?.bet_count ?? 0,
-        viewerBet: bet?.target && bet.result && bet.payout !== null ? { target: bet.target, result: bet.result, payout: bet.payout } : null,
+        betStake: match.betStake ?? LEGACY_DUEL_BET_STAKE,
+        viewerBet: bet?.target && bet.result && bet.payout !== null && bet.stake !== null ? { target: bet.target, result: bet.result, stake: bet.stake, payout: bet.payout } : null,
       };
     }) ?? [],
     round: currentRound && (visible || (isAdmin && (stage === "question-ready" || stage === "betting-closed"))) ? {
@@ -163,7 +168,11 @@ export function advanceFamiliada(state: StoredFamiliada | null, command: Command
       if (stage === "setup") { state.stage = "match-ready"; return state; }
       break;
     case "open-betting":
-      if (stage === "match-ready") { state.stage = "betting"; return state; }
+      if (stage === "match-ready") {
+        match.betStake = FAMILIADA_BET_STAKE;
+        state.stage = "betting";
+        return state;
+      }
       break;
     case "close-betting":
       if (stage === "match-ready" || stage === "betting") { state.stage = "betting-closed"; return state; }

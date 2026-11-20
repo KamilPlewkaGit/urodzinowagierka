@@ -1,0 +1,1 @@
+Polska plansza /obserwator utrzymuje jedno odpytywanie stanu i zmienia aktywny segment za prowadzącym. Współdzieli publiczne plansze wszystkich segmentów, pokazuje klasyfikację i wyróżnia potwierdzoną wygraną. Obsługuje pełny ekran, utratę połączenia i wylogowanie. The Floor używa wspólnego odczytu zasobów bez obecności w grze.

@@ -1,1 +1,3 @@
 Stała nawigacja gracza. Po starcie aktywna zakładka używa numeru segmentu. Punktacja w dotychczasowym widoku `widok=zetony` podaje ranking czterech drużyn i osobną tabelę żetonów graczy. Zmiana zakładki zachowuje aktywny komponent, stan formularza, bieżące zakłady i dekodowanie The Floor.
+
+Podczas aktywnego pojedynku status całego katalogu pozostaje dostępny w pozostałych zakładkach. Dekodowanie trwa w tle, a plansza pokazuje wczytywanie konkretnej karty bez przesuwania panelu.

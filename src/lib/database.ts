@@ -5,18 +5,18 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { defaults, neon, type NeonQueryPromise } from "@neondatabase/serverless";
 
 import { compareChipBalances } from "@/lib/chips";
-import { STARTING_TOKENS, TEAM_IDS } from "@/lib/constants";
+import { CHARADES_BET_STAKE, LEGACY_DUEL_BET_STAKE, STANDARD_DUEL_BET_STAKE, STARTING_TOKENS, TEAM_IDS } from "@/lib/constants";
 import { advanceAlkoholicy, alkoholicyAwardedPoints, AlkoholicyConflict, charadesLeaders, normalizeAlkoholicy } from "@/lib/alkoholicy";
 import { getGoldSnapshot, GOLD_CONTRIBUTION, GoldConflict, normalizeGoldProgress, type GoldStakeView } from "@/lib/gold-challenge";
 import { advanceFamiliada, FamiliadaConflict, getFamiliadaSnapshot, type FamiliadaBetSummary, type StoredFamiliada } from "@/lib/familiada";
 import { advanceFinale, FinaleConflict, getFinaleSnapshot, rankFinaleTeams, type StoredFinale } from "@/lib/finale";
 import type { AlkoholicyAction, FamiliadaAction, FinaleAction, GoldAction } from "@/lib/validation";
-import { THE_FLOOR_BET_STAKE, THE_FLOOR_CATEGORY_IDS, THE_FLOOR_DUEL_SECONDS, THE_FLOOR_PASS_PENALTY_SECONDS, THE_FLOOR_PRESENCE_SECONDS } from "@/lib/floor";
+import { THE_FLOOR_CATEGORY_IDS, THE_FLOOR_DUEL_SECONDS, THE_FLOOR_PASS_PENALTY_SECONDS, THE_FLOOR_PRESENCE_SECONDS } from "@/lib/floor";
 import { getTheFloorCatalogStatus, getTheFloorContent, getTheFloorDeckKeys, getTheFloorItemCounts, getTheFloorPreloadManifest } from "@/lib/floor-content";
 import { SOLENIZANT_LAST_QUESTION_INDEX } from "@/lib/solenizant";
-import { SPORT_BET_STAKE, SPORT_BONUS_ROUND_COUNT, SPORT_CHALLENGE_COUNT, SPORT_CORRECT_BET_PROFIT, SPORT_CHALLENGES } from "@/lib/sport";
+import { SPORT_BONUS_ROUND_COUNT, SPORT_CHALLENGE_COUNT, SPORT_CORRECT_BET_PROFIT, SPORT_CHALLENGES } from "@/lib/sport";
 import { MELODIA_LOSER_CONTRIBUTION, MELODIA_SONG_COUNT } from "@/lib/melodia";
-import { POJEDYNKI_BET_STAKE, POJEDYNKI_DUEL_COUNT } from "@/lib/pojedynki";
+import { POJEDYNKI_DUEL_COUNT } from "@/lib/pojedynki";
 import type { GameSnapshot, GameState, MelodiaSong, MelodiaSongStage, MelodiaStage, MelodiaState, MelodiaTeamScore, Player, PojedynkiDuel, PojedynkiDuelStage, PojedynkiStage, PojedynkiState, SegmentId, Session, SportBonusRound, SportBonusStage, SportChallenge, SportChallengeStage, SportPairing, SportPairSlot, SportPlayerNumber, SportStage, SportState, TeamId, TeamScore, TheFloorDuel, TheFloorDuelStage, TheFloorState, TheFloorStage } from "@/lib/types";
 import type { TheFloorPreloadStatus, AlkoholicyBetResult, AlkoholicyMarket, AlkoholicyProgress, GoldProgress, GoldRepresentative } from "@/lib/types";
 
@@ -64,14 +64,14 @@ type TeamScoreRow = {
 
 type SessionRow = {
   token: string;
-  role: "player" | "admin";
+  role: Session["role"];
   player_id: number | null;
   expires_at: string | Date;
 };
 
 type NewSession =
   | { role: "player"; playerId: number; expiresAt: Date }
-  | { role: "admin"; expiresAt: Date };
+  | { role: "admin" | "observer"; expiresAt: Date };
 
 type CompletionRow = {
   completed: boolean | "t" | "f";
@@ -89,6 +89,7 @@ type RemovedPlayerRow = {
 };
 
 type TheFloorDuelRow = {
+  bet_stake: string | number;
   id: number;
   sequence: number;
   category_id: string;
@@ -112,7 +113,7 @@ type TheFloorViewerBetRow = { duel_id: number; target_team_id: TeamId | null; re
 
 type SportPairingRow = { slot: SportPairSlot; team_a_id: TeamId; team_b_id: TeamId };
 type SportPlayerNumberRow = { team_id: TeamId; player_id: number; player_number: number };
-type SportChallengeRow = { settled_at: string | Date | null; id: number; sequence: number; pair_slot: SportPairSlot; stage: SportChallengeStage; winner_team_id: TeamId | null; score_revision: string };
+type SportChallengeRow = { bet_stake: string | number; settled_at: string | Date | null; id: number; sequence: number; pair_slot: SportPairSlot; stage: SportChallengeStage; winner_team_id: TeamId | null; score_revision: string };
 type SportBetCountRow = { challenge_id: number; bet_count: number };
 type SportViewerBetRow = { challenge_id: number; target_team_id: TeamId | null; result: "pending" | "won" | "lost" | null; payout: string | number };
 type SportBonusRow = { id: number; sequence: number; stage: SportBonusStage; winner_team_id: TeamId | null; points: number | null };
@@ -129,7 +130,7 @@ type GoldVoteSummary = { candidate_id: number; votes: number; viewer_vote: boole
 type SnapshotRows<Queries extends readonly PromiseLike<unknown>[]> = { [Index in keyof Queries]: Awaited<Queries[Index]> };
 
 type MelodiaSettlementRow = { pool: string | null; reward_min: string | null; reward_max: string | null; viewer_delta: string | null };
-type PojedynkiDuelRow = { settled_at: string | Date | null; id: number; sequence: number; stage: PojedynkiDuelStage; team_a_id: TeamId | null; team_b_id: TeamId | null; winner_team_id: TeamId | null; score_revision: string };
+type PojedynkiDuelRow = { bet_stake: string | number; settled_at: string | Date | null; id: number; sequence: number; stage: PojedynkiDuelStage; team_a_id: TeamId | null; team_b_id: TeamId | null; winner_team_id: TeamId | null; score_revision: string };
 type PojedynkiBetCountRow = { duel_id: number; bet_count: number };
 type PojedynkiViewerBetRow = { duel_id: number; target_team_id: TeamId; result: "pending" | "won" | "lost" | "refunded"; payout: string | number };
 
@@ -362,12 +363,15 @@ export async function correctStandardTeamWinner(segment: "sport" | "pojedynki", 
 
 async function placeAlkoholicyBet(sql: ReturnType<typeof database>, revision: string, bettorId: number, gameNumber: 1 | 2 | 3, target: TeamId) {
   return runWithGameLock(sql, sql`
-    WITH debited AS (
-      UPDATE players player SET tokens = player.tokens - ${SPORT_BET_STAKE}::NUMERIC
-      FROM game_state game
-      WHERE game.id = 1 AND game.status = 'started' AND game.active_segment = 'alkoholicy'
-        AND game.alkoholicy_revision = ${revision}::UUID
-        AND player.id = ${bettorId} AND player.active AND player.tokens >= ${SPORT_BET_STAKE}::NUMERIC
+    WITH market AS (
+      SELECT alkoholicy_state, CASE WHEN ${gameNumber}::INTEGER = 1 THEN ${CHARADES_BET_STAKE}::NUMERIC
+        ELSE COALESCE((alkoholicy_state->'duelBetStakes'->>(${gameNumber}::INTEGER - 2))::NUMERIC, ${LEGACY_DUEL_BET_STAKE}::NUMERIC) END AS stake
+      FROM game_state WHERE id = 1 AND status = 'started' AND active_segment = 'alkoholicy'
+        AND alkoholicy_revision = ${revision}::UUID
+    ), debited AS (
+      UPDATE players player SET tokens = player.tokens - game.stake
+      FROM market game
+      WHERE player.id = ${bettorId} AND player.active AND player.tokens >= game.stake
         AND (
           (${gameNumber}::INTEGER = 1 AND game.alkoholicy_state->>'stage' = 'charades-betting' AND player.team_id <> ${target})
           OR (${gameNumber}::INTEGER = 2 + COALESCE((game.alkoholicy_state->>'duelIndex')::INTEGER, 0)
@@ -376,10 +380,10 @@ async function placeAlkoholicyBet(sql: ReturnType<typeof database>, revision: st
             AND NOT ((game.alkoholicy_state->'duelTeams') ? player.team_id))
         )
         AND NOT EXISTS (SELECT 1 FROM alkoholicy_bets WHERE game_number = ${gameNumber} AND bettor_id = player.id)
-      RETURNING player.id
+      RETURNING player.id, game.stake
     )
     INSERT INTO alkoholicy_bets (game_number, bettor_id, target_team_id, stake)
-    SELECT ${gameNumber}::SMALLINT, id, ${target}, ${SPORT_BET_STAKE}::NUMERIC FROM debited
+    SELECT ${gameNumber}::SMALLINT, id, ${target}, stake FROM debited
     RETURNING id
   `);
 }
@@ -871,24 +875,25 @@ async function saveFamiliada(
 
 async function placeFamiliadaBet(sql: ReturnType<typeof database>, revision: string, state: StoredFamiliada, bettorId: number, target: TeamId) {
   const match = state.matches[state.matchIndex];
+  const stake = match.betStake ?? LEGACY_DUEL_BET_STAKE;
   if (state.stage !== "betting" || !match.teams.includes(target)) return [];
   return runWithGameLock(sql, sql`
     WITH debited AS (
       UPDATE players player
-      SET tokens = player.tokens - ${SPORT_BET_STAKE}::NUMERIC
+      SET tokens = player.tokens - ${stake}::NUMERIC
       FROM game_state game
       WHERE game.id = 1 AND game.status = 'started' AND game.active_segment = 'familiada'
         AND game.familiada_revision = ${revision}::UUID
         AND player.id = ${bettorId} AND player.active
         AND player.team_id NOT IN (${match.teams[0]}, ${match.teams[1]})
-        AND player.tokens >= ${SPORT_BET_STAKE}::NUMERIC
+        AND player.tokens >= ${stake}::NUMERIC
         AND NOT EXISTS (
           SELECT 1 FROM familiada_bets WHERE match_index = ${state.matchIndex} AND bettor_id = player.id
         )
       RETURNING player.id
     )
     INSERT INTO familiada_bets (match_index, bettor_id, target_team_id, stake)
-    SELECT ${state.matchIndex}::SMALLINT, id, ${target}, ${SPORT_BET_STAKE}::NUMERIC FROM debited
+    SELECT ${state.matchIndex}::SMALLINT, id, ${target}, ${stake}::NUMERIC FROM debited
     RETURNING bettor_id
   `);
 }
@@ -1027,8 +1032,9 @@ function normalizeChipAmount(value: string | number) {
   return typeof value === "number" ? value.toFixed(4) : value;
 }
 
-function alkoholicyMarket(row?: AlkoholicyBetSummary): AlkoholicyMarket {
+function alkoholicyMarket(betStake: string, row?: AlkoholicyBetSummary): AlkoholicyMarket {
   return {
+    betStake,
     counts: { pending: row?.pending ?? 0, won: row?.won ?? 0, lost: row?.lost ?? 0, refunded: row?.refunded ?? 0 },
     viewerBet: row?.target && row.result && row.payout !== null
       ? { target: row.target, result: row.result, payout: normalizeChipAmount(row.payout) }
@@ -1075,6 +1081,7 @@ function toSportChallenge(row: SportChallengeRow, betCount: number, viewerBet: S
     stage: row.stage,
     winnerTeamId: row.winner_team_id,
     betCount,
+    betStake: normalizeChipAmount(row.bet_stake),
     viewerBetTargetTeamId: viewerBet?.target_team_id ?? null,
     viewerBetResult: viewerBet?.result ?? null,
     viewerBetPayout: viewerBet ? normalizeChipAmount(viewerBet.payout) : null,
@@ -1114,6 +1121,7 @@ function toPojedynkiDuel(row: PojedynkiDuelRow, betCount: number, viewerBet: Poj
     teamBId: row.team_b_id,
     winnerTeamId: row.winner_team_id,
     betCount,
+    betStake: normalizeChipAmount(row.bet_stake),
     viewerBetTargetTeamId: viewerBet?.target_team_id ?? null,
     viewerBetResult: viewerBet?.result ?? null,
     viewerBetPayout: viewerBet ? normalizeChipAmount(viewerBet.payout) : null,
@@ -1142,6 +1150,7 @@ function toTheFloorDuel(row: TheFloorDuelRow, betCount: number, viewerBet: TheFl
     endedAt: row.ended_at ? toIsoTimestamp(row.ended_at) : null,
     winnerTeamId: row.winner_team_id,
     betCount,
+    betStake: normalizeChipAmount(row.bet_stake),
     viewerBetTargetTeamId: viewerBet?.target_team_id ?? null,
     viewerBetResult: viewerBet?.result ?? null,
     viewerBetPayout: viewerBet ? normalizeChipAmount(viewerBet.payout) : null,
@@ -1151,7 +1160,7 @@ function toTheFloorDuel(row: TheFloorDuelRow, betCount: number, viewerBet: TheFl
 function toSession(row: SessionRow): Session | null {
   const expiresAt = Math.floor(new Date(row.expires_at).getTime() / 1000);
   if (!Number.isFinite(expiresAt)) return null;
-  if (row.role === "admin" && row.player_id === null) return { role: "admin", expiresAt };
+  if ((row.role === "admin" || row.role === "observer") && row.player_id === null) return { role: row.role, expiresAt };
   if (row.role === "player" && typeof row.player_id === "number") return { role: "player", playerId: row.player_id, expiresAt };
   return null;
 }
@@ -1303,15 +1312,31 @@ export async function ensureDatabase() {
       await sql`
         CREATE TABLE IF NOT EXISTS sessions (
           token VARCHAR(64) PRIMARY KEY,
-          role VARCHAR(16) NOT NULL CHECK (role IN ('player', 'admin')),
+          role VARCHAR(16) NOT NULL,
           player_id BIGINT REFERENCES players(id) ON DELETE CASCADE,
           expires_at TIMESTAMPTZ NOT NULL,
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-          CHECK (
+          CONSTRAINT sessions_role_and_player_check CHECK (
             (role = 'player' AND player_id IS NOT NULL)
-            OR (role = 'admin' AND player_id IS NULL)
+            OR (role IN ('admin', 'observer') AND player_id IS NULL)
           )
         )
+      `;
+      await sql`
+        DO $migration$
+        BEGIN
+          IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'sessions'::regclass AND conname = 'sessions_role_and_player_check') THEN
+            LOCK TABLE sessions IN ACCESS EXCLUSIVE MODE;
+            IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'sessions'::regclass AND conname = 'sessions_role_and_player_check') THEN
+              ALTER TABLE sessions DROP CONSTRAINT IF EXISTS sessions_role_check,
+                DROP CONSTRAINT IF EXISTS sessions_check,
+                ADD CONSTRAINT sessions_role_and_player_check CHECK (
+                  (role = 'player' AND player_id IS NOT NULL)
+                  OR (role IN ('admin', 'observer') AND player_id IS NULL)
+                );
+            END IF;
+          END IF;
+        END $migration$
       `;
       await sql`CREATE INDEX IF NOT EXISTS sessions_expires_at_index ON sessions (expires_at)`;
       await sql`
@@ -1342,6 +1367,8 @@ export async function ensureDatabase() {
           CONSTRAINT the_floor_duels_active_team_member_check CHECK (active_team_id IS NULL OR active_team_id IN (team_a_id, team_b_id))
         )
       `;
+      await sql`ALTER TABLE the_floor_duels ADD COLUMN IF NOT EXISTS
+        bet_stake NUMERIC(20,4) NOT NULL DEFAULT 2 CHECK (bet_stake IN (2, 4))`;
       await sql`
         CREATE TABLE IF NOT EXISTS the_floor_bets (
           id BIGSERIAL PRIMARY KEY,
@@ -1349,7 +1376,7 @@ export async function ensureDatabase() {
           bettor_id BIGINT NOT NULL REFERENCES players(id),
           target_player_id BIGINT REFERENCES players(id),
           target_team_id VARCHAR(16) CONSTRAINT the_floor_bets_target_team_check CHECK (target_team_id IS NULL OR target_team_id IN ('royal', 'ruby', 'emerald', 'onyx')),
-          stake NUMERIC(20,4) NOT NULL DEFAULT 2 CHECK (stake > 0),
+          stake NUMERIC(20,4) NOT NULL CHECK (stake > 0),
           result VARCHAR(16) NOT NULL DEFAULT 'pending' CHECK (result IN ('pending', 'won', 'lost', 'refunded')),
           payout NUMERIC(20,4) NOT NULL DEFAULT 0 CHECK (payout >= 0),
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -1357,6 +1384,7 @@ export async function ensureDatabase() {
           UNIQUE (duel_id, bettor_id)
         )
       `;
+      await sql`ALTER TABLE the_floor_bets ALTER COLUMN stake DROP DEFAULT`;
       await sql`
         DO $$
         BEGIN
@@ -1548,13 +1576,15 @@ export async function ensureDatabase() {
           settled_at TIMESTAMPTZ
         )
       `;
+      await sql`ALTER TABLE sport_challenges ADD COLUMN IF NOT EXISTS
+        bet_stake NUMERIC(20,4) NOT NULL DEFAULT 2 CHECK (bet_stake IN (2, 4))`;
       await sql`
         CREATE TABLE IF NOT EXISTS sport_bets (
           id BIGSERIAL PRIMARY KEY,
           challenge_id BIGINT NOT NULL REFERENCES sport_challenges(id) ON DELETE CASCADE,
           bettor_id BIGINT NOT NULL REFERENCES players(id),
           target_team_id VARCHAR(16) NOT NULL CHECK (target_team_id IN ('royal', 'ruby', 'emerald', 'onyx')),
-          stake NUMERIC(20,4) NOT NULL DEFAULT 2 CHECK (stake > 0),
+          stake NUMERIC(20,4) NOT NULL CHECK (stake > 0),
           result VARCHAR(16) NOT NULL DEFAULT 'pending' CHECK (result IN ('pending', 'won', 'lost')),
           payout NUMERIC(20,4) NOT NULL DEFAULT 0 CHECK (payout >= 0),
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -1562,6 +1592,7 @@ export async function ensureDatabase() {
           UNIQUE (challenge_id, bettor_id)
         )
       `;
+      await sql`ALTER TABLE sport_bets ALTER COLUMN stake DROP DEFAULT`;
       await sql`CREATE INDEX IF NOT EXISTS sport_bets_challenge_index ON sport_bets (challenge_id)`;
       await sql`
         CREATE TABLE IF NOT EXISTS sport_bonus_rounds (
@@ -1707,13 +1738,15 @@ export async function ensureDatabase() {
           CONSTRAINT pojedynki_duels_team_pair_check CHECK (team_a_id IS NULL OR team_b_id IS NULL OR team_a_id <> team_b_id)
         )
       `;
+      await sql`ALTER TABLE pojedynki_duels ADD COLUMN IF NOT EXISTS
+        bet_stake NUMERIC(20,4) NOT NULL DEFAULT 2 CHECK (bet_stake IN (2, 4))`;
       await sql`
         CREATE TABLE IF NOT EXISTS pojedynki_bets (
           id BIGSERIAL PRIMARY KEY,
           duel_id BIGINT NOT NULL REFERENCES pojedynki_duels(id) ON DELETE CASCADE,
           bettor_id BIGINT NOT NULL REFERENCES players(id),
           target_team_id VARCHAR(16) NOT NULL CHECK (target_team_id IN ('royal', 'ruby', 'emerald', 'onyx')),
-          stake NUMERIC(20,4) NOT NULL DEFAULT 2 CHECK (stake > 0),
+          stake NUMERIC(20,4) NOT NULL CHECK (stake > 0),
           result VARCHAR(16) NOT NULL DEFAULT 'pending' CHECK (result IN ('pending', 'won', 'lost', 'refunded')),
           payout NUMERIC(20,4) NOT NULL DEFAULT 0 CHECK (payout >= 0),
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -1721,13 +1754,14 @@ export async function ensureDatabase() {
           UNIQUE (duel_id, bettor_id)
         )
       `;
+      await sql`ALTER TABLE pojedynki_bets ALTER COLUMN stake DROP DEFAULT`;
       await sql`CREATE INDEX IF NOT EXISTS pojedynki_bets_duel_index ON pojedynki_bets (duel_id)`;
       await sql`
         CREATE TABLE IF NOT EXISTS familiada_bets (
           match_index SMALLINT NOT NULL CHECK (match_index BETWEEN 0 AND 1),
           bettor_id BIGINT NOT NULL REFERENCES players(id),
           target_team_id VARCHAR(16) NOT NULL CHECK (target_team_id IN ('royal', 'ruby', 'emerald', 'onyx')),
-          stake NUMERIC(20,4) NOT NULL DEFAULT 2 CHECK (stake = 2),
+          stake NUMERIC(20,4) NOT NULL CONSTRAINT familiada_bets_allowed_stake CHECK (stake IN (2, 8)),
           result VARCHAR(8) NOT NULL DEFAULT 'pending' CHECK (result IN ('pending', 'won', 'lost')),
           payout NUMERIC(20,4) NOT NULL DEFAULT 0 CHECK (payout >= 0),
           settled_at TIMESTAMPTZ,
@@ -1735,17 +1769,41 @@ export async function ensureDatabase() {
         )
       `;
       await sql`
+        DO $migration$
+        BEGIN
+          IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'familiada_bets'::regclass AND conname = 'familiada_bets_allowed_stake') THEN
+            LOCK TABLE familiada_bets IN ACCESS EXCLUSIVE MODE;
+            IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'familiada_bets'::regclass AND conname = 'familiada_bets_allowed_stake') THEN
+              ALTER TABLE familiada_bets ALTER COLUMN stake DROP DEFAULT, DROP CONSTRAINT IF EXISTS familiada_bets_stake_check,
+                ADD CONSTRAINT familiada_bets_allowed_stake CHECK (stake IN (2, 8));
+            END IF;
+          END IF;
+        END $migration$
+      `;
+      await sql`
         CREATE TABLE IF NOT EXISTS alkoholicy_bets (
           id BIGSERIAL PRIMARY KEY,
           game_number SMALLINT NOT NULL CHECK (game_number IN (1, 2)),
           bettor_id BIGINT NOT NULL REFERENCES players(id),
           target_team_id VARCHAR(16) NOT NULL CHECK (target_team_id IN ('royal', 'ruby', 'emerald', 'onyx')),
-          stake NUMERIC(20,4) NOT NULL CHECK (stake = 2),
+          stake NUMERIC(20,4) NOT NULL CONSTRAINT alkoholicy_bets_allowed_stake CHECK (stake = 2 OR (game_number IN (2, 3) AND stake = 4)),
           result VARCHAR(8) NOT NULL DEFAULT 'pending' CHECK (result IN ('pending', 'won', 'lost', 'refunded')),
           payout NUMERIC(20,4) NOT NULL DEFAULT 0 CHECK (payout >= 0),
           settled_at TIMESTAMPTZ,
           UNIQUE (game_number, bettor_id)
         )
+      `;
+      await sql`
+        DO $migration$
+        BEGIN
+          IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'alkoholicy_bets'::regclass AND conname = 'alkoholicy_bets_allowed_stake') THEN
+            LOCK TABLE alkoholicy_bets IN ACCESS EXCLUSIVE MODE;
+            IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'alkoholicy_bets'::regclass AND conname = 'alkoholicy_bets_allowed_stake') THEN
+              ALTER TABLE alkoholicy_bets DROP CONSTRAINT IF EXISTS alkoholicy_bets_stake_check,
+                ADD CONSTRAINT alkoholicy_bets_allowed_stake CHECK (stake = 2 OR (game_number IN (2, 3) AND stake = 4));
+            END IF;
+          END IF;
+        END $migration$
       `;
       await sql`
         DO $migration$
@@ -1909,7 +1967,7 @@ export async function getGameSnapshot(viewerPlayerId?: number, options?: { admin
       SELECT id, sequence, CASE WHEN category_id IN (
           SELECT jsonb_array_elements_text(${JSON.stringify(THE_FLOOR_CATEGORY_IDS)}::JSONB)
         ) THEN category_id ELSE 'archiwalna' END AS category_id,
-        stage, team_a_id, team_b_id, active_team_id, item_index, item_order,
+        stage, team_a_id, team_b_id, active_team_id, item_index, item_order, bet_stake,
         team_a_time_seconds, team_b_time_seconds, turn_started_at, started_at, ended_at, winner_team_id, settled_at
       FROM the_floor_duels
       ORDER BY sequence
@@ -1918,7 +1976,7 @@ export async function getGameSnapshot(viewerPlayerId?: number, options?: { admin
     sql`SELECT duel_id, target_team_id, result, payout FROM the_floor_bets WHERE bettor_id = ${viewerPlayerId ?? null}::BIGINT` as SnapshotQuery<TheFloorViewerBetRow>,
     sql`SELECT slot, team_a_id, team_b_id FROM sport_pairings ORDER BY slot` as SnapshotQuery<SportPairingRow>,
     sql`SELECT team_id, player_id, player_number FROM sport_player_numbers ORDER BY team_id, player_number` as SnapshotQuery<SportPlayerNumberRow>,
-    sql`SELECT id, sequence, pair_slot, stage, winner_team_id, settled_at, score_revision FROM sport_challenges ORDER BY sequence` as SnapshotQuery<SportChallengeRow>,
+    sql`SELECT id, sequence, pair_slot, stage, winner_team_id, settled_at, score_revision, bet_stake FROM sport_challenges ORDER BY sequence` as SnapshotQuery<SportChallengeRow>,
     sql`SELECT challenge_id, COUNT(*)::INTEGER AS bet_count FROM sport_bets GROUP BY challenge_id` as SnapshotQuery<SportBetCountRow>,
     sql`SELECT challenge_id, target_team_id, result, payout FROM sport_bets WHERE bettor_id = ${viewerPlayerId ?? null}::BIGINT` as SnapshotQuery<SportViewerBetRow>,
     sql`SELECT id, sequence, stage, winner_team_id, points FROM sport_bonus_rounds ORDER BY sequence` as SnapshotQuery<SportBonusRow>,
@@ -1935,14 +1993,15 @@ export async function getGameSnapshot(viewerPlayerId?: number, options?: { admin
       JOIN melodia_chip_transfers transfer ON transfer.final_song_id = song.id
       WHERE game.id = 1 AND game.melodia_settled_at IS NOT NULL
     ` as SnapshotQuery<MelodiaSettlementRow>,
-    sql`SELECT id, sequence, stage, team_a_id, team_b_id, winner_team_id, settled_at, score_revision FROM pojedynki_duels ORDER BY sequence` as SnapshotQuery<PojedynkiDuelRow>,
+    sql`SELECT id, sequence, stage, team_a_id, team_b_id, winner_team_id, settled_at, score_revision, bet_stake FROM pojedynki_duels ORDER BY sequence` as SnapshotQuery<PojedynkiDuelRow>,
     sql`SELECT duel_id, COUNT(*)::INTEGER AS bet_count FROM pojedynki_bets GROUP BY duel_id` as SnapshotQuery<PojedynkiBetCountRow>,
     sql`SELECT duel_id, target_team_id, result, payout FROM pojedynki_bets WHERE bettor_id = ${viewerPlayerId ?? null}::BIGINT` as SnapshotQuery<PojedynkiViewerBetRow>,
     sql`
       SELECT match_index, COUNT(*)::INTEGER AS bet_count,
         MAX(target_team_id) FILTER (WHERE bettor_id = ${viewerPlayerId ?? null}::BIGINT) AS target,
         MAX(result) FILTER (WHERE bettor_id = ${viewerPlayerId ?? null}::BIGINT) AS result,
-        MAX(payout) FILTER (WHERE bettor_id = ${viewerPlayerId ?? null}::BIGINT) AS payout
+        MAX(payout) FILTER (WHERE bettor_id = ${viewerPlayerId ?? null}::BIGINT) AS payout,
+        (MAX(stake) FILTER (WHERE bettor_id = ${viewerPlayerId ?? null}::BIGINT))::TEXT AS stake
       FROM familiada_bets GROUP BY match_index
     ` as SnapshotQuery<FamiliadaBetSummary>,
     sql`
@@ -2074,7 +2133,11 @@ export async function getGameSnapshot(viewerPlayerId?: number, options?: { admin
   };
   const teamScores = teamScoreRows.map(toTeamScore);
   const players = playerRows.map(toPlayer);
-  const { legacyDuelAward: _legacyDuelAward, ...alkoholicy } = normalizeAlkoholicy(gameRows[0].alkoholicy_state);
+  const { legacyDuelAward: _legacyDuelAward, duelBetStakes, ...alkoholicy } = normalizeAlkoholicy(gameRows[0].alkoholicy_state);
+  const duelMarkets: [AlkoholicyMarket, AlkoholicyMarket] = [
+    alkoholicyMarket(duelBetStakes?.[0] ?? LEGACY_DUEL_BET_STAKE, alkoholicyBets.find((row) => row.game_number === 2)),
+    alkoholicyMarket(duelBetStakes?.[1] ?? LEGACY_DUEL_BET_STAKE, alkoholicyBets.find((row) => row.game_number === 3)),
+  ];
   return {
     game,
     players,
@@ -2089,9 +2152,9 @@ export async function getGameSnapshot(viewerPlayerId?: number, options?: { admin
       ...alkoholicy,
       revision: gameRows[0].alkoholicy_revision,
       charadesLeaders: charadesLeaders(alkoholicy),
-      charadesMarket: alkoholicyMarket(alkoholicyBets.find((row) => row.game_number === 1)),
-      duelMarket: alkoholicyMarket(alkoholicyBets.find((row) => row.game_number === 2 + alkoholicy.duelIndex)),
-      duelMarkets: [2, 3].map((market) => alkoholicyMarket(alkoholicyBets.find((row) => row.game_number === market))) as [AlkoholicyMarket, AlkoholicyMarket],
+      charadesMarket: alkoholicyMarket(CHARADES_BET_STAKE, alkoholicyBets.find((row) => row.game_number === 1)),
+      duelMarket: duelMarkets[alkoholicy.duelIndex],
+      duelMarkets,
     },
     goldChallenge: getGoldSnapshot(gameRows[0].gold_state, gameRows[0].gold_revision, players, goldVotes, goldStakes, viewerPlayerId, isAdmin),
     finale: getFinaleSnapshot(gameRows[0].finale_state, gameRows[0].finale_revision, teamScores, isAdmin),
@@ -2538,7 +2601,7 @@ export async function configureTheFloorDuel(input: { teamAId: TeamId; teamBId: T
     ),
     configured AS (
       UPDATE the_floor_duels AS duel
-      SET team_a_id = ${input.teamAId}, team_b_id = ${input.teamBId}, stage = 'betting', item_index = 0,
+      SET team_a_id = ${input.teamAId}, team_b_id = ${input.teamBId}, stage = 'betting', bet_stake = ${STANDARD_DUEL_BET_STAKE}::NUMERIC, item_index = 0,
         item_order = (SELECT jsonb_agg(item ORDER BY random())
           FROM jsonb_array_elements_text((${decks}::JSONB) -> duel.category_id) AS items(item)),
         team_a_time_seconds = ${THE_FLOOR_DUEL_SECONDS}, team_b_time_seconds = ${THE_FLOOR_DUEL_SECONDS},
@@ -2561,13 +2624,13 @@ export async function configureTheFloorDuel(input: { teamAId: TeamId; teamBId: T
   return rows[0]?.completed === true || rows[0]?.completed === "t";
 }
 
-/** Debits a fixed two-chip stake only once from a player outside the competing teams. */
+/** Debits the stake stored for the open duel only once from a player outside the competing teams. */
 export async function placeTheFloorBet(input: { bettorId: number; targetTeamId: TeamId }) {
   await ensureDatabase();
   const sql = database();
   const rows = (await runWithGameLock(sql, sql`
     WITH current_duel AS (
-      SELECT duel.id, duel.team_a_id, duel.team_b_id
+      SELECT duel.id, duel.team_a_id, duel.team_b_id, duel.bet_stake
       FROM the_floor_duels duel
       JOIN game_state game ON game.current_the_floor_duel_sequence = duel.sequence
       WHERE game.id = 1 AND game.status = 'started' AND game.active_segment = 'the-floor'
@@ -2575,22 +2638,23 @@ export async function placeTheFloorBet(input: { bettorId: number; targetTeamId: 
       FOR UPDATE
     ),
     eligible AS (
-      SELECT current_duel.id
+      SELECT current_duel.id, current_duel.bet_stake
       FROM current_duel
-      JOIN players bettor ON bettor.id = ${input.bettorId} AND bettor.active = TRUE AND bettor.tokens >= ${THE_FLOOR_BET_STAKE}::NUMERIC
+      JOIN players bettor ON bettor.id = ${input.bettorId} AND bettor.active = TRUE AND bettor.tokens >= current_duel.bet_stake
       WHERE bettor.team_id NOT IN (current_duel.team_a_id, current_duel.team_b_id)
         AND ${input.targetTeamId} IN (current_duel.team_a_id, current_duel.team_b_id)
         AND NOT EXISTS (SELECT 1 FROM the_floor_bets prior WHERE prior.duel_id = current_duel.id AND prior.bettor_id = ${input.bettorId})
     ),
     debited AS (
       UPDATE players
-      SET tokens = tokens - ${THE_FLOOR_BET_STAKE}::NUMERIC
-      WHERE id = ${input.bettorId} AND EXISTS (SELECT 1 FROM eligible)
-      RETURNING id
+      SET tokens = tokens - eligible.bet_stake
+      FROM eligible
+      WHERE players.id = ${input.bettorId}
+      RETURNING players.id
     ),
     inserted AS (
       INSERT INTO the_floor_bets (duel_id, bettor_id, target_team_id, stake)
-      SELECT eligible.id, ${input.bettorId}, ${input.targetTeamId}, ${THE_FLOOR_BET_STAKE}::NUMERIC
+      SELECT eligible.id, ${input.bettorId}, ${input.targetTeamId}, eligible.bet_stake
       FROM eligible
       WHERE EXISTS (SELECT 1 FROM debited)
       RETURNING id
@@ -3003,7 +3067,7 @@ export async function startSportChallenges() {
     ),
     opened_challenge AS (
       UPDATE sport_challenges challenge
-      SET stage = 'betting'
+      SET stage = 'betting', bet_stake = ${STANDARD_DUEL_BET_STAKE}::NUMERIC
       WHERE challenge.sequence = 0 AND challenge.stage = 'pending'
         AND EXISTS (SELECT 1 FROM current_game)
         AND (SELECT completed FROM valid_pairings)
@@ -3027,7 +3091,7 @@ export async function placeSportBet(input: { bettorId: number; targetTeamId: Tea
   const sql = database();
   const rows = (await runWithGameLock(sql, sql`
     WITH current_challenge AS (
-      SELECT challenge.id, pairing.team_a_id, pairing.team_b_id
+      SELECT challenge.id, pairing.team_a_id, pairing.team_b_id, challenge.bet_stake
       FROM sport_challenges challenge
       JOIN sport_pairings pairing ON pairing.slot = challenge.pair_slot
       JOIN game_state game ON game.current_sport_challenge_sequence = challenge.sequence
@@ -3036,21 +3100,22 @@ export async function placeSportBet(input: { bettorId: number; targetTeamId: Tea
       FOR UPDATE
     ),
     eligible AS (
-      SELECT current_challenge.id
+      SELECT current_challenge.id, current_challenge.bet_stake
       FROM current_challenge
-      JOIN players bettor ON bettor.id = ${input.bettorId} AND bettor.active = TRUE AND bettor.tokens >= ${SPORT_BET_STAKE}::NUMERIC
+      JOIN players bettor ON bettor.id = ${input.bettorId} AND bettor.active = TRUE AND bettor.tokens >= current_challenge.bet_stake
       WHERE bettor.team_id NOT IN (current_challenge.team_a_id, current_challenge.team_b_id)
         AND ${input.targetTeamId} IN (current_challenge.team_a_id, current_challenge.team_b_id)
         AND NOT EXISTS (SELECT 1 FROM sport_bets prior WHERE prior.challenge_id = current_challenge.id AND prior.bettor_id = ${input.bettorId})
     ),
     debited AS (
-      UPDATE players SET tokens = tokens - ${SPORT_BET_STAKE}::NUMERIC
-      WHERE id = ${input.bettorId} AND EXISTS (SELECT 1 FROM eligible)
-      RETURNING id
+      UPDATE players SET tokens = tokens - eligible.bet_stake
+      FROM eligible
+      WHERE players.id = ${input.bettorId}
+      RETURNING players.id
     ),
     inserted AS (
       INSERT INTO sport_bets (challenge_id, bettor_id, target_team_id, stake)
-      SELECT eligible.id, ${input.bettorId}, ${input.targetTeamId}, ${SPORT_BET_STAKE}::NUMERIC
+      SELECT eligible.id, ${input.bettorId}, ${input.targetTeamId}, eligible.bet_stake
       FROM eligible WHERE EXISTS (SELECT 1 FROM debited)
       RETURNING id
     )
@@ -3108,7 +3173,7 @@ async function moveToNextSportChallenge() {
     ),
     opened_challenge AS (
       UPDATE sport_challenges challenge
-      SET stage = 'betting'
+      SET stage = 'betting', bet_stake = ${STANDARD_DUEL_BET_STAKE}::NUMERIC
       FROM current_challenge
       WHERE current_challenge.sequence < ${SPORT_CHALLENGE_COUNT - 1}
         AND challenge.sequence = current_challenge.sequence + 1 AND challenge.stage = 'pending'
@@ -3624,7 +3689,7 @@ export async function configurePojedynkiDuel(input: { teamAId: TeamId; teamBId: 
     ),
     configured AS (
       UPDATE pojedynki_duels duel
-      SET team_a_id = ${input.teamAId}, team_b_id = ${input.teamBId}, stage = 'betting',
+      SET team_a_id = ${input.teamAId}, team_b_id = ${input.teamBId}, stage = 'betting', bet_stake = ${STANDARD_DUEL_BET_STAKE}::NUMERIC,
         started_at = NULL, ended_at = NULL, winner_team_id = NULL, settled_at = NULL
       FROM current_game
       WHERE duel.sequence = current_game.current_pojedynki_duel_sequence AND duel.stage = 'pending'
@@ -3641,13 +3706,13 @@ export async function configurePojedynkiDuel(input: { teamAId: TeamId; teamBId: 
   return rows[0]?.completed === true || rows[0]?.completed === "t";
 }
 
-/** Debits the global fixed two-chip stake only once from a player outside the selected teams. */
+/** Debits the stake stored for the open duel only once from a player outside the selected teams. */
 export async function placePojedynkiBet(input: { bettorId: number; targetTeamId: TeamId }) {
   await ensureDatabase();
   const sql = database();
   const rows = (await runWithGameLock(sql, sql`
     WITH current_duel AS (
-      SELECT duel.id, duel.team_a_id, duel.team_b_id
+      SELECT duel.id, duel.team_a_id, duel.team_b_id, duel.bet_stake
       FROM pojedynki_duels duel
       JOIN game_state game ON game.current_pojedynki_duel_sequence = duel.sequence
       WHERE game.id = 1 AND game.status = 'started' AND game.active_segment = 'pojedynki'
@@ -3655,21 +3720,22 @@ export async function placePojedynkiBet(input: { bettorId: number; targetTeamId:
       FOR UPDATE
     ),
     eligible AS (
-      SELECT current_duel.id
+      SELECT current_duel.id, current_duel.bet_stake
       FROM current_duel
-      JOIN players bettor ON bettor.id = ${input.bettorId} AND bettor.active = TRUE AND bettor.tokens >= ${POJEDYNKI_BET_STAKE}::NUMERIC
+      JOIN players bettor ON bettor.id = ${input.bettorId} AND bettor.active = TRUE AND bettor.tokens >= current_duel.bet_stake
       WHERE bettor.team_id NOT IN (current_duel.team_a_id, current_duel.team_b_id)
         AND ${input.targetTeamId} IN (current_duel.team_a_id, current_duel.team_b_id)
         AND NOT EXISTS (SELECT 1 FROM pojedynki_bets prior WHERE prior.duel_id = current_duel.id AND prior.bettor_id = ${input.bettorId})
     ),
     debited AS (
-      UPDATE players SET tokens = tokens - ${POJEDYNKI_BET_STAKE}::NUMERIC
-      WHERE id = ${input.bettorId} AND EXISTS (SELECT 1 FROM eligible)
-      RETURNING id
+      UPDATE players SET tokens = tokens - eligible.bet_stake
+      FROM eligible
+      WHERE players.id = ${input.bettorId}
+      RETURNING players.id
     ),
     inserted AS (
       INSERT INTO pojedynki_bets (duel_id, bettor_id, target_team_id, stake)
-      SELECT eligible.id, ${input.bettorId}, ${input.targetTeamId}, ${POJEDYNKI_BET_STAKE}::NUMERIC
+      SELECT eligible.id, ${input.bettorId}, ${input.targetTeamId}, eligible.bet_stake
       FROM eligible WHERE EXISTS (SELECT 1 FROM debited)
       RETURNING id
     )

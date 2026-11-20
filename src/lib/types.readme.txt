@@ -1,3 +1,5 @@
 Wspólne kontrakty migawki. The Floor podaje czas serwera i gotowość zasobów. Melodia podaje podsumowanie puli i uprawniony podgląd transferów. ALKOHOLICY mają dwa osobne rynki pojedynków. Złoty segment ma zespołowe i indywidualne wyniki. FINAŁ podaje przyznane punkty oraz końcową klasyfikację.
 
 `scoreRevision` identyfikuje aktualny wynik rozliczonego pojedynku POJEDYNKÓW lub głównego wyzwania SPORT. Złote wyniki publikują opcjonalne `firstScoreTeam` i `scoreNumber` po korekcie podstawy punktacji.
+
+Runda z zakładami przekazuje stawkę zapisaną przy otwarciu. Publiczny kontrakt sesji rozróżnia obserwatora bez identyfikatora gracza.

@@ -144,6 +144,7 @@ export function LobbyClient({ playerId, initialSnapshot }: { playerId: number; i
   const preload = useFloorPreload(floorActive);
   const requestedView = searchParams.get("widok");
   const currentView = playerViews.find((view) => view.id === requestedView)?.id ?? (started ? "segment" : "lobby");
+  const showFloorProgress = floorActive && (currentView !== "segment" || snapshot.theFloor.stage !== "live");
 
   if (!player) return null;
 
@@ -172,7 +173,7 @@ export function LobbyClient({ playerId, initialSnapshot }: { playerId: number; i
       </div>
       {syncError && <p className="sync-warning" role="status">Połączenie z grą jest chwilowo niedostępne. Ponawiamy próbę…</p>}
       {logoutError && <p className="form-error" role="alert">Nie udało się wylogować. Spróbuj ponownie.</p>}
-      {floorActive && <FloorPreloadProgress preload={preload} />}
+      {showFloorProgress && <FloorPreloadProgress preload={preload} />}
       {currentView === "lobby" && <Lobby snapshot={snapshot} player={player} />}
       <div hidden={currentView !== "segment"}>
         {started ? <ActiveSegment snapshot={snapshot} refresh={refresh} viewerPlayerId={playerId} /> : (

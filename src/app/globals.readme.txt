@@ -19,3 +19,7 @@ The Melodia rules and round history use `.melodia-list` for bordered rows in the
 The Floor shared text prompt uses a plain white surface with inline-size-based type scaling and a compact moderator presentation. The authorized answer is styled below the prompt.
 
 Karty The Floor współdzielą dwa liczniki i wyróżniają aktywną drużynę złotem. Animacja respektuje ustawienie ograniczonego ruchu. Styl raportu gotowości pasuje do paneli gracza i prowadzącego.
+
+Rama The Floor sama rezerwuje wymiary w widoku gracza i prowadzącego. Obraz, tekst i komunikaty wypełniają ramę bez zmiany jej wysokości.
+
+W trybie widowni wskaźnik deweloperski Next jest ukryty.

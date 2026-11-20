@@ -1,1 +1,3 @@
 Kalambury zachowują zapisywanie i korekty 0–6 punktów. Dla każdego z dwóch pojedynków prowadzący wybiera drużyny, zamyka zakłady startem i potwierdza zwycięzcę. Po pierwszym przechodzi do drugiego. Po drugim może zakończyć segment.
+
+Panel pokazuje aktualną stawkę każdego pojedynku.

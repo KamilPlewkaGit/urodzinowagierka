@@ -15,3 +15,5 @@ Future expansion: Add new challenge controls only with matching server validatio
 Jeśli po dawniejszym potwierdzeniu wyzwanie zostało zapisane bez wypłaty, prowadzący może ponowić rozliczenie dotychczasowego zwycięzcy.
 
 Potwierdzenie przesyła identyfikator wyzwania lub bonusu z migawki. Każde główne wyzwanie jest warte 1 punkt, a w bonusie prowadzący podaje liczbę punktów.
+
+Przy otwartych zakładach prowadzący widzi rzeczywistą stawkę na bieżącą rundę.

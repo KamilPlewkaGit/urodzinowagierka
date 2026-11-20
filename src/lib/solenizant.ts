@@ -3,7 +3,7 @@ export const SOLENIZANT_TITLE = "SOLENIZANT";
 export const SOLENIZANT_QUESTIONS = [
   "Jak nazywał się kanał na YouTube, który prowadził Kamil w gimnazjum?",
   "Podaj dokładną datę urodzin Kamila.",
-  "Co wrzucił Kamil pani od geografii do cycyszkow?",
+  "Co wrzucił Kamil pani od geografii do cyce?",
   "Kim Kamil chce zostać w przyszłości?",
   "Kto zesrał się na podłogę na 20. urodzinach Kamila? (Wystarczy imię).",
   "Podaj jeden składnik dania, które wypadło Kamilowi z nosa, gdy się za szybko schylal srajac?",

@@ -32,3 +32,13 @@ export const POLL_INTERVAL_MS = 4_000;
 export function getTeam(teamId: TeamId) {
   return TEAMS.find((team) => team.id === teamId) ?? TEAMS[0];
 }
+
+export const OBSERVER_NICKNAME = "obserwator";
+
+export const LEGACY_DUEL_BET_STAKE = "2.0000";
+export const STANDARD_DUEL_BET_STAKE = "4.0000";
+export const FAMILIADA_BET_STAKE = "8.0000";
+export const CHARADES_BET_STAKE = "2.0000";
+
+export const STANDARD_DUEL_BET_DESCRIPTION = "Każdy gracz, którego drużyna nie uczestniczy w pojedynku, może obstawić zwycięzcę. Jeden zakład = 4 żetony.";
+export const FAMILIADA_BET_DESCRIPTION = "Każdy gracz, którego drużyna nie uczestniczy w meczu, może obstawić zwycięzcę. Jeden zakład = 8 żetonów.";

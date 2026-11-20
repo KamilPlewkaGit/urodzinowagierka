@@ -8,6 +8,6 @@ Dependencies: `src/components/casino-logo.tsx`, `src/components/registration-for
 
 Backend/database interactions: None directly. RegistrationForm calls the appropriate Route Handler after user interaction.
 
-Implementation details: The route intentionally contains no game logic or secrets; the administrator form path is selected inside the client form only when the input nickname is `admin`.
+Implementation details: The route intentionally contains no game logic or secrets; the client form offers participant, administrator, and observer sign-in.
 
 Future expansion: Add non-sensitive event introduction content here without moving registration validation out of the API.

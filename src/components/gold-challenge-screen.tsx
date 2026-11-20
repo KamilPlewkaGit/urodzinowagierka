@@ -5,7 +5,7 @@ import { useSegmentCommand } from "@/components/segment-command";
 import styles from "@/components/gold-challenge.module.css";
 import { formatPolishChips } from "@/lib/chips";
 import { getTeam } from "@/lib/constants";
-import type { GameSnapshot, GoldReward, GoldSnapshot, GoldStage } from "@/lib/types";
+import type { GameSnapshot, GoldReward, GoldSnapshot, GoldStage, Session } from "@/lib/types";
 import type { GoldAction } from "@/lib/validation";
 
 export const GOLD_TITLE = "KTO GRA GRUBO, WYGRAĆ MUSI";
@@ -85,7 +85,7 @@ export function GoldBoard({ state }: { state: GoldSnapshot }) {
   );
 }
 
-export function GoldChallengeScreen({ snapshot, viewerPlayerId, refresh }: { snapshot: GameSnapshot; viewerPlayerId?: number; refresh: () => Promise<void> }) {
+export function GoldChallengeScreen({ snapshot, viewerPlayerId, refresh, viewerRole }: { snapshot: GameSnapshot; viewerPlayerId?: number; refresh: () => Promise<void>; viewerRole?: Session["role"] }) {
   const state = snapshot.goldChallenge;
   const [number, setNumber] = useState<{ revision: string; value: number } | null>(null);
   const voter = snapshot.players.find((player) => player.id === viewerPlayerId);
@@ -105,7 +105,7 @@ export function GoldChallengeScreen({ snapshot, viewerPlayerId, refresh }: { sna
             onClick={() => number && void send({ action: "number-vote", number: number.value })}>Zatwierdź wybór</button>}
         {error && <p className={styles.error} role="alert">{error}</p>}
       </section>}
-      {state.sixResult && <section className={styles.panel} aria-label="Aktualne salda">
+      {viewerRole !== "observer" && state.sixResult && <section className={styles.panel} aria-label="Aktualne salda">
         <h2>Aktualne salda</h2>
         <ul className={styles.ledger}>{snapshot.players.map((player) => <li key={player.id}><span>{player.nickname}</span><strong>{formatPolishChips(player.tokens)} żet.</strong></li>)}</ul>
       </section>}

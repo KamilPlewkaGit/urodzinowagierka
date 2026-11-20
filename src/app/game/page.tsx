@@ -11,6 +11,7 @@ export default async function GamePage() {
   if (!session) redirect("/");
 
   if (session.role === "player") redirect("/lobby?widok=segment");
+  if (session.role === "observer") redirect("/obserwator");
 
   const snapshot = await getGameSnapshot();
   if (snapshot.game.status === "waiting") redirect("/admin");

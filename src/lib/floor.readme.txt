@@ -1,1 +1,1 @@
-Wspólne siedem kategorii, tekst indywidualnej stawki, progi obecności i częstotliwość synchronizacji. Czas pozostaje pochodną 45-sekundowych baz, serwerowego znacznika oraz 3-sekundowej kary za Pas.
+Wspólne siedem kategorii, progi obecności i częstotliwość synchronizacji. Czas pozostaje pochodną 45-sekundowych baz, serwerowego znacznika oraz 3-sekundowej kary za Pas.

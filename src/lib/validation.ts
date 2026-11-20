@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { TEAM_IDS } from "@/lib/constants";
+import { OBSERVER_NICKNAME, TEAM_IDS } from "@/lib/constants";
 import { SOLENIZANT_LAST_QUESTION_INDEX } from "@/lib/solenizant";
 
 z.config(z.locales.pl());
@@ -200,5 +200,6 @@ export function normalizeNickname(nickname: string) {
 }
 
 export function isReservedNickname(nickname: string) {
-  return nickname.toLocaleLowerCase() === "admin";
+  const login = nickname.toLowerCase();
+  return login === "admin" || login === OBSERVER_NICKNAME;
 }

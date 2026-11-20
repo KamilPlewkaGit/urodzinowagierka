@@ -9,3 +9,7 @@ Dependencies: React, shared snapshot and command types, team metadata, exact dec
 Implementation: Only selected player IDs get a buzzer button, placed above the board for quick use on narrow screens. Only eligible viewers get wager choices. Server authorization and arbitration remain authoritative. The board displays only the projected revealed field, even when mounted for an administrator. Commands use the present revision, are single-flight per form, and refresh the existing snapshot after a response.
 
 The board fills one set of three shared strike markers from the server's round counter. The round status shows when the opponent has a single attempt to steal the pool.
+
+Formularz wyświetla utrwaloną stawkę meczu. Wynik podaje kwotę z własnego rekordu zakładu.
+
+Widok obserwatora pokazuje numer meczu obok nazwy etapu i współdzieli publiczną tablicę.

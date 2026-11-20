@@ -11,6 +11,7 @@ The application is a single Next.js App Router deployment for Vercel. Pages are 
 ```text
 Browser client
   ├─ POST /api/auth/register ────────► Player validation + INSERT + opaque cookie
+  ├─ POST /api/auth/observer ────────► hasło obserwatora + niejawna sesja
   ├─ POST /api/admin/login ─────────► fixed `admin` check + opaque admin cookie
   ├─ GET  /api/game/state (4 sec) ──► Authenticated Neon snapshot (players + chips + game/segment/scores)
   ├─ POST /api/segment/solenizant/* ──► Admin-only stage and scoring writes
@@ -39,6 +40,14 @@ Po dołączeniu otwiera się panel pod adresem `/lobby`. Pasek u góry ekranu ko
 Przełączanie widoków zachowuje formularz aktualnego segmentu i trwające operacje zakładów. Parametr `widok` w adresie przywraca wybrany panel po odświeżeniu i działa z historią przeglądarki. Bez wskazania widoku panel pokazuje lobby przed startem, a aktualny segment w trakcie gry. Dotychczasowy adres gracza `/game` otwiera zakładkę segmentu. Administrator nadal może używać `/game` jako podglądu.
 
 Wszystkie widoki korzystają ze wspólnej migawki `/api/game/state`. Ponadto gracze zgłaszają obecność urządzenia na potrzeby The Floor. Przyjęcie własnego zakładu wywołuje także odczyt od razu. Składy, salda, wypłaty i zmiany prowadzącego pochodzą z bazy Neon i są widoczne po kolejnym udanym odczycie. Krótka przerwa w połączeniu pozostawia ostatnie dostępne dane z komunikatem o ponawianiu synchronizacji. Ponowne dołączenie z tym samym pseudonimem aktywnego gracza przywraca jego drużynę i zapisane saldo.
+
+## Widok obserwatora
+
+Na stronie głównej wybierz **Zaloguj jako obserwator** lub wpisz login `obserwator`. W prywatnej konfiguracji hasło to `obserwator`. Ustaw własne hasło w serwerowej zmiennej `OBSERVER_PASSWORD` na publicznym wdrożeniu. Login jest zarezerwowany w rejestracji. Serwer wystawia niejawne ciasteczko sesji z rolą `observer`, bez rekordu zawodnika, drużyny i salda.
+
+Strona `/obserwator` weryfikuje rolę i pokazuje aktywną planszę oraz punktację wszystkich drużyn. **Pełny ekran** otwiera tryb transmisji. Po odświeżeniu ekran wczytuje stan prowadzącego. Jedno odpytywanie `GET /api/game/state?widok=obserwator` co cztery sekundy (co sekundę w The Floor) przekazuje pytania, ujawnione odpowiedzi i potwierdzone wyniki. Przy krótkiej przerwie ekran zachowuje ostatnią migawkę i ponawia odczyt.
+
+Serwer dopuszcza wyłącznie odczyt publicznej migawki oraz materiałów The Floor. Zapisy gry wymagają zweryfikowanej roli prowadzącego lub gracza, zgodnie z akcją. Klucze odpowiedzi, podglądy rozliczeń i prywatne typy pozostają poza migawką obserwatora. Obserwator pobiera te same grafiki bez raportowania gotowości.
 
 ## Technology stack
 
@@ -71,6 +80,7 @@ Wszystkie widoki korzystają ze wspólnej migawki `/api/game/state`. Ponadto gra
     │   ├── admin/page.tsx + page.readme.txt
     │   ├── api
     │   │   ├── admin/login/route.ts + route.readme.txt
+    │   │   ├── auth/observer/route.ts + route.readme.txt
     │   │   ├── auth/register/route.ts + route.readme.txt
     │   │   ├── auth/logout/route.ts + route.readme.txt
     │   │   └── game
@@ -78,6 +88,7 @@ Wszystkie widoki korzystają ze wspólnej migawki `/api/game/state`. Ponadto gra
     │   │       └── state/route.ts + route.readme.txt
     │   ├── game/page.tsx + page.readme.txt
     │   ├── lobby/page.tsx + page.readme.txt
+    │   ├── obserwator/page.tsx + page.readme.txt
     │   ├── globals.css + globals.readme.txt
     │   ├── layout.tsx + layout.readme.txt
     │   └── page.tsx + page.readme.txt
@@ -87,6 +98,8 @@ Wszystkie widoki korzystają ze wspólnej migawki `/api/game/state`. Ponadto gra
     │   ├── game-screen.tsx + game-screen.readme.txt
     │   ├── game-session.tsx + game-session.readme.txt
     │   ├── lobby-client.tsx + lobby-client.readme.txt
+    │   ├── observer-screen.tsx + observer-screen.readme.txt
+    │   ├── observer.module.css + observer.module.readme.txt
     │   ├── registration-form.tsx + registration-form.readme.txt
     │   └── team-selector.tsx + team-selector.readme.txt
     └── lib
@@ -168,9 +181,16 @@ Zatwierdzone i rozliczone zwycięstwo daje drużynie 1 punkt w klasyfikacji ogó
 
 ### `the_floor_bets`
 
-Każdy gracz spoza rywalizujących drużyn może postawić jeden zakład za 2 żetony. Zapis zakładu rezerwuje stawkę. **Rozpocznij pojedynek** zamyka zakłady i uruchamia 45-sekundowy zegar pierwszej drużyny. Obie drużyny i ich zegary są widoczne na ekranach graczy. Po poprawnej odpowiedzi zmienia się tura, a **Pas** odbiera 3 sekundy i zostawia turę tej samej drużynie.
+Każdy gracz spoza rywalizujących drużyn może postawić jeden zakład za 4 żetony. Zapis zakładu rezerwuje stawkę. **Rozpocznij pojedynek** zamyka zakłady i uruchamia 45-sekundowy zegar pierwszej drużyny. Obie drużyny i ich zegary są widoczne na ekranach graczy. Po poprawnej odpowiedzi zmienia się tura, a **Pas** odbiera 3 sekundy i zostawia turę tej samej drużynie.
 
 ### Standardowe rozliczenie zakładów
+
+| Nowa runda | Stawka gracza |
+| --- | ---: |
+| Każdy z dwóch czteropytaniowych meczów Familiady | 8 żetonów |
+| The Floor, wyzwania główne SPORT, POJEDYNKI i oba pojedynki ALKOHOLIKÓW | 4 żetony |
+
+Kwota jest zapisywana przy otwarciu rundy. Rundy otwarte przed zmianą zachowują 2 żetony, a dotychczasowe zapisy zakładów i wypłat pozostają w bazie. Zwrot, przegrana stawka i wypłata korzystają z kwoty utrwalonej przy złożeniu zakładu.
 
 The Floor, SPORT, POJEDYNKI, Familiada i pojedynki ALKOHOLIKÓW używają wspólnej reguły. Trafiony zakład zwraca stawkę i przynosi 2 żetony zysku. Zysk finansują aktywni członkowie przegranej drużyny. Stawki nietrafione rozdzielamy między aktywnych członków zwycięskiej drużyny. Gdy nikt nie trafi, wszystkie nietrafione stawki trafiają do zwycięskiej drużyny. Kalambury zachowują własną regułę puli i zwrotów.
 
@@ -181,6 +201,8 @@ Podział używa `NUMERIC(20,4)`. Reszty są rozdzielane po 0,0001 żetonu wedłu
 Kategorie to **Znajome twarze**, **Lokalne miejsca**, **Loga**, **Czytanie od tyłu**, **Działania**, **Rebusy** i **Politycy**. Serwer losuje kolejność danego zestawu przy zatwierdzaniu drużyn i zapisuje listę identyfikatorów pojedynku. Wszystkie ekrany widzą to samo pytanie, a odpowiedź pozostaje w zweryfikowanej migawce administratora. Zapisane pojedynki Loga i Lokalnych miejsc zachowują kolejność pozostałych kart po usunięciu pozycji z katalogu. W istniejącym niezakończonym segmencie kategoria Politycy trafia na koniec dostępnych pojedynków.
 
 `GET /api/segment/floor/preload` zwraca wersjonowaną listę unikatowych grafik. Każdy klient wczytuje i dekoduje do czterech naraz. Adresy identyczne z tymi używanymi w grze mają identyfikator skrótu treści i używają pamięci podręcznej przeglądarki. `POST /api/segment/floor/preload` zapisuje obecność karty, postęp i błędy w `floor_device_presence`. Obecność wygasa po 30 sekundach bez raportu. Serwer wpuszcza do pojedynku, gdy urządzenie prowadzącego i wszystkie obecne urządzenia graczy zgłosiły dekodowanie całego aktualnego katalogu. Dołączające urządzenia też rozpoczynają wczytywanie. Panel prowadzącego pokazuje postęp i błędy według kategorii oraz ID pozycji. Ponowienie wczytuje wyłącznie brakujące zasoby.
+
+W trakcie pojedynku wspólna rama obrazu i tekstu zachowuje stały rozmiar dla danego układu ekranu. Następny obraz używa adresu z manifestu i pojawia się po zdekodowaniu. Poprzedni obraz może pozostać widoczny maksymalnie przez 250 ms, potem ramę wypełnia komunikat o wczytywaniu lub błędzie. Postęp wczytywania katalogu dla gracza jest dostępny poza aktywną planszą także w trakcie pojedynku.
 
 Szczegóły plików i mapowań opisuje [dokumentacja materiałów The Floor](public/the%20floor/README.md).
 
@@ -205,7 +227,7 @@ The fixed, persisted schedule resolves Pair A/B only after those administrator s
 
 Ranks above 5 are retained and shown to the player, but do not change the fixed schedule. Before opening the first betting phase the server requires a complete ranking for every active player and at least five active ranked players in every team. If a team is too small, the administrator receives a clear Polish validation message instead of a failed challenge transition.
 
-For each main challenge, only active members of the two non-competing teams can bet. Each eligible player may place one 2-chip bet. The administrator confirms the start of the real-world challenge and closes betting with any number of bets. The administrator then selects one of the persisted pair teams and confirms the result. Each settled victory gives the team one point, including each two-versus-two yoga challenge. The durable `settled_at` marker prevents duplicate settlement. Correct bettors receive their 2-chip stake plus 2 chips of profit funded equally by active members of the losing competing team. Incorrect stakes are distributed equally among active members of the winning competing team. All split calculations are `NUMERIC(20,4)`, with a deterministic remainder, and transfers are saved in `sport_chip_transfers`.
+For each main challenge, only active members of the two non-competing teams can bet. Each eligible player may place one 4-chip bet. The administrator confirms the start of the real-world challenge and closes betting with any number of bets. The administrator then selects one of the persisted pair teams and confirms the result. Each settled victory gives the team one point, including each two-versus-two yoga challenge. The durable `settled_at` marker prevents duplicate settlement. Correct bettors receive their recorded stake plus 2 chips of profit funded equally by active members of the losing competing team. Incorrect stakes are distributed equally among active members of the winning competing team. All split calculations are `NUMERIC(20,4)`, with a deterministic remainder, and transfers are saved in `sport_chip_transfers`.
 
 ### SPORT: bonus challenges
 
@@ -245,7 +267,7 @@ Each login creates one opaque, randomly generated token. The token is held only 
 - Opening scoring changes only the persisted admin stage; player UI intentionally renders the same question during both `question` and `scoring` stages.
 - Confirming a score accepts only a bounded question index and unique team IDs. The server owns the one-point value and atomically prevents duplicate awards.
 - A Floor `correct` action moves to the next image and switches the active team. A `pass` moves to the next image, deducts exactly 3 seconds, and intentionally keeps the same team active. Both teams start at 45 seconds; a zero server-calculated clock ends the duel and opens administrator winner selection.
-- Floor configuration accepts exactly two distinct stable team IDs. The administrator sees all four teams and selects first and second side; no individual player is configured as a duel participant. Each active player from the other two teams may place one 2-chip bet.
+- Floor configuration accepts exactly two distinct stable team IDs. The administrator sees all four teams and selects first and second side; no individual player is configured as a duel participant. Each active player from the other two teams may place one 4-chip bet.
 - SPORT configuration accepts two ordered, disjoint team pairs and a complete consecutive ranking of every active roster member. Its schedule uses only saved ranks 1–5 and those pair slots, never hardcoded team IDs. The winner must be one of the current pair teams, and one SQL settlement marks the challenge to prevent duplicate chip transfers or score changes.
 - Route pages also verify sessions on the server, so navigating directly to `/admin`, `/lobby`, or `/game` cannot bypass access rules.
 - Cookies are HttpOnly, SameSite=Lax, secure in production, and expire after seven days. Their values are random opaque tokens, not role claims.
@@ -275,7 +297,7 @@ The administrator password is intentionally `admin` for this private game. Anyon
    npm run dev
    ```
 
-5. Visit `http://localhost:3000`. Use any valid nickname and a house to join. Enter `admin` as the nickname to reveal the administrator-password input, then use `admin` as the password.
+5. Visit `http://localhost:3000`. Use any valid nickname and a house to join. Enter `admin` as the nickname to reveal the administrator-password input, then use `admin` as the password. The observer uses `obserwator` as the login and default password.
 
 6. Validate before committing:
 
@@ -287,9 +309,9 @@ The administrator password is intentionally `admin` for this private game. Anyon
 
 1. Create a Neon project and copy its pooled `DATABASE_URL` connection string.
 2. Import this Git repository in Vercel. The framework preset is Next.js; build command can remain `npm run build`.
-3. Set `DATABASE_URL` for Production (and Preview if needed).
+3. Set `DATABASE_URL` for Production (and Preview if needed). Configure the server-only `OBSERVER_PASSWORD` for the observer account on an internet-facing deployment.
 4. Deploy. The first request automatically creates or migrates the required tables, session table, SOLENIZANT score tables, The Floor duel/bet tables, SPORT pair/number/challenge/bet/transfer/bonus tables, JAKA TO MELODIA? song/score/transfer tables, POJEDYNKI duel/bet tables, Familiada and Alkoholicy wager tables, gold challenge nomination and transfer tables, player-management ledger tables, and initial `game_state` row.
-5. Verify a player can register and rejoin with the same normalized nickname, an admin can authenticate, start the game and all available segments, then select two Floor teams, try a 2-chip bet from an eligible remaining-team player, lock betting, run correct/pass team timer actions, select and confirm a winning team, and advance to the next slot. For SPORT, verify two disjoint ordered pairs, dynamic rankings from 1 through each team's player count, the required ranks 1–5, all eight scheduled challenges, only non-competing-team betting, result settlement, two no-bet limb-count bonuses, and team-score updates. For JAKA TO MELODIA?, verify team confirmation, the five numbered rounds, artist and title scoring, tie resolution, insufficient-balance handling, and one-time settlement with a conserved chip total. For POJEDYNKI, verify all four team selections, optional 2-chip bets from remaining-team players, betting lock, only-competing-team winner confirmation, one-time settlement, and durable progression. Confirm that an undersized SPORT team gets the Polish validation message and that refreshing does not reset an unsaved, unchanged setup selection. For each betting segment, verify that cancelling the administrator's start confirmation keeps betting open, and that confirming closes it and starts play with zero bets or a partial pool. Check that only submitted bets settle. Also verify that reset restores active players to 100 chips and that the dashboard shows the waiting status.
+5. Verify a player can register and rejoin with the same normalized nickname, an admin can authenticate, start the game and all available segments, and the observer follows the current game in fullscreen. Then select two Floor teams, try a 4-chip bet from an eligible remaining-team player, lock betting, run correct/pass team timer actions, select and confirm a winning team, and advance to the next slot. For SPORT, verify two disjoint ordered pairs, dynamic rankings from 1 through each team's player count, the required ranks 1–5, all eight scheduled challenges, only non-competing-team betting, result settlement, two no-bet limb-count bonuses, and team-score updates. For JAKA TO MELODIA?, verify team confirmation, the five numbered rounds, artist and title scoring, tie resolution, insufficient-balance handling, and one-time settlement with a conserved chip total. For POJEDYNKI, verify all four team selections, optional 4-chip bets from remaining-team players, betting lock, only-competing-team winner confirmation, one-time settlement, and durable progression. Confirm that an undersized SPORT team gets the Polish validation message and that refreshing does not reset an unsaved, unchanged setup selection. For each betting segment, verify that cancelling the administrator's start confirmation keeps betting open, and that confirming closes it and starts play with zero bets or a partial pool. Check that only submitted bets settle. Also verify that reset restores active players to 100 chips and that the dashboard shows the waiting status.
 
 ## Important implementation decisions
 
@@ -302,10 +324,10 @@ The administrator password is intentionally `admin` for this private game. Anyon
 - **Segment scoring is independent of chips:** SOLENIZANT writes only its team-score rows; player `tokens` are never accepted from the browser or spent by the segment.
 - **The Floor is team-versus-team:** The administrator selects two distinct teams, never individual participants. Team IDs, active team, team clocks, winner team, and team bet targets are persisted; legacy player references are only backfilled during migration and are not used by new duels.
 - **The Floor timer is server-derived:** Browser clocks are presentation only. Durable team timer bases plus a server timestamp are recalculated and locked for every admin action, preventing the frontend from extending a turn. When a duel ends, the administrator must select and confirm one competing team before settlement.
-- **The Floor uses team-funded betting:** An eligible player stakes 2 chips. Losing team members fund profits and winning team members receive incorrect stakes.
+- **The Floor uses team-funded betting:** An eligible player stakes 4 chips. Losing team members fund profits and winning team members receive incorrect stakes.
 - **SPORT pairs and ranks are administrator-controlled:** Pair A and Pair B are saved with ordered sides after the administrator selects all four teams. Every active player receives one persisted consecutive rank from 1 through the size of their team. Eight challenges resolve their participants only from those pair slots and ranks 1–5; no SPORT matchup is tied to a particular team ID.
 - **SPORT form synchronization is bounded:** SPORT uses the existing polling architecture rather than application WebSockets. A stable persisted-data key controls one-time form hydration, eliminating the former effect/state dependency cycle, preserving unchanged local selections across polls, and preventing development HMR WebSocket warnings caused by the render loop.
-- **SPORT betting reuses authoritative chip handling:** A fixed 2-chip stake is server-debited only from players outside the current pair. Correct bettors receive stake plus a fixed 2-chip profit funded evenly by the losing competing team, while incorrect stakes are distributed evenly to the winning competing team. All decimal remainders are deterministic and the durable transfer ledger plus challenge settlement marker block duplicate payouts.
+- **SPORT betting reuses authoritative chip handling:** A fixed 4-chip stake is server-debited only from players outside the current pair. Correct bettors receive stake plus a fixed 2-chip profit funded evenly by the losing competing team, while incorrect stakes are distributed evenly to the winning competing team. All decimal remainders are deterministic and the durable transfer ledger plus challenge settlement marker block duplicate payouts.
 - **SPORT bonuses affect only scores:** Both all-team limb challenges have persisted requirements, winner, and administrator-entered points. They update the existing team-score table once and never change chips.
 
 ## Segment V: JAKA TO MELODIA?
@@ -318,17 +340,17 @@ Po piątym utworze prowadzący potwierdza lidera. Przy remisie wybiera spośród
 
 ## Segment VI: POJEDYNKI
 
-POJEDYNKI contains exactly four consecutive team-versus-team duels. Before every duel the administrator sees all four teams and chooses two different competing sides; no individual player is selected. Each active player from the other two teams may make one prediction on either competing team. The fixed server-owned stake is **2 virtual chips**.
+POJEDYNKI contains exactly four consecutive team-versus-team duels. Before every duel the administrator sees all four teams and chooses two different competing sides; no individual player is selected. Each active player from the other two teams may make one prediction on either competing team. The fixed server-owned stake is **4 virtual chips**.
 
 The persistent flow for each zero-based slot is `setup` → `betting` → `live` → `result`:
 
 1. The administrator confirms two teams, opening betting.
-2. Each eligible active player may submit one 2-chip bet. The database derives eligibility from the player session and selected team IDs.
+2. Each eligible active player may submit one 4-chip bet. The database derives eligibility from the player session and selected team IDs.
 3. The administrator confirms the start of the real-world duel, which locks betting with any number of bets.
 4. The administrator chooses one of the competing teams and confirms the result.
 5. The confirmed winner earns one team point and standard chip transfers settle once. The administrator then opens the next slot. After Duel 4 the segment shows a durable summary of all four winners.
 
-`pojedynki_duels` has four sequence slots and stores selected team sides, stage, winner, timestamps, and a `settled_at` guard. Each settled slot contributes one point, so the four duels award at most four points. `pojedynki_bets` has one row per eligible bettor and duel, with a `NUMERIC(20,4)` 2-chip stake, result, and payout. Duel settlement uses the standard team-funded rule.
+`pojedynki_duels` has four sequence slots and stores selected team sides, stage, winner, timestamps, and a `settled_at` guard. Each settled slot contributes one point, so the four duels award at most four points. `pojedynki_bets` has one row per eligible bettor and duel, with a `NUMERIC(20,4)` recorded stake, result, and payout. Duel settlement uses the standard team-funded rule.
 
 The sixth segment has focused protected routes: administrator-only `start`, `configure`, `start-duel`, `finish`, `next`, `complete`, and `restart`, and player-only `bet` under `/api/segment/pojedynki/*`. The finish request uses the duel's `eventId` from the snapshot. Corrections also use the duel's `scoreRevision` as `correctionRevision`. The four-second snapshot poll shows each player their own wager. Restart refunds pending Pojedynki wagers and removes its four slot rows and their points. Settled payouts, teams and other segment data are preserved.
 - **Explicit destructive actions:** Reopening or directly navigating to a segment never resets it. Segment restart and full-game reset are separate admin-only endpoints with Polish UI confirmation. Full reset preserves active registrations and teams but restores their balances to 100 and resets game/segment state.
@@ -340,7 +362,7 @@ The sixth segment has focused protected routes: administrator-only `start`, `con
 ### Mecze i zakłady
 
 1. W panelu prowadzącego wybierz cztery różne drużyny i zapisz je jako dwie uporządkowane pary. Puste drużyny również można wybrać. Skład obu meczów można zmieniać do naciśnięcia **Rozpocznij segment**. Każdy mecz ma cztery własne pytania i osobną punktację.
-2. Przed pierwszym pytaniem każdego meczu prowadzący otwiera zakłady albo je pomija. Aktywny gracz z jednej z pozostałych drużyn może postawić jeden zakład na zwycięzcę meczu za 2 wirtualne żetony. Prowadzący zamyka zakłady przed przejściem do pytania.
+2. Przed pierwszym pytaniem każdego meczu prowadzący otwiera zakłady albo je pomija. Aktywny gracz z jednej z pozostałych drużyn może postawić jeden zakład na zwycięzcę meczu za 8 wirtualnych żetonów. Prowadzący zamyka zakłady przed przejściem do pytania.
 3. Po czterech pytaniach prowadzący potwierdza drużynę z większą liczbą punktów. Przy remisie wskazuje zwycięzcę spośród obu drużyn. Dopiero rozliczony mecz daje zwycięzcy 1 punkt w klasyfikacji ogólnej. Następnie prowadzący przygotowuje drugi mecz albo kończy segment. Wyniki obu meczów pozostają dostępne w podsumowaniu.
 4. Potwierdzenie rozlicza wszystkie zakłady na mecz według zasad SPORT. Trafiony zakład oddaje stawkę i wypłaca 2 żetony zysku finansowane po równo przez aktywnych członków przegranej drużyny. Stawki nietrafionych zakładów trafiają po równo do aktywnych członków wygranej drużyny. Salda mają cztery miejsca po przecinku. Reszta jest rozdzielana po 0,0001 żetonu według daty rejestracji i ID. Jeśli brakuje uczestników potrzebnych do wykonania transferu lub wystarczającego salda, cały zapis wyniku i wypłaty czeka na ponowną próbę. Punkty z pytań są oddzielone od żetonów i punktacji ogólnej.
 
@@ -397,7 +419,7 @@ Przedostatni segment, bezpośrednio przed **FINAŁEM**, składa się z dokładni
 
 ### Gra 2 – Pojedynki
 
-Prowadzący osobno wybiera dwie różne drużyny przed każdym z dwóch pojedynków. Można wybrać pustą drużynę lub powtórzyć drużynę w obu pojedynkach. Otwarcie zakładów blokuje zmianę składu. Gracze spoza pary mogą postawić po 2 żetony. Po fizycznym pojedynku prowadzący wybiera i zatwierdza zwycięzcę. Transakcja stosuje standardowe rozliczenie zakładów. Za wygranie pojedynku przyznaje się wyłącznie wynik pojedynku, a do klasyfikacji ogólnej trafiają punkty Kalamburów.
+Prowadzący osobno wybiera dwie różne drużyny przed każdym z dwóch pojedynków. Można wybrać pustą drużynę lub powtórzyć drużynę w obu pojedynkach. Otwarcie zakładów blokuje zmianę składu. Gracze spoza pary mogą postawić po 4 żetony. Po fizycznym pojedynku prowadzący wybiera i zatwierdza zwycięzcę. Transakcja stosuje standardowe rozliczenie zakładów. Za wygranie pojedynku przyznaje się wyłącznie wynik pojedynku, a do klasyfikacji ogólnej trafiają punkty Kalamburów.
 
 **Przejdź do pojedynku nr 2** pojawia się po rozliczeniu pierwszej pary, a **Zakończ segment** po rozliczeniu drugiej. `alkoholicy_state` przechowuje indeks pojedynku i wyniki obu par. `alkoholicy_bets` ma niezależne rynki 1 dla Kalamburów, 2 dla pojedynku nr 1, 3 dla pojedynku nr 2. Odświeżenie przywraca etap. Wcześniej rozliczony pojedynczy pojedynek zachowuje wynik i wypłaty jako pojedynek nr 1.
 

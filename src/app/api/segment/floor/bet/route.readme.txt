@@ -1,6 +1,6 @@
 File: `src/app/api/segment/floor/bet/route.ts`
 
-Purpose and responsibilities: Records one fixed 2-chip player bet on a competing The Floor team.
+Purpose and responsibilities: Records one fixed-stake player bet on a competing The Floor team.
 
 Important exports, inputs, and outputs: Player-only `POST(request)` validates `{ targetTeamId }` and returns `{ ok: true }` or Polish errors.
 
@@ -9,3 +9,5 @@ Dependencies: Next Route Handler APIs, team-bet validation, opaque sessions, and
 Backend/database interactions: Uses the verified session player ID, not a browser-supplied bettor. The database checks the active betting stage, target-team membership, bettor's team eligibility, duplicate bet, and balance before atomically debiting and inserting the bet.
 
 Implementation details: Every member of the two competing teams is excluded; the amount is server-owned and cannot be changed by the browser.
+
+Nowe rundy rezerwują 4 żetony. Otwarte przed zmianą stawki rundy korzystają z wcześniejszej kwoty.

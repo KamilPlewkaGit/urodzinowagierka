@@ -1,1 +1,3 @@
 Ekran pokazuje pięć piosenek, punktację za wykonawcę i tytuł oraz ranking. Po zatwierdzeniu zwycięzcy widoczna jest pula ze składek po 5 żetonów, wypłata na osobę i po rozliczeniu aktualne salda. Historyczne zakończone wyniki pozostają archiwalne.
+
+Plansza widowni pomija osobną listę sald graczy i nadal pokazuje publiczne wyniki.

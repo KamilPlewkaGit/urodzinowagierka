@@ -1,1 +1,3 @@
 Pokazuje numer segmentu, indywidualną stawkę i podczas gry wspólne karty obu drużyn z zegarami. Pokazuje zwycięzcę po rozliczeniu i odczytuje wyłącznie własny zakład.
+
+Widok pokazuje stawkę zapisaną dla otwartej rundy. Obserwator ogląda przebieg z wyłączonymi akcjami gracza. Stała rama karty utrzymuje położenie zegarów i wysokość planszy przy zmianach obrazów i tekstu.

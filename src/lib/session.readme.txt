@@ -11,3 +11,5 @@ Backend/database interactions: Creates and resolves opaque session tokens exclus
 Implementation details: The browser holds an opaque random token in an HttpOnly, SameSite=Lax, production-secure cookie. The server resolves its role, player ID, and expiry from Neon, so there is no client-authoritative role claim and no `SESSION_SECRET` environment variable.
 
 Future expansion: Add issuance metadata or a sign-out-of-all-devices flow only if the game needs it; keep authorization server-verified.
+
+Sesja obserwatora korzysta z tego samego niejawnego tokenu i nie zawiera identyfikatora gracza.

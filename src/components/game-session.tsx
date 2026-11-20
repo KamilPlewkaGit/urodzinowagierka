@@ -16,9 +16,9 @@ import { PojedynkiScreen } from "@/components/pojedynki-screen";
 import { SportScreen } from "@/components/sport-screen";
 import { POLL_INTERVAL_MS } from "@/lib/constants";
 import { THE_FLOOR_POLL_INTERVAL_MS } from "@/lib/floor";
-import type { GameSnapshot, SegmentId } from "@/lib/types";
+import type { GameSnapshot, SegmentId, Session } from "@/lib/types";
 
-export function useGameSession(initialSnapshot: GameSnapshot, viewerPlayerId?: number) {
+export function useGameSession(initialSnapshot: GameSnapshot, viewerPlayerId?: number, { observerOnly = false } = {}) {
   const router = useRouter();
   const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [syncError, setSyncError] = useState(false);
@@ -36,7 +36,7 @@ export function useGameSession(initialSnapshot: GameSnapshot, viewerPlayerId?: n
     const timeout = window.setTimeout(() => controller.abort(), 3 * POLL_INTERVAL_MS);
 
     try {
-      const response = await fetch("/api/game/state", { cache: "no-store", signal: controller.signal });
+      const response = await fetch(observerOnly ? "/api/game/state?widok=obserwator" : "/api/game/state", { cache: "no-store", signal: controller.signal });
       if (controller.signal.aborted) return;
       if (response.status === 401) {
         polling.current = false;
@@ -61,7 +61,7 @@ export function useGameSession(initialSnapshot: GameSnapshot, viewerPlayerId?: n
       window.clearTimeout(timeout);
       if (request.current === controller) request.current = null;
     }
-  }, [router, viewerPlayerId]);
+  }, [router, viewerPlayerId, observerOnly]);
 
   useEffect(() => {
     polling.current = true;
@@ -110,13 +110,14 @@ const segmentScreens = {
   finale: FinaleScreen,
 } satisfies Record<SegmentId, typeof FloorScreen>;
 
-export function ActiveSegment({ snapshot, refresh, viewerPlayerId }: {
+export function ActiveSegment({ snapshot, refresh, viewerPlayerId, viewerRole = viewerPlayerId === undefined ? "admin" : "player" }: {
   snapshot: GameSnapshot;
   refresh: () => Promise<void>;
   viewerPlayerId?: number;
+  viewerRole?: Session["role"];
 }) {
   const Screen = segmentScreens[snapshot.game.activeSegment];
-  return <Screen snapshot={snapshot} refresh={refresh} viewerRole={viewerPlayerId === undefined ? "admin" : "player"} viewerPlayerId={viewerPlayerId} />;
+  return <Screen snapshot={snapshot} refresh={refresh} viewerRole={viewerRole} viewerPlayerId={viewerPlayerId} />;
 }
 
 export function AdminGamePreview({ initialSnapshot }: { initialSnapshot: GameSnapshot }) {

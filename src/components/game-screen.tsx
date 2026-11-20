@@ -3,13 +3,14 @@
 import { type CSSProperties } from "react";
 import { TEAMS } from "@/lib/constants";
 import { getSolenizantQuestion, SOLENIZANT_QUESTION_COUNT, SOLENIZANT_TITLE } from "@/lib/solenizant";
-import type { GameSnapshot, TeamId } from "@/lib/types";
+import type { GameSnapshot, TeamId, Session } from "@/lib/types";
 
 interface GameScreenProps {
   snapshot: GameSnapshot;
+  viewerRole?: Session["role"];
 }
 
-export function GameScreen({ snapshot }: GameScreenProps) {
+export function GameScreen({ snapshot, viewerRole }: GameScreenProps) {
   const { solenizantStage, currentQuestionIndex } = snapshot.game;
   const question = getSolenizantQuestion(currentQuestionIndex);
   const questionIsVisible = solenizantStage === "question" || solenizantStage === "scoring";
@@ -51,7 +52,7 @@ export function GameScreen({ snapshot }: GameScreenProps) {
         </div>
       </section>
 
-      <section className="score-section">
+      {viewerRole !== "observer" && <section className="score-section">
         <div className="section-heading">
           <div>
             <span className="eyebrow">{solenizantStage === "results" ? "Wynik końcowy" : "Aktualna punktacja"}</span>
@@ -69,7 +70,7 @@ export function GameScreen({ snapshot }: GameScreenProps) {
             </article>
           ))}
         </div>
-      </section>
+      </section>}
     </>
   );
 }

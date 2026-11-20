@@ -1,9 +1,11 @@
 File: `src/app/api/segment/sport/bet/route.ts`
 
-Purpose and responsibilities: Records one fixed 2-chip player bet on the current SPORT challenge winner.
+Purpose and responsibilities: Records one fixed-stake player bet on the current SPORT challenge winner.
 
 Important exports, inputs, and outputs: Player-only `POST(request)` validates `{ targetTeamId }` and returns `{ ok: true }` or Polish errors.
 
 Dependencies: Next Route Handler APIs, SPORT bet validation, opaque sessions, and `database.ts`.
 
 Backend/database interactions: Uses the verified session player ID. The database verifies current pair membership, excludes both competing teams, checks balance and duplicate bets, then atomically debits the fixed stake.
+
+Nowe rundy rezerwują 4 żetony. Otwarte przed zmianą stawki rundy korzystają z wcześniejszej kwoty.

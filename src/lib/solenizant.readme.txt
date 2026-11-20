@@ -11,3 +11,5 @@ Backend/database interactions: The database service uses the count and last-inde
 Implementation details: The question text and its order are intentionally fixed for this one segment. Browser components may read this module because it contains no secrets or authoritative state.
 
 Future expansion: Add a separate focused module for another segment rather than making this list configurable from the browser.
+
+Pytanie o panią od geografii używa słowa „cyce”.

@@ -4,14 +4,14 @@ import { useState } from "react";
 import { FloorDuelists, useFloorTimes } from "@/components/floor-clock";
 import { FloorPrompt } from "@/components/floor-prompt";
 import { formatChips } from "@/lib/chips";
-import { getSegmentNumber, getTeam } from "@/lib/constants";
-import { THE_FLOOR_BET_STAKE, THE_FLOOR_BET_DESCRIPTION, THE_FLOOR_TITLE } from "@/lib/floor";
-import type { GameSnapshot, TeamId } from "@/lib/types";
+import { getSegmentNumber, getTeam, STANDARD_DUEL_BET_DESCRIPTION, STANDARD_DUEL_BET_STAKE } from "@/lib/constants";
+import { THE_FLOOR_TITLE } from "@/lib/floor";
+import type { GameSnapshot, Session, TeamId } from "@/lib/types";
 
 interface FloorScreenProps {
   snapshot: GameSnapshot;
   refresh: () => Promise<void>;
-  viewerRole: "player" | "admin";
+  viewerRole: Session["role"];
   viewerPlayerId?: number;
 }
 
@@ -56,7 +56,7 @@ export function FloorScreen({ snapshot, refresh, viewerRole, viewerPlayerId }: F
         <div className="game-stage-content">
           {floor.stage === "intro" ? <>
             <span className="eyebrow">{getSegmentNumber(snapshot.game.activeSegment)}</span><h1>{THE_FLOOR_TITLE}</h1>
-            <p>{THE_FLOOR_BET_DESCRIPTION}</p>
+            <p>{STANDARD_DUEL_BET_DESCRIPTION}</p>
             <div className="segment-rules"><span><strong>Tryb:</strong> drużyna kontra drużyna</span><span><strong>Format:</strong> jeden pojedynek na kategorię</span></div>
           </> : null}
 
@@ -69,7 +69,7 @@ export function FloorScreen({ snapshot, refresh, viewerRole, viewerPlayerId }: F
             <span className="eyebrow">Pojedynek {duel.sequence + 1}/{floor.duels.length} · obstawianie trwa</span><h1>{category.name}</h1>
             <p>{category.instructions}</p>
             <FloorDuelists teamA={teamA} teamB={teamB} />
-            {viewerRole === "player" && viewerTeamId && !viewerIsCompeting && !duel.viewerBetTargetTeamId ? <div className="floor-bet-panel"><p>Zakład jest opcjonalny. Poczekaj na start albo wybierz drużynę. Stawka: <strong>{formatChips(THE_FLOOR_BET_STAKE)} żetony</strong>.</p><div className="floor-bet-buttons"><button className="gold-button" disabled={betting} onClick={() => placeBet(teamA.id)}>Stawiam na {teamA.name}</button><button className="gold-button" disabled={betting} onClick={() => placeBet(teamB.id)}>Stawiam na {teamB.name}</button></div></div> : null}
+            {viewerRole === "player" && viewerTeamId && !viewerIsCompeting && !duel.viewerBetTargetTeamId ? <div className="floor-bet-panel"><p>{duel.betStake === STANDARD_DUEL_BET_STAKE ? STANDARD_DUEL_BET_DESCRIPTION : `Stawka w tym pojedynku to ${formatChips(duel.betStake)} żetony.`}</p><div className="floor-bet-buttons"><button className="gold-button" disabled={betting} onClick={() => placeBet(teamA.id)}>Stawiam na {teamA.name}</button><button className="gold-button" disabled={betting} onClick={() => placeBet(teamB.id)}>Stawiam na {teamB.name}</button></div></div> : null}
             {viewerRole === "player" && viewerIsCompeting ? <p className="floor-waiting">Twoja drużyna bierze udział w pojedynku, więc jej członkowie nie mogą obstawiać.</p> : null}
             {viewerRole === "player" && duel.viewerBetTargetTeamId ? <p className="floor-waiting">Twój zakład na {getTeam(duel.viewerBetTargetTeamId).name} został przyjęty. Prowadzący zamknie zakłady przed startem.</p> : null}
           </> : null}
@@ -78,7 +78,7 @@ export function FloorScreen({ snapshot, refresh, viewerRole, viewerPlayerId }: F
             <span className="eyebrow">Pojedynek {duel.sequence + 1}/{floor.duels.length} · w toku · zakłady zamknięte</span>
             <h1 className="floor-category-title">{category.name}</h1><p>{category.instructions}</p>
             <FloorDuelists teamA={teamA} teamB={teamB} activeTeamId={duel.activeTeamId} times={times} />
-            <FloorPrompt key={`${duel.id}:${duel.itemIndex}`} prompt={category.prompt} alt={`Grafika kategorii ${category.name}, pozycja ${duel.itemIndex + 1}`} />
+            <FloorPrompt prompt={category.prompt} alt={`Grafika kategorii ${category.name}, pozycja ${duel.itemIndex + 1}`} />
           </> : null}
 
           {floor.stage === "result" && duel ? <>

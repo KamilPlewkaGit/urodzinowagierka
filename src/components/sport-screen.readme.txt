@@ -5,3 +5,5 @@ Purpose: SPORT displays team pairs, assigned ranks, challenges, bets, and both b
 Eligible players may leave the optional wager unsubmitted and wait for the administrator to start play.
 
 ActiveSegment supplies the live GameSnapshot, viewer role and optional session-derived player ID, and a shared refresh callback. After a successful bet the screen requests a fresh snapshot through that callback. The screen receives only the viewer's own bet details and keeps transient feedback local. Game progression and settlement remain in the existing protected Route Handlers.
+
+Widok pokazuje stawkę zapisaną dla otwartej rundy. Obserwator ogląda przebieg z wyłączonymi akcjami gracza.

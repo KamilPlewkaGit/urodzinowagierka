@@ -1,1 +1,5 @@
 Pokazuje dotychczasowe Kalambury oraz dwa osobne pojedynki z numerem, drużynami, wynikiem i saldami. Prywatne wyniki zakładów są dostępne osobno dla każdego rynku. Pojedynki nie mają punktacji.
+
+Formularz porównuje saldo z zapisaną stawką aktywnego rynku i wyświetla tę kwotę.
+
+Plansza widowni pomija osobną listę sald graczy i nadal pokazuje publiczne wyniki.

@@ -3,8 +3,8 @@
 import { useSegmentCommand } from "@/components/segment-command";
 import styles from "@/components/alkoholicy.module.css";
 import { compareChipBalances, formatPolishChips } from "@/lib/chips";
-import { TEAM_IDS, getTeam } from "@/lib/constants";
-import type { AlkoholicyMarket, AlkoholicyStage, GameSnapshot, Player, TeamId } from "@/lib/types";
+import { STANDARD_DUEL_BET_DESCRIPTION, STANDARD_DUEL_BET_STAKE, TEAM_IDS, getTeam } from "@/lib/constants";
+import type { AlkoholicyMarket, AlkoholicyStage, GameSnapshot, Player, TeamId, Session } from "@/lib/types";
 import type { AlkoholicyAction } from "@/lib/validation";
 
 export const alkoholicyStageLabel: Record<AlkoholicyStage, string> = {
@@ -55,7 +55,7 @@ function BalanceList({ players }: { players: Player[] }) {
   );
 }
 
-export function AlkoholicyBoard({ snapshot }: { snapshot: GameSnapshot }) {
+export function AlkoholicyBoard({ snapshot, showBalances = true }: { snapshot: GameSnapshot; showBalances?: boolean }) {
   const state = snapshot.alkoholicy;
   const { stage, order, scores, performance, duelTeams, charadesLeaders, duelHistory, duelIndex } = state;
   const segmentResult = stage === "results" || stage === "completed";
@@ -116,7 +116,7 @@ export function AlkoholicyBoard({ snapshot }: { snapshot: GameSnapshot }) {
           {stage === "completed" && <p>Segment zakończony.</p>}
         </div>
       )}
-      {(stage === "charades-results" || stage === "duel-result" || segmentResult) && <BalanceList players={snapshot.players} />}
+      {showBalances && (stage === "charades-results" || stage === "duel-result" || segmentResult) && <BalanceList players={snapshot.players} />}
     </section>
   );
 }
@@ -133,7 +133,7 @@ function OwnBet({ market, label }: { market: AlkoholicyMarket; label: string }) 
   return <p>{label} · <TeamName id={bet.target} /> · {status}</p>;
 }
 
-export function AlkoholicyScreen({ snapshot, viewerPlayerId, refresh }: { snapshot: GameSnapshot; viewerPlayerId?: number; refresh: () => Promise<void> }) {
+export function AlkoholicyScreen({ snapshot, viewerPlayerId, refresh, viewerRole }: { snapshot: GameSnapshot; viewerPlayerId?: number; refresh: () => Promise<void>; viewerRole?: Session["role"] }) {
   const state = snapshot.alkoholicy;
   const viewer = snapshot.players.find((player) => player.id === viewerPlayerId);
   const { send, pending, error } = useSegmentCommand<AlkoholicyAction["command"]>("/api/segment/alkoholicy", state.revision, refresh);
@@ -141,11 +141,12 @@ export function AlkoholicyScreen({ snapshot, viewerPlayerId, refresh }: { snapsh
   const ownBet = market === 1 ? state.charadesMarket.viewerBet : state.duelMarket.viewerBet;
   const options = !viewer ? [] : market === 1 ? TEAM_IDS.filter((team) => team !== viewer.teamId)
     : market !== null && !state.duelTeams?.includes(viewer.teamId) ? state.duelTeams ?? [] : [];
-  const canAfford = viewer && compareChipBalances(viewer.tokens, "2") >= 0;
+  const stake = market === 1 ? state.charadesMarket.betStake : state.duelMarket.betStake;
+  const canAfford = viewer && compareChipBalances(viewer.tokens, stake) >= 0;
 
   return (
     <div className={styles.wrapper}>
-      <AlkoholicyBoard snapshot={snapshot} />
+      <AlkoholicyBoard snapshot={snapshot} showBalances={viewerRole !== "observer"} />
       {viewer && (market !== null || state.charadesMarket.viewerBet || state.duelMarkets.some((duelMarket) => duelMarket.viewerBet)) && (
         <section className={styles.controls} aria-label="Twoje zakłady">
           <h2>Twoje zakłady</h2>
@@ -153,7 +154,7 @@ export function AlkoholicyScreen({ snapshot, viewerPlayerId, refresh }: { snapsh
           {state.duelMarkets.map((duelMarket, index) => <OwnBet key={index} market={duelMarket} label={"Pojedynek nr " + (index + 1)} />)}
           {market && !ownBet && (options.length > 0 ? (
             <>
-              <p>{canAfford ? "Wybierz drużynę. Stawka wynosi 2 żetony." : "Do postawienia zakładu potrzebujesz 2 żetonów."}</p>
+              <p>{!canAfford ? `Do postawienia zakładu potrzebujesz ${formatPolishChips(stake)} żetonów.` : stake === STANDARD_DUEL_BET_STAKE ? STANDARD_DUEL_BET_DESCRIPTION : `Stawka wynosi ${formatPolishChips(stake)} żetony.`}</p>
               <div className={styles.actions}>
                 {options.map((team) => <button key={team} type="button" className="gold-button" disabled={pending || !canAfford} onClick={() => void send({ action: "bet", game: market, teamId: team })}>{getTeam(team).name}</button>)}
               </div>

@@ -44,13 +44,13 @@ async function decodeImage(url: string, signal: AbortSignal) {
   }
 }
 
-export function useFloorPreload(active: boolean, showConnected = false) {
+export function useFloorPreload(active: boolean, showConnected = false, { readOnly = false } = {}) {
   const [state, setState] = useState<FloorPreload>(initial);
   const retry = useRef<() => void>(() => {});
 
   useEffect(() => {
-    if (!active && showConnected) return;
-    const deviceId = browserDeviceId ??= makeDeviceId();
+    if (!active && (showConnected || readOnly)) return;
+    const deviceId = readOnly ? undefined : (browserDeviceId ??= makeDeviceId());
     const controller = new AbortController();
     const { signal } = controller;
     const decoded = new Set<string>();
@@ -70,7 +70,7 @@ export function useFloorPreload(active: boolean, showConnected = false) {
     }
 
     async function report() {
-      if (signal.aborted) return;
+      if (!deviceId || signal.aborted) return;
       if (reporting) { reportAgain = true; return; }
       reporting = true;
       try {
@@ -158,7 +158,7 @@ export function useFloorPreload(active: boolean, showConnected = false) {
       window.clearInterval(heartbeat);
       retry.current = () => {};
     };
-  }, [active, showConnected]);
+  }, [active, showConnected, readOnly]);
 
   const total = state.manifest?.urls.length;
   const localReady = total !== undefined && state.decoded === total && !state.manifest?.issues.length;

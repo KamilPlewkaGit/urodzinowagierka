@@ -4,7 +4,8 @@ import { useState } from "react";
 
 import { FamiliadaBoard, FamiliadaRoundStatus, FamiliadaScores, familiadaPhaseLabel, useFamiliadaAction } from "@/components/familiada-screen";
 import styles from "@/components/familiada.module.css";
-import { TEAMS, getTeam } from "@/lib/constants";
+import { formatPolishChips } from "@/lib/chips";
+import { FAMILIADA_BET_DESCRIPTION, FAMILIADA_BET_STAKE, TEAMS, getTeam } from "@/lib/constants";
 import type { GameSnapshot, TeamId } from "@/lib/types";
 import type { FamiliadaAction } from "@/lib/validation";
 
@@ -124,8 +125,8 @@ export function FamiliadaAdminControls({ snapshot, onRefresh }: { snapshot: Game
       {match && stage !== "setup" && stage !== "completed" && <FamiliadaScores match={match} />}
       {predicts && (
         <div className={styles.message}>
-          {stage === "match-ready" && <p>Mecz jest gotowy. Otwórz lub pomiń zakłady, aby przejść do wyboru przedstawicieli i uruchomić pierwsze pytanie.</p>}
-          {stage === "betting" && <p>Przyjęte zakłady: <strong>{match.betCount}</strong></p>}
+          {stage === "match-ready" && <p>Mecz jest gotowy. Otwórz lub pomiń zakłady, aby przejść do wyboru przedstawicieli i uruchomić pierwsze pytanie. {FAMILIADA_BET_DESCRIPTION}</p>}
+          {stage === "betting" && <p>Przyjęte zakłady: <strong>{match.betCount}</strong>. Stawka to {formatPolishChips(match.betStake)} {match.betStake === FAMILIADA_BET_STAKE ? "żetonów" : "żetony"}.</p>}
           <div className={styles.actions}>
             {stage === "match-ready" && <button type="button" className="gold-button" disabled={pending} onClick={() => void send({ action: "open-betting" })}>Otwórz zakłady</button>}
             <button type="button" className="quiet-button" disabled={pending} onClick={closeBetting}>{stage === "betting" ? "Zamknij zakłady" : "Pomiń zakłady"}</button>

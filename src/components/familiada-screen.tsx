@@ -4,8 +4,8 @@ import { useRef, useState } from "react";
 
 import styles from "@/components/familiada.module.css";
 import { formatPolishChips } from "@/lib/chips";
-import { getTeam } from "@/lib/constants";
-import type { FamiliadaSnapshot, FamiliadaStage, GameSnapshot } from "@/lib/types";
+import { FAMILIADA_BET_DESCRIPTION, FAMILIADA_BET_STAKE, getTeam } from "@/lib/constants";
+import type { FamiliadaSnapshot, FamiliadaStage, GameSnapshot, Session } from "@/lib/types";
 import type { FamiliadaAction } from "@/lib/validation";
 
 export const familiadaPhaseLabel: Record<FamiliadaStage, string> = {
@@ -135,10 +135,11 @@ export function FamiliadaRoundStatus({ state }: { state: FamiliadaSnapshot }) {
   );
 }
 
-export function FamiliadaScreen({ snapshot, refresh, viewerPlayerId }: {
+export function FamiliadaScreen({ snapshot, refresh, viewerPlayerId, viewerRole }: {
   snapshot: GameSnapshot;
   refresh: () => Promise<void>;
   viewerPlayerId?: number;
+  viewerRole?: Session["role"];
 }) {
   const state = snapshot.familiada;
   const { stage, matchIndex, matches, round } = state;
@@ -151,7 +152,7 @@ export function FamiliadaScreen({ snapshot, refresh, viewerPlayerId }: {
   return (
     <section className={showBoard ? `${styles.stage} ${styles.liveStage}` : styles.stage} aria-labelledby="familiada-heading">
       <header className={styles.title}>
-        <span>Segment VIII{stage !== "setup" && stage !== "completed" && ` · Mecz ${matchIndex + 1} z 2`}</span>
+        <span>{viewerRole !== "observer" && "Segment VIII"}{stage !== "setup" && stage !== "completed" && `${viewerRole === "observer" ? "" : " · "}Mecz ${matchIndex + 1} z 2`}</span>
         <h1 id="familiada-heading">Familiada</h1>
         <p>{familiadaPhaseLabel[stage]}</p>
       </header>
@@ -169,7 +170,7 @@ export function FamiliadaScreen({ snapshot, refresh, viewerPlayerId }: {
           {match.teams.includes(viewer.teamId) ? <p>Twoja drużyna gra w tym meczu.</p> :
             match.viewerBet ? <p>Twój zakład na <strong>{getTeam(match.viewerBet.target).name}</strong> został przyjęty.</p> : (
               <>
-                <p>Możesz obstawić zwycięzcę meczu za 2 żetony.</p>
+                <p>{match.betStake === FAMILIADA_BET_STAKE ? FAMILIADA_BET_DESCRIPTION : `Stawka w tym meczu to ${formatPolishChips(match.betStake)} żetony.`}</p>
                 <div className={styles.actions}>
                   {match.teams.map((teamId) => (
                     <button key={teamId} type="button" className="gold-button" disabled={pending} onClick={() => void send({ action: "bet", teamId })}>
@@ -187,8 +188,8 @@ export function FamiliadaScreen({ snapshot, refresh, viewerPlayerId }: {
             <article key={index}>
               <h2>Mecz {index + 1} wygrywa {getTeam(item.winner).name}</h2>
               <FamiliadaScores match={item} />
-              {item.viewerBet?.result === "won" && <p>Twój zakład wygrywa. Wypłata: {formatPolishChips(item.viewerBet.payout)} żetony.</p>}
-              {item.viewerBet?.result === "lost" && <p>Twój zakład przegrywa. Strata: 2 żetony.</p>}
+              {item.viewerBet?.result === "won" && <p>Twój zakład wygrywa. Wypłata: {formatPolishChips(item.viewerBet.payout)} żetonów.</p>}
+              {item.viewerBet?.result === "lost" && <p>Twój zakład przegrywa. Strata: {formatPolishChips(item.viewerBet.stake)} {item.viewerBet.stake === FAMILIADA_BET_STAKE ? "żetonów" : "żetony"}.</p>}
             </article>
           ))}
         </div>

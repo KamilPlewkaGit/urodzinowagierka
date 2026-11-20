@@ -1,3 +1,5 @@
 File: src/components/game-screen.tsx
 
 Purpose: Renders the Polish SOLENIZANT introduction, current question, final result, and team scoreboard from the live GameSnapshot supplied by ActiveSegment. Both question and scoring stages show the same question. The component is display-only and receives synchronized state from its parent.
+
+Widownia używa wspólnej klasyfikacji obserwatora zamiast powielania tabeli pod pytaniem.

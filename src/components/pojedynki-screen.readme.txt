@@ -7,3 +7,5 @@ Eligible players may leave the optional wager unsubmitted and wait for the admin
 ActiveSegment supplies the live GameSnapshot, viewer role and optional session-derived player ID, and a shared refresh callback. After a successful bet the screen requests a fresh snapshot through that callback. The screen receives only the viewer's own bet details and keeps transient feedback local. Game progression and settlement remain in the existing protected Route Handlers.
 
 Wynik używa standardowej reguły transferów między drużynami i pokazuje prywatny wynik zakładu gracza. Ponowienie starego nierozliczonego wyniku odbywa się w panelu prowadzącego.
+
+Widok pokazuje stawkę zapisaną dla otwartej rundy. Obserwator ogląda przebieg z wyłączonymi akcjami gracza.

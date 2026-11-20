@@ -3,7 +3,7 @@ import type { CSSProperties } from "react";
 import { formatPolishChips } from "@/lib/chips";
 import { TEAMS, getTeam } from "@/lib/constants";
 import { MELODIA_LOSER_CONTRIBUTION, MELODIA_SONG_COUNT, MELODIA_TITLE, getMelodiaSongLabel } from "@/lib/melodia";
-import type { GameSnapshot, MelodiaSong, MelodiaState, TeamId } from "@/lib/types";
+import type { GameSnapshot, MelodiaSong, MelodiaState, TeamId, Session } from "@/lib/types";
 
 export function melodiaTeamStyle(teamId: TeamId) {
   const team = getTeam(teamId);
@@ -85,7 +85,7 @@ export function MelodiaRewardSummary({ melodia }: { melodia: MelodiaState }) {
 
 }
 
-export function MelodiaScreen({ snapshot }: { snapshot: GameSnapshot }) {
+export function MelodiaScreen({ snapshot, viewerRole }: { snapshot: GameSnapshot; viewerRole?: Session["role"] }) {
   const { melodia } = snapshot;
   const { currentSong, stage } = melodia;
   const isFinal = stage === "results" || stage === "completed";
@@ -105,7 +105,7 @@ export function MelodiaScreen({ snapshot }: { snapshot: GameSnapshot }) {
         </>}
       </>}
       <MelodiaScoreboard melodia={melodia} />
-      {isFinal && melodia.settledAt && <section className="score-section" aria-label="Salda po rozliczeniu">
+      {viewerRole !== "observer" && isFinal && melodia.settledAt && <section className="score-section" aria-label="Salda po rozliczeniu">
         <h2>Żetony po rozliczeniu</h2>
         <ul className="melodia-list">{snapshot.players.map((player) => <li key={player.id}>{player.nickname} · {getTeam(player.teamId).name}: <strong>{formatPolishChips(player.tokens)} żetonów</strong></li>)}</ul>
       </section>}

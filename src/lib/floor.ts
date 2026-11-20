@@ -5,8 +5,6 @@ export const THE_FLOOR_DUEL_SECONDS = 45;
 export const THE_FLOOR_PASS_PENALTY_SECONDS = 3;
 export const THE_FLOOR_POLL_INTERVAL_MS = 1_000;
 export const THE_FLOOR_PRESENCE_SECONDS = 30;
-export const THE_FLOOR_BET_DESCRIPTION = "Każdy gracz, którego drużyna nie uczestniczy w danym pojedynku, obstawia zwycięzcę. Jeden zakład = 2 żetony.";
-export const THE_FLOOR_BET_STAKE = "2.0000";
 
 export const THE_FLOOR_CATEGORY_IDS = [
   "znajome-twarze", "lokalne-miejsca", "loga", "od-tylu", "dzialania", "rebusy", "politycy",

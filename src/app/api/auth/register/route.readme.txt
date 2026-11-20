@@ -8,6 +8,6 @@ Dependencies: `src/lib/validation.ts`, `src/lib/database.ts`, and `src/lib/sessi
 
 Backend/database interactions: Looks up an active case-insensitive match with `findActivePlayerByNickname`; otherwise calls `createPlayer`, whose Neon insert allocates the authoritative starting balance and detects the nickname constraint. Successful paths create a database-backed player session.
 
-Implementation details: The reserved `admin` nickname is rejected server-side even if a caller bypasses the landing form. An existing active player keeps the stored team and exact decimal balance; the provided team is ignored. A unique-index race is re-read as a rejoin when possible. The HttpOnly cookie is set only after a server-side session creation. Nickname rejoining is intentionally convenient but not strong player authentication.
+Implementation details: The reserved `admin` and `obserwator` nicknames are rejected server-side even if a caller bypasses the landing form. An existing active player keeps the stored team and exact decimal balance; the provided team is ignored. A unique-index race is re-read as a rejoin when possible. The HttpOnly cookie is set only after a server-side session creation. Nickname rejoining is intentionally convenient but not strong player authentication.
 
 Future expansion: Add optional player profile fields through the validation schema and database service; do not accept chips or role fields in this request.

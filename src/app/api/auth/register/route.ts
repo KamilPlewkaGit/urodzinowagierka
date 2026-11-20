@@ -15,13 +15,13 @@ export async function POST(request: NextRequest) {
   }
 
   const nickname = nicknameSchema.safeParse(
-    typeof body.nickname === "string" ? normalizeNickname(body.nickname) : body.nickname,
+    typeof body?.nickname === "string" ? normalizeNickname(body.nickname) : body?.nickname,
   );
   if (!nickname.success) {
     return NextResponse.json({ error: nickname.error.issues[0]?.message ?? "Nieprawidłowy pseudonim." }, { status: 400 });
   }
   if (isReservedNickname(nickname.data)) {
-    return NextResponse.json({ error: "Pseudonim admin jest zarezerwowany." }, { status: 400 });
+    return NextResponse.json({ error: "Ten pseudonim jest zarezerwowany." }, { status: 400 });
   }
 
   try {

@@ -11,3 +11,5 @@ Implementation: Saving matchups seeds the exact question text and descending ans
 After the opening face-off, the board shows one shared three-strike counter per question. The third strike starts a single steal attempt. A hidden answer wins the pool for the opponent, and a miss awards it to the controlling team. Legacy split counters are summed and capped at three when read. Saved round results are preserved.
 
 Potwierdzenie wymaga rozstrzygnięcia wszystkich czterech rund. Zapisany zwycięzca rozliczonego meczu daje drużynie 1 punkt w klasyfikacji ogólnej. Pula odpowiedzi wyznacza wynik meczu. `correct-match` zmienia wyłącznie rozstrzygnięcie remisu w rozliczonym meczu.
+
+Otwarcie zakładów zapisuje niezależną stawkę 8 żetonów w każdym meczu. Migawka zwraca stawkę rundy i zapisaną stawkę własnego zakładu.

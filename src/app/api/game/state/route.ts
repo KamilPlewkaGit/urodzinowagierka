@@ -7,7 +7,8 @@ export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
   const session = await getRequestSession(request);
-  if (!session) {
+  const observerOnly = request.nextUrl.searchParams.get("widok") === "obserwator";
+  if (!session || (observerOnly && session.role !== "observer")) {
     return NextResponse.json({ error: "Sesja wygasła. Zaloguj się ponownie." }, { status: 401 });
   }
 

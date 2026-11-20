@@ -11,3 +11,5 @@ Implementation: Empty teams remain selectable. Representative options come from 
 Setup explains that both pairs must be saved before start. Match preparation explains the next steps through betting and representative selection to the first question.
 
 The shared board displays one strike counter. The same mistake button records a miss during play or resolves an unsuccessful steal.
+
+Przygotowanie pokazuje stawkę 8 żetonów, a po otwarciu zakładów panel pokazuje stawkę aktualnego meczu.

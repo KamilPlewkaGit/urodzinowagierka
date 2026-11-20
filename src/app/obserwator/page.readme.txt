@@ -1,0 +1,1 @@
+Strona serwerowa weryfikuje sesję observer i ładuje aktualną publiczną migawkę bez identyfikatora gracza lub uprawnień administratora. Odświeżenie wraca do zapisanego segmentu i etapu.

@@ -21,6 +21,10 @@ export async function createAdminSession() {
   return createSession({ role: "admin", expiresAt: sessionExpiresAt() });
 }
 
+export async function createObserverSession() {
+  return createSession({ role: "observer", expiresAt: sessionExpiresAt() });
+}
+
 export const sessionCookieOptions = {
   httpOnly: true,
   sameSite: "lax" as const,
